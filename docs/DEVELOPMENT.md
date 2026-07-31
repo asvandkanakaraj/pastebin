@@ -185,3 +185,17 @@
   - Upgraded `/health` checks inside [index.ts](file:///e:/DEVS/PasteBin/apps/server/src/index.ts) to execute `db.$queryRaw` SELECT 1 to verify database status.
   - Modified [error.middleware.ts](file:///e:/DEVS/PasteBin/apps/server/src/middleware/error.middleware.ts) to capture full stacks for status >= 500 exceptions.
   - Updated documentation files [DEPLOYMENT.md](file:///e:/DEVS/PasteBin/docs/DEPLOYMENT.md) and [ARCHITECTURE.md](file:///e:/DEVS/PasteBin/docs/ARCHITECTURE.md).
+
+## Session 15: Automated Testing Suite
+- **Date**: 2026-07-31
+- **Status**: Completed ✅
+- **Objective**: Establish monorepo automated test configurations, write isolated backend service unit tests, configure Supertest integration checks, and test React Navbar components.
+- **Outcomes**:
+  - Configured `vitest.config.ts` in workspaces `@pastebin/server` and `web`.
+  - Linked root `npm run test` script running test targets across workspaces.
+  - Coded unit tests in [paste.service.test.ts](file:///e:/DEVS/PasteBin/apps/server/src/services/__tests__/paste.service.test.ts) verifying creation and expiration rules using mocked database clients.
+  - Refactored server execution setup from `index.ts` to [app.ts](file:///e:/DEVS/PasteBin/apps/server/src/app.ts) enabling isolated route testing.
+  - Wrote API tests in [api.test.ts](file:///e:/DEVS/PasteBin/apps/server/src/__tests__/api.test.ts) using Supertest.
+  - Built frontend component tests in [Navbar.test.tsx](file:///e:/DEVS/PasteBin/apps/web/src/components/__tests__/Navbar.test.tsx) verifying conditional sign-in/dashboard rendering.
+  - Coded class merger function utility checks in [utils.test.ts](file:///e:/DEVS/PasteBin/apps/web/src/lib/__tests__/utils.test.ts).
+  - Drafted testing procedures overview record [TESTING.md](file:///e:/DEVS/PasteBin/docs/TESTING.md).
