@@ -21,7 +21,54 @@ export function CodeEditor({
   onMount,
 }: CodeEditorProps) {
   const { theme } = useTheme();
-  const selectedTheme = editorTheme || (theme === 'dark' ? 'vs-dark' : 'light');
+  
+  // Resolve base theme mapping
+  const currentTheme = editorTheme || (theme === 'dark' ? 'vs-dark' : 'light');
+  const selectedTheme = currentTheme === 'vs-dark' ? 'pastebin-dark' : 'pastebin-light';
+
+  const handleEditorWillMount = (monaco: any) => {
+    // Custom premium dark theme matching the mockup
+    monaco.editor.defineTheme('pastebin-dark', {
+      base: 'vs-dark',
+      inherit: true,
+      rules: [
+        { token: 'comment', foreground: '64748b', fontStyle: 'italic' },
+        { token: 'keyword', foreground: '3b82f6', fontStyle: 'bold' },
+        { token: 'string', foreground: '38bdf8' },
+        { token: 'number', foreground: 'f59e0b' },
+        { token: 'type', foreground: '10b981' },
+      ],
+      colors: {
+        'editor.background': '#0f172a', // Deep Slate-900
+        'editor.foreground': '#cbd5e1',
+        'editor.lineHighlightBackground': '#1e293b60',
+        'editorLineNumber.foreground': '#475569',
+        'editorLineNumber.activeForeground': '#38bdf8',
+        'editorGutter.background': '#0f172a',
+      }
+    });
+
+    // Custom premium light theme matching the mockup
+    monaco.editor.defineTheme('pastebin-light', {
+      base: 'vs',
+      inherit: true,
+      rules: [
+        { token: 'comment', foreground: '94a3b8', fontStyle: 'italic' },
+        { token: 'keyword', foreground: '2563eb', fontStyle: 'bold' },
+        { token: 'string', foreground: '0284c7' },
+        { token: 'number', foreground: 'd97706' },
+        { token: 'type', foreground: '059669' },
+      ],
+      colors: {
+        'editor.background': '#ffffff', // Pure White
+        'editor.foreground': '#334155',
+        'editor.lineHighlightBackground': '#f1f5f990',
+        'editorLineNumber.foreground': '#94a3b8',
+        'editorLineNumber.activeForeground': '#2563eb',
+        'editorGutter.background': '#ffffff',
+      }
+    });
+  };
 
   return (
     <div className="w-full border border-slate-200 dark:border-slate-800 overflow-hidden shadow-inner bg-slate-50 dark:bg-slate-950">
@@ -31,6 +78,7 @@ export function CodeEditor({
         value={value}
         onChange={onChange}
         theme={selectedTheme}
+        beforeMount={handleEditorWillMount}
         onMount={onMount}
         loading={
           <div className="flex h-[400px] w-full items-center justify-center bg-slate-50 dark:bg-slate-950 font-mono text-xs text-slate-400">
