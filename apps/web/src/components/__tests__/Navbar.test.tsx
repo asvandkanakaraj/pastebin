@@ -16,9 +16,9 @@ describe('Navbar Component Tests', () => {
   it('should render the logo, browse link, and login/register when user is logged out', () => {
     vi.mocked(auth.useAuth).mockReturnValue({
       user: null,
+      token: null,
       logout: vi.fn(),
       login: vi.fn(),
-      register: vi.fn(),
       loading: false,
     });
 
@@ -36,9 +36,9 @@ describe('Navbar Component Tests', () => {
   it('should render dashboard and logout actions when user is logged in', () => {
     vi.mocked(auth.useAuth).mockReturnValue({
       user: { email: 'test@example.com', id: 'user-1' },
+      token: 'mock-token',
       logout: vi.fn(),
       login: vi.fn(),
-      register: vi.fn(),
       loading: false,
     });
 

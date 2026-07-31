@@ -1,0 +1,56 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: pastebin_prod_db
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres_prod_pass
+      POSTGRES_DB: pastebin_prod_db
+    volumes:
+      - postgres_prod_data:/var/lib/postgresql/data
+    networks:
+      - pastebin-prod-network
+    ports:
+      - "5432:5432"
+
+  server:
+    build:
+      context: .
+      dockerfile: apps/server/Dockerfile
+    container_name: pastebin_prod_server
+    restart: always
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres_prod_pass@db:5432/pastebin_prod_db?schema=public
+      PORT: 5000
+      JWT_SECRET: pastebin-production-jwt-token-secret-key-signature
+      NODE_ENV: production
+    ports:
+      - "5000:5000"
+    depends_on:
+      - db
+    networks:
+      - pastebin-prod-network
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    container_name: pastebin_prod_web
+    restart: always
+    ports:
+      - "80:80"
+    depends_on:
+      - server
+    networks:
+      - pastebin-prod-network
+
+volumes:
+  postgres_prod_data:
+    driver: local
+
+networks:
+  pastebin-prod-network:
+    driver: bridge

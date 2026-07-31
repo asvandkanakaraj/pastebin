@@ -34,4 +34,5 @@
 
 ## Phase 5: Testing & Release (Next Phase)
 - [x] Automated Testing (Vitest backend unit/integration tests and RTL component checks)
-- [ ] Production Docker & Multi-stage Builds (Multi-stage build pipelines, lightweight Alpine nodes)
+- [x] Production Docker & Multi-stage Builds (Multi-stage build pipelines, lightweight Alpine nodes)
+- [ ] CI/CD Pipelines (GitHub Actions integrations, automated lint and workspaces test runs)

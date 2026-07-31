@@ -199,3 +199,15 @@
   - Built frontend component tests in [Navbar.test.tsx](file:///e:/DEVS/PasteBin/apps/web/src/components/__tests__/Navbar.test.tsx) verifying conditional sign-in/dashboard rendering.
   - Coded class merger function utility checks in [utils.test.ts](file:///e:/DEVS/PasteBin/apps/web/src/lib/__tests__/utils.test.ts).
   - Drafted testing procedures overview record [TESTING.md](file:///e:/DEVS/PasteBin/docs/TESTING.md).
+
+## Session 16: Production Docker & Multi-stage Builds
+- **Date**: 2026-07-31
+- **Status**: Completed ✅
+- **Objective**: Develop lean, secure production Dockerfiles, compile custom Nginx reverse proxy mappings, and orchestrate environment services via Docker Compose.
+- **Outcomes**:
+  - Authored a multi-stage [Dockerfile](file:///e:/DEVS/PasteBin/apps/server/Dockerfile) for the Express backend, pruning devDependencies and setting up node non-root execution.
+  - Crafted [nginx.conf](file:///e:/DEVS/PasteBin/apps/web/nginx.conf) routing all client paths back to index.html for React Router.
+  - Developed a multi-stage [Dockerfile](file:///e:/DEVS/PasteBin/apps/web/Dockerfile) building web client pages and copying output assets to the Nginx serving path.
+  - Orchestrated deployment in [docker-compose.prod.yml](file:///e:/DEVS/PasteBin/docker-compose.prod.yml) defining web, server, and persistent db nodes on an isolated virtual bridge network.
+  - Created environment templates [.env.production](file:///e:/DEVS/PasteBin/.env.production).
+  - Updated deployments guidelines inside [DEPLOYMENT.md](file:///e:/DEVS/PasteBin/docs/DEPLOYMENT.md) and container architecture details inside [ARCHITECTURE.md](file:///e:/DEVS/PasteBin/docs/ARCHITECTURE.md).

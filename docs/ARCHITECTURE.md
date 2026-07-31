@@ -174,3 +174,17 @@ The API server configures a Winston logging interface separating output targets 
 
 ### Health Verification Pings
 The `/health` route uses dynamic queries to ping Postgres (`db.$queryRaw`SELECT 1``) to verify DB reachability in real-time, responding with `503 Service Unavailable` on connection timeouts. Uptime is computed dynamically using Node's native `process.uptime()`.
+
+---
+
+## 11. Docker Architecture & Containerization
+
+### Multi-stage Building
+The monorepo uses multi-stage Docker builds to compile assets and deliver lean, secure runtime environments:
+- **Build Isolation (Stage 1)**: Base builder images install devDependencies, resolve monorepo TS dependencies, compile files to JS, and run prisma client generators. This keeps compiler and package resolution concerns completely isolated from production nodes.
+- **Production Stripping (Stage 2)**:
+  - **Server Image**: Pulls compiled source files and maps ONLY hoisted production-dependencies `node_modules` (via `npm prune --omit=dev`), reducing backend image size. Runs as a non-root `node` system user.
+  - **Web Image**: Copies Vite statically compiled frontend assets into a lightweight `nginx:alpine` image. Employs a custom `nginx.conf` routing configuration to direct SPA routes back to the main document entry.
+
+### Production Environment Topology
+Services run linked on a private virtual bridge network (`pastebin-prod-network`), isolating database ports from public access. Persistent storage volumes mapping PostgreSQL directories ensure data survives host restarts.
