@@ -373,3 +373,40 @@ The frontend web container runs an optimized **Nginx reverse proxy server**:
 ### Database Persistence Strategy
 
 - **Volumes Mapping**: Mounts a Docker persistent volume (`postgres_prod_data` to `/var/lib/postgresql/data`) to prevent data loss across container lifecycle resets.
+
+---
+
+## 15. Global Search Request Flow
+
+The Global Search feature enables real-time search for users (by username/email) and pastes (by title) directly from the header navigation bar. It is designed to be fast, responsive, and secure.
+
+### Request Flow Diagram
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor User
+    participant SearchInput as SearchInput Component
+    participant Hook as useGlobalSearch Hook
+    participant API as GET /api/search
+    participant DB as PostgreSQL Database
+
+    User->>SearchInput: Types query in search bar (e.g. "blue")
+    Note over Hook: Debounces input for 300ms
+    alt Input is short or empty
+        Hook-->>SearchInput: Clears previous results & hides dropdown
+    else Debounce completes
+        Hook->>API: Sends GET /api/search?q=blue (with AbortSignal)
+        API->>DB: Queries Users (username/email contains "blue")
+        API->>DB: Queries Pastes (title contains "blue" & isPublic & notExpired)
+        DB-->>API: Returns DB rows
+        Note over API: Scores and sorts matching items:<br/>1. Exact Username<br/>2. Exact Email<br/>3. Exact Paste Title<br/>4. Partial matches
+        API-->>Hook: Returns sorted { users: [...], pastes: [...] } payload
+        alt User typed new characters before response
+            Note over Hook: AbortSignal cancels pending request
+        else Response received
+            Hook-->>SearchInput: Updates results state & opens dropdown
+            SearchInput-->>User: Renders Grouped Results list (Max 5 Users, 5 Pastes)
+        end
+    end
+```

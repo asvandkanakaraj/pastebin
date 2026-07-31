@@ -322,6 +322,7 @@
   - Updated phase roadmap todo lists inside [TODO.md](file:///e:/DEVS/PasteBin/docs/TODO.md).
 
 ## Session 24: Project Completion & Handover
+
 - **Date**: 2026-07-31
 - **Status**: Completed ✅
 - **Objective**: Execute final system audits, sweep workspace placeholder .gitkeep files, enforce global formatting rules, compile a world-class landing-page README.md, and deliver the final production-ready monorepo.
@@ -358,4 +359,18 @@
   - Handled loading and disabled states gracefully on password visibility toggles.
   - Documented decisions and system updates inside [DEVELOPMENT.md](file:///e:/DEVS/PasteBin/docs/DEVELOPMENT.md) and [DECISIONS.md](file:///e:/DEVS/PasteBin/docs/DECISIONS.md).
 
+## Session 27: Global Search System Implementation
 
+- **Date**: 2026-08-01
+- **Status**: Completed ✅
+- **Objective**: Implement a modern, real-time global search experience for finding users (by username/email) and pastes (by title) with sorted priority and keyboard/mobile usability constraints.
+- **Outcomes**:
+  - Added unique `username` field to the database `User` model, automatically derived from email address prefixes on user creation, ensuring database uniqueness.
+  - Implemented backend GET `/api/search` endpoint combining user and paste matches inside a single response, sorted by match priority score (Exact Username > Exact Email > Exact Paste Title > Partial matches).
+  - Implemented backend GET `/api/users/:username` endpoint fetching user profiles and list of their public, non-expired pastes.
+  - Created a modular global search structure in the frontend features workspace (`features/search/types`, `features/search/services`, `features/search/hooks`, `features/search/components`).
+  - Implemented `SearchInput` inside the Navbar triggering real-time queries with 300ms debounces, query-empty verification, request abort cancellations (`AbortController`), and key shortcut indicator `/`.
+  - Implemented `SearchDropdown` grouping users and pastes results separately (max 5 each), displaying visibility badges, handling profile/paste navigation clicks, keyboard navigations (Arrow Up/Down/Enter/Escape), loading state skeletons, and error/empty states.
+  - Implemented a dedicated search results page (`SearchResults.tsx`) for "View all results" redirection and user profile display (`UserProfile.tsx`).
+  - Handled mobile responsiveness by adding a responsive mobile search overlay toggled via header action button.
+  - Updated API, Architecture, and Development logs.

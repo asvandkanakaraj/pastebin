@@ -17,10 +17,33 @@ export class UserService {
       throw error;
     }
 
+    // Derive a unique username from email prefix
+    let username = email
+      .split('@')[0]
+      .toLowerCase()
+      .replace(/[^a-z0-9_]/g, '');
+    if (!username) {
+      username = 'user_' + Math.random().toString(36).substring(2, 8);
+    }
+
+    let existingUsername = await db.user.findUnique({
+      where: { username },
+    });
+    let suffix = 1;
+    const baseUsername = username;
+    while (existingUsername) {
+      username = `${baseUsername}${suffix}`;
+      existingUsername = await db.user.findUnique({
+        where: { username },
+      });
+      suffix++;
+    }
+
     const passwordHash = await bcrypt.hash(passwordInput, 10);
     const user = await db.user.create({
       data: {
         email,
+        username,
         passwordHash,
       },
     });
@@ -49,12 +72,52 @@ export class UserService {
       throw error;
     }
 
-    const token = jwt.sign({ userId: user.id, email: user.email }, JWT_SECRET, { expiresIn: '7d' });
+    const token = jwt.sign(
+      { userId: user.id, email: user.email, username: user.username },
+      JWT_SECRET,
+      { expiresIn: '7d' }
+    );
 
     const { passwordHash: _, ...safeUser } = user;
     return {
       user: safeUser,
       token,
+    };
+  }
+
+  static async getUserProfileByUsername(username: string) {
+    const user = await db.user.findUnique({
+      where: { username },
+    });
+
+    if (!user) {
+      const error = new Error('User not found');
+      (error as any).status = 404;
+      (error as any).name = 'NotFoundError';
+      throw error;
+    }
+
+    const pastes = await db.paste.findMany({
+      where: {
+        userId: user.id,
+        isPublic: true,
+        OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
+      },
+      orderBy: { createdAt: 'desc' },
+      select: {
+        id: true,
+        title: true,
+        language: true,
+        createdAt: true,
+        expiresAt: true,
+        isPublic: true,
+      },
+    });
+
+    const { passwordHash: _, ...safeUser } = user;
+    return {
+      user: safeUser,
+      pastes,
     };
   }
 }

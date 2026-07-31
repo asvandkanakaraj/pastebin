@@ -19,6 +19,12 @@ const Register = lazy(() => import('./pages/Register.js').then((m) => ({ default
 const Dashboard = lazy(() =>
   import('./pages/Dashboard.js').then((m) => ({ default: m.Dashboard }))
 );
+const SearchResults = lazy(() =>
+  import('./pages/SearchResults.js').then((m) => ({ default: m.SearchResults }))
+);
+const UserProfile = lazy(() =>
+  import('./pages/UserProfile.js').then((m) => ({ default: m.UserProfile }))
+);
 
 // Professional skeleton loading spinner page loader
 function PageLoader() {
@@ -50,6 +56,8 @@ function App() {
                 <Route path="/login" element={<Login />} />
                 <Route path="/register" element={<Register />} />
                 <Route path="/dashboard" element={<Dashboard />} />
+                <Route path="/search" element={<SearchResults />} />
+                <Route path="/profile/:username" element={<UserProfile />} />
               </Routes>
             </Suspense>
           </MainLayout>

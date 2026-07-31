@@ -249,6 +249,69 @@ Returns all active and expired pastes created by the authenticated user session.
 
 ---
 
+### 4. Global Search
+
+Finds public pastes by title and users by username/email matching the query string. Results are sorted intelligently with priority given to exact matches.
+
+- **Method**: `GET`
+- **URL**: `/api/search`
+- **Query Parameters**:
+  - `q` (Required): The search term query string.
+- **Success Response (200 OK)**:
+  ```json
+  {
+    "users": [
+      {
+        "id": "user-uuid-1",
+        "email": "blue@gmail.com",
+        "username": "jusbyblue"
+      }
+    ],
+    "pastes": [
+      {
+        "id": "paste-cuid-1",
+        "title": "React Authentication",
+        "isPublic": true,
+        "language": "typescript",
+        "createdAt": "2026-07-31T10:00:00.000Z"
+      }
+    ]
+  }
+  ```
+
+---
+
+### 5. Get User Profile
+
+Returns a user profile and list of their public, non-expired pastes.
+
+- **Method**: `GET`
+- **URL**: `/api/users/:username`
+- **Success Response (200 OK)**:
+  ```json
+  {
+    "user": {
+      "id": "user-uuid-1",
+      "email": "blue@gmail.com",
+      "username": "jusbyblue",
+      "createdAt": "2026-07-31T09:00:00.000Z",
+      "updatedAt": "2026-07-31T09:00:00.000Z"
+    },
+    "pastes": [
+      {
+        "id": "paste-cuid-1",
+        "title": "React Authentication",
+        "language": "typescript",
+        "createdAt": "2026-07-31T10:00:00.000Z",
+        "expiresAt": null,
+        "isPublic": true
+      }
+    ]
+  }
+  ```
+
+---
+
 ## Error Codes
 
 The PasteBin API uses standard HTTP response status codes to indicate success or failure. Each status code maps to specific scenarios:

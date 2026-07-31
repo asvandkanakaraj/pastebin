@@ -1,16 +1,43 @@
-import { Link, useNavigate } from 'react-router-dom';
-import { Code, Search, LogOut, LogIn, User, LayoutDashboard } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { Code, Search, LogOut, LogIn, User, LayoutDashboard, ArrowLeft } from 'lucide-react';
 import { ModeToggle } from '../mode-toggle.js';
 import { useAuth } from '../auth-provider.js';
+import { SearchInput } from '../../features/search/components/SearchInput.js';
 
 export function Navbar() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
+
+  useEffect(() => {
+    setIsMobileSearchOpen(false);
+  }, [location.pathname]);
 
   const handleLogout = () => {
     logout();
     navigate('/');
   };
+
+  if (isMobileSearchOpen) {
+    return (
+      <header className="sticky top-0 z-40 w-full border-b border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-950">
+        <div className="mx-auto flex h-16 max-w-7xl items-center gap-3 px-4 sm:px-6">
+          <button
+            onClick={() => setIsMobileSearchOpen(false)}
+            className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 dark:border-slate-800 dark:text-slate-400 dark:hover:bg-slate-900"
+            aria-label="Close search"
+          >
+            <ArrowLeft size={16} />
+          </button>
+          <div className="flex-1">
+            <SearchInput />
+          </div>
+        </div>
+      </header>
+    );
+  }
 
   return (
     <header className="sticky top-0 z-40 w-full border-b border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-950">
@@ -27,18 +54,7 @@ export function Navbar() {
 
         {/* Search Bar */}
         <div className="hidden max-w-md flex-1 px-8 md:flex justify-center">
-          <div className="relative w-full max-w-sm">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-            <input
-              type="text"
-              placeholder="Search public pastes..."
-              disabled
-              className="h-9 w-full rounded-lg border border-slate-200 bg-slate-50/50 pl-10 pr-10 text-sm placeholder-slate-400 focus:outline-none dark:border-slate-800 dark:bg-slate-900/50 cursor-not-allowed"
-            />
-            <div className="absolute right-3 top-1/2 -translate-y-1/2 rounded border border-slate-200 bg-white px-1.5 py-0.5 text-[9px] font-medium text-slate-400 shadow-sm dark:border-slate-800 dark:bg-slate-950">
-              /
-            </div>
-          </div>
+          <SearchInput />
         </div>
 
         {/* Navigation & Actions */}
@@ -53,6 +69,15 @@ export function Navbar() {
           </nav>
 
           <div className="flex items-center gap-3 pl-4 border-l border-slate-200 dark:border-slate-800">
+            {/* Mobile Search Toggle Button */}
+            <button
+              onClick={() => setIsMobileSearchOpen(true)}
+              className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 md:hidden dark:border-slate-800 dark:text-slate-400 dark:hover:bg-slate-900 transition-colors"
+              aria-label="Open search"
+            >
+              <Search size={14} />
+            </button>
+
             {user && (
               <Link
                 to="/dashboard"

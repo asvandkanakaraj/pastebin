@@ -9,6 +9,8 @@ import { APP_NAME } from '@pastebin/shared';
 import { db } from '@pastebin/database';
 import pasteRoutes from './routes/paste.routes.js';
 import authRoutes from './routes/auth.routes.js';
+import searchRoutes from './routes/search.routes.js';
+import userRoutes from './routes/user.routes.js';
 import { errorHandler } from './middleware/error.middleware.js';
 import { globalRateLimiter } from './middleware/rate-limit.middleware.js';
 import { logger } from './utils/logger.js';
@@ -104,6 +106,8 @@ app.get('/health', async (req, res) => {
 // Register API routes
 app.use('/api/pastes', pasteRoutes);
 app.use('/api/auth', authRoutes);
+app.use('/api/search', searchRoutes);
+app.use('/api/users', userRoutes);
 
 // Global Error Handler
 app.use(errorHandler);

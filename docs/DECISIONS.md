@@ -121,4 +121,3 @@ We update the navigation menu layout to only include core elements: Logo, Search
 - Navigation layout is simplified, clean, and contains zero dead or broken links.
 - Password input forms are modernized and highly secure.
 - Full keyboard accessibility and screen reader support is guaranteed for password toggling.
-

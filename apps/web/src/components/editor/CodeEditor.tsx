@@ -42,7 +42,7 @@ export function CodeEditor({
         'editorLineNumber.foreground': '#475569',
         'editorLineNumber.activeForeground': '#38bdf8',
         'editorGutter.background': '#0f172a',
-      }
+      },
     });
 
     // Custom premium light theme matching the mockup
@@ -63,13 +63,14 @@ export function CodeEditor({
         'editorLineNumber.foreground': '#94a3b8',
         'editorLineNumber.activeForeground': '#2563eb',
         'editorGutter.background': '#ffffff',
-      }
+      },
     });
   };
 
-  const wrapperClass = selectedTheme === 'pastebin-light'
-    ? 'bg-[#ffffff] border-slate-200'
-    : 'bg-[#0f172a] border-slate-800';
+  const wrapperClass =
+    selectedTheme === 'pastebin-light'
+      ? 'bg-[#ffffff] border-slate-200'
+      : 'bg-[#0f172a] border-slate-800';
 
   return (
     <div className={`w-full border overflow-hidden shadow-inner ${wrapperClass}`}>

@@ -9,15 +9,15 @@
 
 ## Executive Summary
 
-| Category | Critical | High | Medium | Low | Total |
-| --- | --- | --- | --- | --- | --- |
-| **A. Navigation Bar** | 1 | 2 | 1 | 0 | **4** |
-| **B. Code Editor & Creation** | 1 | 2 | 2 | 1 | **6** |
-| **C. View & Sharing** | 1 | 3 | 1 | 0 | **5** |
-| **D. Browse & Search** | 0 | 1 | 2 | 0 | **3** |
-| **E. Auth & User System** | 2 | 3 | 2 | 0 | **7** |
-| **F. DevOps & Infrastructure** | 2 | 3 | 2 | 1 | **8** |
-| **Totals** | **7** | **14** | **10** | **2** | **33** |
+| Category                       | Critical | High   | Medium | Low   | Total  |
+| ------------------------------ | -------- | ------ | ------ | ----- | ------ |
+| **A. Navigation Bar**          | 1        | 2      | 1      | 0     | **4**  |
+| **B. Code Editor & Creation**  | 1        | 2      | 2      | 1     | **6**  |
+| **C. View & Sharing**          | 1        | 3      | 1      | 0     | **5**  |
+| **D. Browse & Search**         | 0        | 1      | 2      | 0     | **3**  |
+| **E. Auth & User System**      | 2        | 3      | 2      | 0     | **7**  |
+| **F. DevOps & Infrastructure** | 2        | 3      | 2      | 1     | **8**  |
+| **Totals**                     | **7**    | **14** | **10** | **2** | **33** |
 
 ---
 
@@ -242,13 +242,13 @@ Expired pastes remain in the database indefinitely. The expiration check in `Pas
 
 ## Gap Severity Definitions
 
-| Severity | Definition |
-| --- | --- |
+| Severity     | Definition                                                                     |
+| ------------ | ------------------------------------------------------------------------------ |
 | **CRITICAL** | Security vulnerability, data integrity risk, or completely broken core feature |
-| **HIGH** | Feature that exists in UI but is non-functional, or significant logic gap |
-| **MEDIUM** | Missing quality-of-life feature or inconsistency that degrades UX |
-| **LOW** | Minor polish issue or improvement opportunity |
+| **HIGH**     | Feature that exists in UI but is non-functional, or significant logic gap      |
+| **MEDIUM**   | Missing quality-of-life feature or inconsistency that degrades UX              |
+| **LOW**      | Minor polish issue or improvement opportunity                                  |
 
 ---
 
-*End of Gap Report. Total gaps identified: **33** across 6 system categories.*
+_End of Gap Report. Total gaps identified: **33** across 6 system categories._
