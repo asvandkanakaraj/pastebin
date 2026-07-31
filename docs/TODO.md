@@ -42,4 +42,5 @@
 - [x] CLI Distribution & Polish (NPM link commands, executable package distributions)
 
 ## Phase 7: Security Audit & Performance (Future Phase)
-- [ ] Security Audit & Performance (SQL checking, index scans, performance tuning)
+- [x] Security Audit & Hardening (HTML/markdown sanitization, Helmet CSP updates, dependencies audit)
+- [ ] Frontend Optimization & Performance (Lazy loading components, code splitting, bundle optimizations)

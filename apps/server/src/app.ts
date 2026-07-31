@@ -22,8 +22,22 @@ dotenv.config({ path: path.resolve(__dirname, '../../../.env') });
 
 const app = express();
 
-// Apply Helmet security headers
-app.use(helmet());
+// Apply Helmet security headers with explicit Content-Security-Policy (CSP)
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'", "'unsafe-inline'"],
+        styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+        fontSrc: ["'self'", "https://fonts.gstatic.com"],
+        imgSrc: ["'self'", "data:", "https:"],
+        connectSrc: ["'self'", "http://localhost:5000", "http://localhost:5173"],
+        upgradeInsecureRequests: [],
+      },
+    },
+  })
+);
 
 // Apply Global Rate Limiting
 app.use(globalRateLimiter);

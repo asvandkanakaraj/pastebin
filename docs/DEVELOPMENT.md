@@ -245,3 +245,15 @@
   - Authored user guide manual [docs/CLI.md](file:///e:/DEVS/PasteBin/docs/CLI.md) detailing command lists and usage options.
   - Promoted terminal command linking inside the main repository [README.md](file:///e:/DEVS/PasteBin/README.md).
   - Checked off CLI Distribution goals inside [TODO.md](file:///e:/DEVS/PasteBin/docs/TODO.md).
+
+## Session 20: Security Audit & Hardening
+- **Date**: 2026-07-31
+- **Status**: Completed ✅
+- **Objective**: Conduct a comprehensive security audit, enforce strict input HTML/Script sanitization, harden Express security response headers, and assess transitive dependency vulnerabilities.
+- **Outcomes**:
+  - Scaffolded [sanitize.middleware.ts](file:///e:/DEVS/PasteBin/apps/server/src/middleware/sanitize.middleware.ts) running `sanitize-html` to completely strip script tags from titles, and custom sanitization regex on code content (removing `<script>`, `<iframe>`, event handlers, and `javascript:` URIs) without corrupting bracket expressions in raw programming files.
+  - Registered sanitization middleware on POST paste routes in [paste.routes.ts](file:///e:/DEVS/PasteBin/apps/server/src/routes/paste.routes.ts).
+  - Enforced structured Content-Security-Policy (CSP) headers inside [app.ts](file:///e:/DEVS/PasteBin/apps/server/src/app.ts) configuration settings.
+  - Audited Winston logging systems and Morgan request tracking to verify no passwords, secret keys, or hashes enter local files.
+  - Audited monorepo vulnerabilities via `npm audit` and mapped nested resolutions overrides inside root [package.json](file:///e:/DEVS/PasteBin/package.json).
+  - Authored a comprehensive security measures section inside [SECURITY.md](file:///e:/DEVS/PasteBin/docs/SECURITY.md) and checked off audit tasks in [TODO.md](file:///e:/DEVS/PasteBin/docs/TODO.md).

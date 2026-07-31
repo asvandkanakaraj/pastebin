@@ -17,5 +17,27 @@
   },
   "devDependencies": {
     "typescript": "^7.0.2"
+  },
+  "overrides": {
+    "brace-expansion": "^2.0.1",
+    "tar": "^6.2.1",
+    "minimatch": {
+      "brace-expansion": "^2.0.1"
+    },
+    "glob": {
+      "minimatch": {
+        "brace-expansion": "^2.0.1"
+      }
+    },
+    "@mapbox/node-pre-gyp": {
+      "rimraf": {
+        "glob": {
+          "minimatch": {
+            "brace-expansion": "^2.0.1"
+          }
+        }
+      },
+      "tar": "^6.2.1"
+    }
   }
 }
