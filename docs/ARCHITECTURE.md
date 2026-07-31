@@ -133,3 +133,14 @@ sequenceDiagram
         ViewPage-->>Client(URL): Renders layout (Navbar + Copy Code + Editor)
     end
 ```
+
+---
+
+## 9. Authentication & Security
+
+### Stateless JWT Authentication
+The user account system implements a stateless JWT-based session architecture:
+- **Registration**: Passwords supplied by users are hashed asynchronously via `bcrypt` with a work factor of 10 (`saltRounds`) before database persistence. No plain-text passwords ever touch the storage layer.
+- **Login**: Upon credentials check validation, the server dispatches a JWT signed with `HS256` containing public user identifiers (`userId`, `email`). The token lifetime is configured to 7 days.
+- **Authorization**: Protected client requests attach the token inside the HTTP header format: `Authorization: Bearer <JWT>`. The server middleware (`authMiddleware`) parses and validates the token authenticity, attaching the verified user payload to the request object.
+- **Client Session Storage**: The Vite client stores the token in `localStorage` and exposes login states via `AuthContext` dynamically updating navbar headers.

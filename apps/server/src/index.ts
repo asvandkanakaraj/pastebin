@@ -7,6 +7,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { APP_NAME } from '@pastebin/shared';
 import pasteRoutes from './routes/paste.routes.js';
+import authRoutes from './routes/auth.routes.js';
 import { errorHandler } from './middleware/error.middleware.js';
 
 // Resolve directory name for ES module compatibility
@@ -35,6 +36,7 @@ app.get('/health', (req, res) => {
 
 // Register API routes
 app.use('/api/pastes', pasteRoutes);
+app.use('/api/auth', authRoutes);
 
 // Global Error Handler
 app.use(errorHandler);

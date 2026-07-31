@@ -152,3 +152,60 @@ Removes a paste.
       "message": "Too many delete requests from this IP. Please try again after 1 minute."
     }
     ```
+
+---
+
+## Auth Endpoints
+
+### 1. Register User
+Creates a new user account with hashed passwords.
+
+- **Method**: `POST`
+- **URL**: `/api/auth/register`
+- **Request Body**:
+  ```json
+  {
+    "email": "user@example.com",
+    "password": "strong-password-here"
+  }
+  ```
+- **Success Response (201 Created)**:
+  ```json
+  {
+    "id": "user-uuid-here",
+    "email": "user@example.com",
+    "createdAt": "2026-07-31T09:20:00.000Z",
+    "updatedAt": "2026-07-31T09:20:00.000Z"
+  }
+  ```
+- **Error Responses**:
+  - `400 Bad Request`: Email is already registered or request payload is invalid.
+
+---
+
+### 2. Login User
+Verifies account credentials and dispatches session JWT.
+
+- **Method**: `POST`
+- **URL**: `/api/auth/login`
+- **Request Body**:
+  ```json
+  {
+    "email": "user@example.com",
+    "password": "strong-password-here"
+  }
+  ```
+- **Success Response (200 OK)**:
+  ```json
+  {
+    "user": {
+      "id": "user-uuid-here",
+      "email": "user@example.com",
+      "createdAt": "2026-07-31T09:20:00.000Z",
+      "updatedAt": "2026-07-31T09:20:00.000Z"
+    },
+    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+  }
+  ```
+- **Error Responses**:
+  - `401 Unauthorized`: Invalid email or password.

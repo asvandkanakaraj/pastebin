@@ -111,3 +111,25 @@ We will enforce **Confirmation Dialogs** (custom mock Alert-Dialog overlay) befo
   - No complex visual library dependencies needed (styled inline using native flex layout and blur backdrop).
 - **Cons**:
   - Introduces one extra click for users who explicitly want to delete a paste. This is standard design practice for data-loss mitigation.
+
+---
+
+## ADR #006: Choosing JWT for Stateless Authentication
+
+### Status
+Accepted ✅
+
+### Context
+PasteBin requires secure user accounts to manage paste creations, trace private history, and manage personal settings. A scalable authentication strategy is needed to ensure zero session overhead on the API server, enabling simple horizontal scaling and straightforward integrations with external clients (e.g. desktop CLIs).
+
+### Decision
+We will use **JSON Web Tokens (JWT)** for stateless authentication.
+
+### Consequences
+- **Pros**:
+  - Stateless: The API server does not need to query a Redis session store or database to check token validity on every request (self-contained verification using the signing secret).
+  - Scalability: Easy horizontal scaling of backend servers since no shared session state is required.
+  - Future Proof: Easy integration with a CLI tool (clients can simply supply the JWT inside the `Authorization` header).
+- **Cons**:
+  - Token Revocation: Hard to invalidate a token before its expiration window (mitigated by configuring short lifetimes, e.g. 7 days).
+  - Security Risk: If a token is stolen, the attacker has access until expiration. We will enforce TLS/HTTPS in staging and production to secure tokens in transit.

@@ -111,5 +111,18 @@
   - Refactored `deletePaste` controller method to return a standard `204 No Content` status.
   - Implemented [rate-limit.middleware.ts](file:///e:/DEVS/PasteBin/apps/server/src/middleware/rate-limit.middleware.ts) enforcing a window limit of maximum 5 deletion attempts per minute per IP address.
   - Added a "Delete" option in `ViewPaste` details header.
-  - Added an interactive **Delete Confirmation Modal** to safeguard against accidental clicks.
   - Verified deletion logic end-to-end: clicking confirm successfully deletes the database entry and navigates back to `/browse`.
+
+## Session 9: User Authentication & Security Strategy (JWT & BCrypt)
+- **Date**: 2026-07-31
+- **Status**: Completed ✅
+- **Objective**: Establish secure user registration and login workflows using JSON Web Tokens (JWT) and BCrypt hashing.
+- **Outcomes**:
+  - Installed `jsonwebtoken` and mapped types configuration on backend workspaces.
+  - Implemented [user.service.ts](file:///e:/DEVS/PasteBin/apps/server/src/services/user.service.ts) to manage credentials validation, password hashing, and token signatures.
+  - Created [auth.middleware.ts](file:///e:/DEVS/PasteBin/apps/server/src/middleware/auth.middleware.ts) protecting secure API endpoints.
+  - Exposed registration and login routes under `/api/auth`.
+  - Implemented client-side context hooks [auth-provider.tsx](file:///e:/DEVS/PasteBin/apps/web/src/components/auth-provider.tsx) caching tokens locally.
+  - Created responsive Login and Register pages.
+  - Intercepted Navbar visual details to present contextual elements based on state.
+  - Confirmed end-to-end workspaces builds and registration flows.
