@@ -11,7 +11,18 @@ export class AuthController {
           message: 'Email and password are required',
         });
       }
-      const user = await UserService.registerUser(email, password);
+
+      const trimmedEmail = String(email).trim().toLowerCase();
+      const trimmedPassword = String(password).trim();
+
+      if (!trimmedEmail || !trimmedPassword) {
+        return res.status(400).json({
+          error: 'BadRequestError',
+          message: 'Email and password cannot be empty or whitespaces',
+        });
+      }
+
+      const user = await UserService.registerUser(trimmedEmail, trimmedPassword);
       res.status(201).json(user);
     } catch (error) {
       next(error);
@@ -27,7 +38,11 @@ export class AuthController {
           message: 'Email and password are required',
         });
       }
-      const result = await UserService.loginUser(email, password);
+
+      const trimmedEmail = String(email).trim().toLowerCase();
+      const trimmedPassword = String(password).trim();
+
+      const result = await UserService.loginUser(trimmedEmail, trimmedPassword);
       res.json(result);
     } catch (error) {
       next(error);

@@ -15,4 +15,17 @@ This document details the visual and logical security constraints implemented ac
 
 ## 3. JWT Stateless Session Management
 - **Token Signatures**: User registration and login validation dispatch stateless token keys signed via standard `HS256` HMAC signatures using the server's private `JWT_SECRET`.
-- **IP Rate Limiting**: Destructive operations (such as delete requests) are shielded via custom in-memory middleware tracking remote IPs. Attempts are capped at a maximum of 5 deletion dispatches per minute per IP, protecting the system from mass-deletion scripts.
+
+## 4. API Rate Limiting Strategy
+We implement layered rate limiting to secure public routes and prevent credential stuffing/spam:
+- **Global Rate Limiter**: Applied globally across all API routes. Capped at a maximum of `100 requests per 15 minutes` per IP address.
+- **Strict Rate Limiter**: Applied to sensitive write and credentials validation endpoints (`/api/auth/register`, `/api/auth/login`, and `POST /api/pastes`). Capped at a maximum of `10 requests per 15 minutes` per IP address to block brute-force and creation spam.
+- **Deletion Rate Limiter**: Applied strictly to paste removals (`DELETE /api/pastes/:id`). Limits requests to `5 requests per 1 minute` per IP address.
+
+## 5. Security Headers & CORS Controls
+- **Helmet Middleware**: Configured globally in the Express server to set HTTP security headers, including:
+  - Content Security Policy (CSP) configurations preventing cross-site scripting (XSS).
+  - HTTP Strict Transport Security (HSTS) forcing SSL connections.
+  - X-Content-Type-Options preventing MIME type sniffing.
+- **CORS Constraints**: Restricts incoming API requests to trusted origins (`http://localhost:5173` and `http://localhost:3000`). Attempts from unapproved external scripts are rejected.
+- **Input Sanitization**: Auth inputs (email, password) are trimmed and normalized to lowercase to eliminate whitespace bugs and prevent credential stuffing variations. Parameterized Prisma query builders secure against SQL injections.

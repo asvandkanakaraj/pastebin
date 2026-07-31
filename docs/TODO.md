@@ -29,4 +29,5 @@
 - [x] Global Search & Filtering
 - [ ] Custom key aliases for paste links
 - [ ] CLI executable tool for posting pastes from terminal
-- [ ] Rate Limiting & Security Hardening (Symmetric encryption, robust rate limit triggers)
+- [x] Rate Limiting & Security Hardening (Symmetric encryption, robust rate limit triggers)
+- [ ] Health Monitoring & Logging (Morgan logger structured JSON exports, status metrics)

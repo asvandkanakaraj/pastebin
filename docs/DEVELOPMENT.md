@@ -160,3 +160,18 @@
   - Refactored [BrowsePastes.tsx](file:///e:/DEVS/PasteBin/apps/web/src/pages/BrowsePastes.tsx) to use `useSearchParams` for URL state synchronization.
   - Implemented 300ms input debouncing to throttle search query API requests.
   - Styled language filter dropdown selectors and clear buttons, including a fallback view for empty search results.
+
+## Session 13: Rate Limiting & Security Hardening
+- **Date**: 2026-07-31
+- **Status**: Completed ✅
+- **Objective**: Establish global and strict route rate limiting, configure secure HTTP response headers, lock CORS origins, and write custom Morgan structured JSON request log patterns.
+- **Outcomes**:
+  - Installed `express-rate-limit` inside the server workspace.
+  - Created [rate-limit.middleware.ts](file:///e:/DEVS/PasteBin/apps/server/src/middleware/rate-limit.middleware.ts) configuring:
+    - Global limiter: 100 requests per 15 minutes.
+    - Strict limiter: 10 requests per 15 minutes (applied to auth endpoints and paste creation POST).
+    - Deletion limiter: 5 requests per 1 minute.
+  - Locked `cors` settings inside `index.ts` to allow only `http://localhost:5173` and `http://localhost:3000`.
+  - Configured `morgan` to log all requests in a structured JSON format (method, URL, status, responseTime, timestamp, IP).
+  - Hardened input processes: normalized auth parameters (trim and lowercase emails) to eliminate brute-force variations.
+  - Documented policies inside [SECURITY.md](file:///e:/DEVS/PasteBin/docs/SECURITY.md) and [ARCHITECTURE.md](file:///e:/DEVS/PasteBin/docs/ARCHITECTURE.md).

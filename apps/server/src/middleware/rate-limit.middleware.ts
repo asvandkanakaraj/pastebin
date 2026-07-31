@@ -1,27 +1,34 @@
-import { Request, Response, NextFunction } from 'express';
+import { rateLimit } from 'express-rate-limit';
 
-const ipCache = new Map<string, { count: number; resetTime: number }>();
-
-export function deleteRateLimiter(req: Request, res: Response, next: NextFunction) {
-  const ip = req.ip || req.socket.remoteAddress || 'unknown';
-  const now = Date.now();
-  const LIMIT = 5; // Max 5 deletions
-  const WINDOW_MS = 60000; // per 1 minute
-
-  const record = ipCache.get(ip);
-
-  if (!record || now > record.resetTime) {
-    ipCache.set(ip, { count: 1, resetTime: now + WINDOW_MS });
-    return next();
+export const globalRateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // Limit each IP to 100 requests per windowMs
+  standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
+  legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+  message: {
+    error: 'TooManyRequests',
+    message: 'Too many requests from this IP. Please try again after 15 minutes.'
   }
+});
 
-  if (record.count >= LIMIT) {
-    return res.status(429).json({
-      error: 'TooManyRequests',
-      message: 'Too many delete requests from this IP. Please try again after 1 minute.',
-    });
+export const strictRateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 10, // Limit each IP to 10 requests per windowMs
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    error: 'TooManyRequests',
+    message: 'Too many requests targeting sensitive routes. Please try again after 15 minutes.'
   }
+});
 
-  record.count += 1;
-  next();
-}
+export const deleteRateLimiter = rateLimit({
+  windowMs: 1 * 60 * 1000, // 1 minute
+  max: 5, // Limit each IP to 5 delete requests per windowMs
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    error: 'TooManyRequests',
+    message: 'Too many delete requests from this IP. Please try again after 1 minute.'
+  }
+});
