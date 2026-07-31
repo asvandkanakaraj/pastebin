@@ -18,7 +18,8 @@
     "express-rate-limit": "^8.6.1",
     "helmet": "^7.1.0",
     "jsonwebtoken": "^9.0.3",
-    "morgan": "^1.10.0"
+    "morgan": "^1.10.0",
+    "winston": "^3.19.0"
   },
   "devDependencies": {
     "@types/bcrypt": "^5.0.2",

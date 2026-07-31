@@ -172,6 +172,16 @@
     - Strict limiter: 10 requests per 15 minutes (applied to auth endpoints and paste creation POST).
     - Deletion limiter: 5 requests per 1 minute.
   - Locked `cors` settings inside `index.ts` to allow only `http://localhost:5173` and `http://localhost:3000`.
-  - Configured `morgan` to log all requests in a structured JSON format (method, URL, status, responseTime, timestamp, IP).
   - Hardened input processes: normalized auth parameters (trim and lowercase emails) to eliminate brute-force variations.
   - Documented policies inside [SECURITY.md](file:///e:/DEVS/PasteBin/docs/SECURITY.md) and [ARCHITECTURE.md](file:///e:/DEVS/PasteBin/docs/ARCHITECTURE.md).
+
+## Session 14: Health Monitoring & Structured Logging
+- **Date**: 2026-07-31
+- **Status**: Completed ✅
+- **Objective**: Implement Winston structured loggers, update global error middleware to log stacks, and write database-pinging check endpoints.
+- **Outcomes**:
+  - Installed Winston and configured file and console transports in [logger.ts](file:///e:/DEVS/PasteBin/apps/server/src/utils/logger.ts).
+  - Redirected HTTP request tracking logs through Winston using Morgan custom callback structures.
+  - Upgraded `/health` checks inside [index.ts](file:///e:/DEVS/PasteBin/apps/server/src/index.ts) to execute `db.$queryRaw` SELECT 1 to verify database status.
+  - Modified [error.middleware.ts](file:///e:/DEVS/PasteBin/apps/server/src/middleware/error.middleware.ts) to capture full stacks for status >= 500 exceptions.
+  - Updated documentation files [DEPLOYMENT.md](file:///e:/DEVS/PasteBin/docs/DEPLOYMENT.md) and [ARCHITECTURE.md](file:///e:/DEVS/PasteBin/docs/ARCHITECTURE.md).
