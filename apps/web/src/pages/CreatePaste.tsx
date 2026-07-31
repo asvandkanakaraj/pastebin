@@ -74,7 +74,7 @@ console.log(greetUser(user));
 console.log(2 + 2);`);
 
   // Editor Preferences & UI States
-  const [editorTheme, setEditorTheme] = useState<'vs-dark' | 'light'>('light');
+  const [editorTheme, setEditorTheme] = useState<'vs-dark' | 'light'>('vs-dark');
   const [showLineNumbers, setShowLineNumbers] = useState<'on' | 'off'>('on');
   const [tabSize, setTabSize] = useState<number>(2);
   const [cursorPos, setCursorPos] = useState({ line: 1, col: 1 });
