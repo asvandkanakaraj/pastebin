@@ -225,3 +225,20 @@ To optimize API requests and database queries, the public Browse page implements
 - **ARIA Attributes**: Buttons, selectors, and text fields declare descriptive `aria-label` and `role` fields.
 - **Keyboard Navigation**: Focus rings (`focus:ring`) are declared on all form inputs and links to ensure complete keyboard focus indicators are visible.
 
+---
+
+## 14. Production Infrastructure
+
+### Reverse Proxy & Static Assets serving (Nginx)
+The frontend web container runs an optimized **Nginx reverse proxy server**:
+- **Static Assets Delivery**: Serves optimized React bundles directly from the Nginx filesystem, maximizing speed.
+- **Client Routing Redirection**: Incorporates fallback location matching rules in `nginx.conf` (`try_files $uri $uri/ /index.html`) to redirect client-side route queries back to the React entry point, preventing 404 page-load errors on reload.
+
+### Process Management & Supervision
+- **Node.js Lifecycle**: The backend server is monitored by the Docker engine using `restart: always` to handle process restarts.
+- **Order-dependent startup**: Uses Docker Compose healthchecks (`db` and `server`) ensuring postgres and express are verified healthy before downstream nodes are initialized.
+
+### Database Persistence Strategy
+- **Volumes Mapping**: Mounts a Docker persistent volume (`postgres_prod_data` to `/var/lib/postgresql/data`) to prevent data loss across container lifecycle resets.
+
+

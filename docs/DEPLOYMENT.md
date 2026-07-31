@@ -49,31 +49,52 @@ The application writes structured logs in JSON format for production environment
 
 ---
 
-## 3. Production Docker Orchestration
-For containerized production deployments, the application leverages multi-stage `Dockerfiles` coordinated via `docker-compose.prod.yml`.
+## 3. Production Docker Orchestration & Deployment Scripts
+For containerized production deployments, the application leverages automated scripts and multi-stage `Dockerfiles` coordinated via `docker-compose.prod.yml`.
 
 ### Services Architecture
 - **Web (`nginx:alpine`)**: Served on port `80`. Mapped index configurations resolve React Router fallback paths.
 - **Server (`node:20-alpine`)**: Exposes port `5000` to the network, running under a secure non-root `node` user with devDependencies stripped.
 - **Database (`postgres:15-alpine`)**: Serves DB connections on port `5432` with a persistent local storage volume mapping.
 
-### How to Run in Production Mode
+---
 
-To build and start the entire production environment:
+### Step-by-Step Production Deployment Guide
 
-1. **Verify Environment Configurations**: Copy the production template `.env.production` parameters as necessary.
-2. **Build and Deploy**: Run the production orchestrator:
-   ```bash
-   docker-compose -f docker-compose.prod.yml up --build -d
-   ```
-3. **Database Migrations**: Run migrations against the container database:
-   ```bash
-   npx prisma migrate deploy --schema=./packages/database/prisma/schema.prisma
-   ```
-4. **Shutdown Services**: To stop and tear down containers:
-   ```bash
-   docker-compose -f docker-compose.prod.yml down
-   ```
+#### 1. Setup and Validate Environment Configurations
+Run the environment verification script to check for required variables (`DATABASE_URL`, `JWT_SECRET`, etc.) and automatically scaffold a template `.env.production` file if it is missing:
+```bash
+sh scripts/setup-env.sh
+```
+
+#### 2. Run Order-Dependent Production Builds
+Compile all monorepo packages in the correct dependency order (Shared -> Database -> Server -> Web) to verify build integrity:
+```bash
+npm run build:prod
+```
+
+#### 3. Build and Spin Up Docker Container Cluster
+Deploy the container orchestrator. The containers will deploy in an ordered dependency queue utilizing Docker healthchecks to wait until Postgres is fully ready and the backend is verified healthy before spinning up dependent nodes:
+```bash
+docker-compose -f docker-compose.prod.yml up --build -d
+```
+
+#### 4. Automated Startup & Database Migrations
+The server container startup routine triggers the [start-prod.sh](file:///e:/DEVS/PasteBin/scripts/start-prod.sh) script, which runs:
+- Database migrations (`npx prisma migrate deploy`) to apply the schema changes safely.
+- Starts the production Node.js process (`node dist/index.js`).
+
+#### 5. Verify Service Health Status
+You can check if containers are active and healthy via:
+```bash
+docker-compose -f docker-compose.prod.yml ps
+```
+
+#### 6. Shutdown Services
+To stop and tear down containers:
+```bash
+docker-compose -f docker-compose.prod.yml down
+```
 
 ---
 
