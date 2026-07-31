@@ -92,3 +92,33 @@ We implement SPA routing code splitting utilizing `React.lazy()` and `Suspense`,
 - Time to Interactive (TTI) and initial page loads are optimized.
 - Network overhead is minimized through client-side query caching.
 - Screen readers and keyboard navigations are fully supported.
+
+---
+
+## Decision #011: Navigation Bar Refinement & Authentication UX Update
+
+### Status
+
+Accepted ✅
+
+### Context
+
+To streamline user experience, avoid visual clutter, and establish a clear workspace-oriented navigation, we need to finalize the navigation structure by removing unnecessary/redundant links (such as the broken static API link and placeholder About link) and action buttons (like "+ New Paste" which duplicated the home page link). In addition, authentication forms must provide modern password visibility controls that satisfy accessibility requirements (a11y), prevent input loss, and maintain focus states without visual layout shifts.
+
+### Decision
+
+We update the navigation menu layout to only include core elements: Logo, Search, Browse, Manage Workspace, Theme Toggle, and Authentication. For logged-in users, the "Dashboard" link is updated to "Manage Workspace". In auth forms (`Login.tsx` and `Register.tsx`), we add relative position containers to password input fields with an absolute-positioned visibility toggle button using Lucide `Eye`/`EyeOff` icons.
+
+### Details
+
+- **Navbar finalization**: Removed static "API" and "About" links, and the "+ New Paste" button. Renamed "Dashboard" to "Manage Workspace" to reinforce workspace-oriented design.
+- **Toggle input compatibility**: Changed password inputs to toggle dynamic `type="password"` or `type="text"` values without clearing inputs.
+- **A11y & Focus preservation**: Added `onMouseDown={(e) => e.preventDefault()}` on mouse click handlers to prevent default focus shifts from input fields, preserving cursor positions. Provided descriptive `aria-label` labels for screen reader compatibility, and included standard tab navigation and focus visible outlines for keyboard-only users.
+- **Graceful states mapping**: Toggles correctly map onto disabled/loading state blocks (disabling buttons if loading states are active) with zero visual layout shifts or component height variations.
+
+### Consequences
+
+- Navigation layout is simplified, clean, and contains zero dead or broken links.
+- Password input forms are modernized and highly secure.
+- Full keyboard accessibility and screen reader support is guaranteed for password toggling.
+

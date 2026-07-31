@@ -50,15 +50,6 @@ export function Navbar() {
             >
               Browse
             </Link>
-            <a
-              href="/docs/API.md"
-              className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
-            >
-              API
-            </a>
-            <a href="#" className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
-              About
-            </a>
           </nav>
 
           <div className="flex items-center gap-3 pl-4 border-l border-slate-200 dark:border-slate-800">
@@ -66,19 +57,12 @@ export function Navbar() {
               <Link
                 to="/dashboard"
                 className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white transition-colors"
-                title="Go to Dashboard"
+                title="Manage Workspace"
               >
                 <LayoutDashboard className="h-4 w-4" />
-                <span className="hidden lg:inline">Dashboard</span>
+                <span className="hidden lg:inline">Manage Workspace</span>
               </Link>
             )}
-
-            <Link
-              to="/"
-              className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg bg-blue-600 px-4 text-xs font-semibold text-white shadow-sm hover:bg-blue-700 focus:outline-none dark:bg-blue-600 dark:hover:bg-blue-500 transition-colors"
-            >
-              <span className="font-bold">+ New Paste</span>
-            </Link>
 
             {/* Authentication States */}
             {user ? (

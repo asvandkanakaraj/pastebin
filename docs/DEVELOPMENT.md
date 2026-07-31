@@ -331,3 +331,31 @@
   - Ran a global formatting pass via `npx prettier --write .` ensuring 100% consistent styling.
   - Reviewed and checked off all remaining checklist tasks inside [TODO.md](file:///e:/DEVS/PasteBin/docs/TODO.md).
   - Delivered the final, production-ready PasteBin monorepo. All goals accomplished! Logged final handover.
+
+## Session 25: Full-System Functional Audit
+
+- **Date**: 2026-07-31
+- **Status**: Completed ✅
+- **Objective**: Execute a comprehensive deep-scan audit of the entire codebase to identify every functional gap, broken link, dead handler, empty button, placeholder logic, and security vulnerability across all 6 system categories.
+- **Outcomes**:
+  - Performed a line-by-line static analysis of every frontend page (`CreatePaste`, `ViewPaste`, `BrowsePastes`, `Dashboard`, `Login`, `Register`), every layout component (`Navbar`, `Footer`, `MainLayout`), every backend controller, service, middleware, route, and infrastructure file.
+  - Identified **33 total functional gaps** across 6 categories: 7 Critical, 14 High, 10 Medium, 2 Low.
+  - Critical findings include: unauthenticated paste deletion, JWT tokens never validated on reload, `.env.production` committed to Git, Nginx missing API proxy, and the "Preview Paste" button being completely inert.
+  - Published detailed findings to [GAP_REPORT.md](file:///e:/DEVS/PasteBin/docs/GAP_REPORT.md).
+  - Published executive summary to [REPORT.md](file:///e:/DEVS/PasteBin/docs/REPORT.md).
+
+## Session 26: Navigation Bar Refinement & Authentication UX Update
+
+- **Date**: 2026-08-01
+- **Status**: Completed ✅
+- **Objective**: Refine the navigation bar architecture and improve authentication forms accessibility.
+- **Outcomes**:
+  - Removed "API" and "About" links from the Desktop and Mobile layout of the Navbar component.
+  - Finalized navigation to only contain: Logo, Search, Browse, Manage Workspace, Theme Toggle, Authentication / Profile.
+  - Renamed "Dashboard" link for authenticated users to "Manage Workspace" and removed the "+ New Paste" action button to clean up the navigation layout.
+  - Implemented keyboard-accessible, screen-reader-friendly password visibility toggles (using Lucide `Eye` and `EyeOff` icons) inside password fields for `Login.tsx` and `Register.tsx` (supporting both Password and Confirm Password fields).
+  - Positioned toggles inside the input fields on the right, ensuring no visual layout shift.
+  - Handled loading and disabled states gracefully on password visibility toggles.
+  - Documented decisions and system updates inside [DEVELOPMENT.md](file:///e:/DEVS/PasteBin/docs/DEVELOPMENT.md) and [DECISIONS.md](file:///e:/DEVS/PasteBin/docs/DECISIONS.md).
+
+
