@@ -35,4 +35,7 @@
 ## Phase 5: Testing & Release (Next Phase)
 - [x] Automated Testing (Vitest backend unit/integration tests and RTL component checks)
 - [x] Production Docker & Multi-stage Builds (Multi-stage build pipelines, lightweight Alpine nodes)
-- [ ] CI/CD Pipelines (GitHub Actions integrations, automated lint and workspaces test runs)
+- [x] CI/CD Pipelines (GitHub Actions integrations, automated lint and workspaces test runs)
+
+## Phase 6: CLI Client & Extras (Future Phase)
+- [ ] CLI Client Tool (CLI executable tool for posting pastes directly from terminal)

@@ -211,3 +211,15 @@
   - Orchestrated deployment in [docker-compose.prod.yml](file:///e:/DEVS/PasteBin/docker-compose.prod.yml) defining web, server, and persistent db nodes on an isolated virtual bridge network.
   - Created environment templates [.env.production](file:///e:/DEVS/PasteBin/.env.production).
   - Updated deployments guidelines inside [DEPLOYMENT.md](file:///e:/DEVS/PasteBin/docs/DEPLOYMENT.md) and container architecture details inside [ARCHITECTURE.md](file:///e:/DEVS/PasteBin/docs/ARCHITECTURE.md).
+
+## Session 17: GitHub Actions CI/CD Pipeline
+- **Date**: 2026-07-31
+- **Status**: Completed ✅
+- **Objective**: Implement an automated GitHub Actions pipeline validating formatting, running workspace tests, compiling Docker images, and publishing validated images.
+- **Outcomes**:
+  - Authored workflow configuration [.github/workflows/ci.yml](file:///e:/DEVS/PasteBin/.github/workflows/ci.yml) validating lints/Prettier checks, running Vitest, and verifying Docker compile steps.
+  - Linked Docker Hub build integration tasks in CI workflow configurations using credentials placeholders.
+  - Placed GitHub Actions workflow status badge mapping inside the root [README.md](file:///e:/DEVS/PasteBin/README.md).
+  - Recorded design decisions inside [DECISIONS.md](file:///e:/DEVS/PasteBin/docs/DECISIONS.md) under Decision #008.
+  - Documented CI job structures and environments logs within [DEPLOYMENT.md](file:///e:/DEVS/PasteBin/docs/DEPLOYMENT.md).
+  - Checked off Phase 5 tasks list inside [TODO.md](file:///e:/DEVS/PasteBin/docs/TODO.md).

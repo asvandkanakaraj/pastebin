@@ -1,5 +1,7 @@
 # PasteBin - Full Stack Monorepo
 
+[![CI Status](https://github.com/asvandkanakaraj/PasteBin/actions/workflows/ci.yml/badge.svg)](https://github.com/asvandkanakaraj/PasteBin/actions/workflows/ci.yml)
+
 Welcome to the **PasteBin** code-sharing platform project. This is a high-performance, full-stack monorepo structured using npm workspaces.
 
 ## Repository Structure

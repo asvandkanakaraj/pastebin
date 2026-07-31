@@ -75,3 +75,22 @@ To build and start the entire production environment:
    docker-compose -f docker-compose.prod.yml down
    ```
 
+---
+
+## 4. CI/CD Automated Pipelines (GitHub Actions)
+The repository configures a multi-stage validation workflow in `.github/workflows/ci.yml` that acts as a quality gate on push and pull-request events targeting the `main` branch.
+
+### Pipeline Workflow Jobs
+1. **Lint & Format Check (`lint-format`)**:
+   - Validates that code styling adheres to the Prettier standards via `npx prettier --check .`.
+   - Runs `npm run lint` across all workspaces to check syntax correctness.
+2. **Execute Automated Tests (`test-suite`)**:
+   - Sets up Node.js, installs workspace dependencies, and runs `npx prisma generate` to populate typings.
+   - Executes the full suite of backend and web component tests (`npm run test`).
+3. **Verify Docker Builds (`build-docker`)**:
+   - Sets up Docker build pipelines.
+   - Compiles server and client Dockerfiles locally to ensure that changes do not break image compilation.
+4. **Image Publishing (`publish-docker`)**:
+   - Executed only on merges to `main`.
+   - Authenticates to Docker Hub via credentials secrets and publishes target images automatically.
+
