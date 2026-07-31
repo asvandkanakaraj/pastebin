@@ -90,3 +90,24 @@ We will use **Monaco Editor** via `@monaco-editor/react` as the primary editor p
 - **Cons**:
   - Incremental increase in frontend download bundle size (mitigated by Monaco loading lazily from CDNs).
   - Heavy canvas rendering load on lower-spec mobile devices. We will disable heavy elements (minimap, etc.) to optimize rendering times.
+
+---
+
+## ADR #005: Using Confirmation Dialogs for Destructive Actions
+
+### Status
+Accepted ✅
+
+### Context
+Destructive actions, such as deleting a created paste snippet, permanently remove content from the database. Accidental triggers (clicking delete instead of copy/new) lead to permanent data loss and bad UX. Safeguarding checks are required before dispatches.
+
+### Decision
+We will enforce **Confirmation Dialogs** (custom mock Alert-Dialog overlay) before dispatches of any destructive requests (such as DELETE /api/pastes/:id).
+
+### Consequences
+- **Pros**:
+  - Eliminates accidental deletions by adding an explicit double-confirmation checkpoint.
+  - Improves User Experience by confirming action outcomes.
+  - No complex visual library dependencies needed (styled inline using native flex layout and blur backdrop).
+- **Cons**:
+  - Introduces one extra click for users who explicitly want to delete a paste. This is standard design practice for data-loss mitigation.

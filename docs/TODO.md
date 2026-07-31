@@ -22,7 +22,7 @@
 
 ## Phase 4: Active Sprint (Next Up)
 - [x] History feed listing recent public pastes (Public List & Discovery)
-- [ ] Delete Logic & Security Checks
-- [ ] User authentication system (Sign In / Sign Up layout)
+- [x] Delete Logic & Security Checks
+- [ ] User Authentication (JWT) & Auth UI (Sign In / Sign Up)
 - [ ] Custom key aliases for paste links
 - [ ] CLI executable tool for posting pastes from terminal

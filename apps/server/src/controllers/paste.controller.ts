@@ -39,8 +39,8 @@ export class PasteController {
     try {
       const { id } = req.params;
       const password = req.headers['x-paste-password'] as string | undefined;
-      const result = await PasteService.deletePaste(id, password);
-      res.json(result);
+      await PasteService.deletePaste(id, password);
+      res.status(204).send();
     } catch (error) {
       next(error);
     }

@@ -139,13 +139,16 @@ Removes a paste.
 - **URL**: `/api/pastes/:id`
 - **Headers**:
   - `x-paste-password`: (Optional) Required if the paste is protected.
-- **Success Response (200 OK)**:
-  ```json
-  {
-    "success": true
-  }
-  ```
+- **Success Response (204 No Content)**:
+  *No response body returned.*
 - **Error Responses**:
   - `401 Unauthorized`: Password is required to delete.
   - `403 Forbidden`: Password mismatch.
   - `404 Not Found`: Paste does not exist.
+  - `429 Too Many Requests`: Deletion frequency limit exceeded (maximum 5 deletions per minute per IP).
+    ```json
+    {
+      "error": "TooManyRequests",
+      "message": "Too many delete requests from this IP. Please try again after 1 minute."
+    }
+    ```

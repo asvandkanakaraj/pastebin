@@ -102,3 +102,14 @@
   - Integrated dynamic route paths `/browse` in App Router and Navbar link lists.
   - Coded interactive footer pagination bars managing Prev/Next state bounds.
   - Verified compilation and output bundle sizes via `npm run build` client checks.
+
+## Session 8: Destructive Operations & Rate Limiting (Delete Flow)
+- **Date**: 2026-07-31
+- **Status**: Completed ✅
+- **Objective**: Implement secure paste deletion on both backend and frontend layers, and apply rate-limiting to prevent automated spam scripts.
+- **Outcomes**:
+  - Refactored `deletePaste` controller method to return a standard `204 No Content` status.
+  - Implemented [rate-limit.middleware.ts](file:///e:/DEVS/PasteBin/apps/server/src/middleware/rate-limit.middleware.ts) enforcing a window limit of maximum 5 deletion attempts per minute per IP address.
+  - Added a "Delete" option in `ViewPaste` details header.
+  - Added an interactive **Delete Confirmation Modal** to safeguard against accidental clicks.
+  - Verified deletion logic end-to-end: clicking confirm successfully deletes the database entry and navigates back to `/browse`.

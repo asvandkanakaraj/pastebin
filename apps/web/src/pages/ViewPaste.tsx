@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { Terminal, Lock, Clock, Eye, AlertCircle, ArrowLeft, Copy, Check } from 'lucide-react';
+import { Terminal, Lock, Clock, Eye, AlertCircle, ArrowLeft, Copy, Check, Trash2 } from 'lucide-react';
 import Editor from '@monaco-editor/react';
 import { useTheme } from '../components/theme-provider.js';
 
 export function ViewPaste() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const { theme } = useTheme();
   const [paste, setPaste] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -15,6 +16,8 @@ export function ViewPaste() {
   const [requiresPassword, setRequiresPassword] = useState(false);
   const [passwordError, setPasswordError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const fetchPaste = async (pw = '') => {
     setLoading(true);
@@ -67,6 +70,23 @@ export function ViewPaste() {
       } catch (err) {
         console.error('Failed to copy code:', err);
       }
+    }
+  };
+
+  const handleDelete = async () => {
+    setDeleting(true);
+    try {
+      const headers: any = {};
+      if (password) {
+        headers['x-paste-password'] = password;
+      }
+      await axios.delete(`http://localhost:5000/api/pastes/${id}`, { headers });
+      navigate('/browse');
+    } catch (err: any) {
+      console.error('Delete paste failed:', err);
+      alert(err.response?.data?.message || 'Failed to delete paste');
+      setDeleting(false);
+      setShowDeleteConfirm(false);
     }
   };
 
@@ -158,7 +178,42 @@ export function ViewPaste() {
   }
 
   return (
-    <div className="w-full max-w-5xl mx-auto space-y-6">
+    <div className="w-full max-w-5xl mx-auto space-y-6 relative">
+      {/* Delete Confirmation Modal (AlertDialog Mock) */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 backdrop-blur-sm p-4">
+          <div className="w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-xl space-y-5 text-center animate-in fade-in zoom-in-95 duration-150">
+            <div className="mx-auto p-3 bg-rose-500/10 border border-rose-500/20 rounded-2xl text-rose-500 dark:text-rose-400 w-fit">
+              <AlertCircle size={24} />
+            </div>
+            <div>
+              <h3 className="text-md font-bold text-slate-800 dark:text-slate-200">Delete Snippet?</h3>
+              <p className="text-xs text-slate-500 mt-1.5 leading-relaxed">
+                Are you sure you want to delete this paste? This will permanently delete the content from the cloud database. This action is irreversible.
+              </p>
+            </div>
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => setShowDeleteConfirm(false)}
+                disabled={deleting}
+                className="flex-1 h-9.5 inline-flex items-center justify-center rounded-lg border border-slate-200 bg-white px-4 text-xs font-semibold text-slate-700 hover:bg-slate-50 focus:outline-none dark:border-slate-800 dark:bg-slate-900 dark:text-slate-350 dark:hover:bg-slate-800 transition-colors disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleDelete}
+                disabled={deleting}
+                className="flex-1 h-9.5 inline-flex items-center justify-center rounded-lg bg-rose-600 px-4 text-xs font-semibold text-white shadow-md hover:bg-rose-500 focus:outline-none dark:bg-rose-500 dark:hover:bg-rose-400 transition-colors disabled:opacity-50"
+              >
+                {deleting ? 'Deleting...' : 'Yes, Delete'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-slate-200 dark:border-slate-800 pb-5">
         <div className="space-y-1">
           <h1 className="text-xl font-bold tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
@@ -183,6 +238,14 @@ export function ViewPaste() {
           >
             {copied ? <Check size={12} className="text-emerald-500" /> : <Copy size={12} />}
             <span>{copied ? 'Copied!' : 'Copy Code'}</span>
+          </button>
+
+          <button
+            onClick={() => setShowDeleteConfirm(true)}
+            className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-rose-200 bg-white px-4 text-xs font-bold text-rose-600 shadow-sm hover:bg-rose-50/50 focus:outline-none dark:border-rose-900/40 dark:bg-slate-900 dark:text-rose-450 dark:hover:bg-rose-950/20 transition-colors"
+          >
+            <Trash2 size={12} />
+            <span>Delete</span>
           </button>
           
           <Link
