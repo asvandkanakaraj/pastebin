@@ -188,3 +188,16 @@ The monorepo uses multi-stage Docker builds to compile assets and deliver lean, 
 
 ### Production Environment Topology
 Services run linked on a private virtual bridge network (`pastebin-prod-network`), isolating database ports from public access. Persistent storage volumes mapping PostgreSQL directories ensure data survives host restarts.
+
+---
+
+## 12. CLI Client Architecture
+
+### Overview
+The CLI client (`@pastebin/cli`) provides a command-line interface for developers to upload, retrieve, and inspect code pastes directly from their terminal. It communicates with the same backend REST API as the React Web application, verifying the architectural concept of supporting multiple client types.
+
+### Key Components
+- **Command Parser (`commander`)**: Resolves options and maps inputs to designated execution command blocks.
+- **REST Integrations (`axios`)**: Handles HTTP requests targeting backend routes `/api/auth` and `/api/pastes`.
+- **Config Storage**: Saves user session tokens (JWTs) locally in `~/.pastebin-config.json`. Subsequent paste operations read this config file to automatically inject authentication headers.
+- **Output Mappings**: Formats list outputs in standard columns and provides syntax highlighting for retrieved snippets using terminal colors (`chalk`).

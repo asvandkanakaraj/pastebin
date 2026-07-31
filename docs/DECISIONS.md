@@ -28,3 +28,25 @@ The pipeline is divided into parallel validation paths:
 - Only compilation-safe, fully formatted, and tested code is merged to the integration branch.
 - Docker configuration shifts are caught early in the development lifecycle.
 - Builds publish pipeline automation minimizes devops overhead.
+
+---
+
+## Decision #009: CLI Client Implementation
+
+### Status
+Accepted ✅
+
+### Context
+Developers often prefer interacting with pasting tools directly from the terminal without switching context to a web browser. Building a CLI client enables terminal uploads and retrievals and tests the REST API robustness under multiple distinct client implementations (Web and CLI).
+
+### Decision
+We develop a native CLI client under `apps/cli` using Commander, Axios, and Chalk.
+
+### Details
+- **Command coverage**: Commands to `login`, `upload`, `get`, and `list` pastes.
+- **Config storage**: JWT persistence is written to `~/.pastebin-config.json`.
+- **Typing validations**: Shares common TypeScript validation parameters from `@pastebin/shared`.
+
+### Consequences
+- Developer productivity is boosted with instant command line access.
+- Proved backend APIs are fully client-agnostic and robust.

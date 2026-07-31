@@ -38,4 +38,5 @@
 - [x] CI/CD Pipelines (GitHub Actions integrations, automated lint and workspaces test runs)
 
 ## Phase 6: CLI Client & Extras (Future Phase)
-- [ ] CLI Client Tool (CLI executable tool for posting pastes directly from terminal)
+- [x] CLI Client Tool (CLI executable tool for posting pastes directly from terminal)
+- [ ] CLI Distribution & Polish (NPM link commands, executable package distributions)

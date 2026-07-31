@@ -223,3 +223,13 @@
   - Recorded design decisions inside [DECISIONS.md](file:///e:/DEVS/PasteBin/docs/DECISIONS.md) under Decision #008.
   - Documented CI job structures and environments logs within [DEPLOYMENT.md](file:///e:/DEVS/PasteBin/docs/DEPLOYMENT.md).
   - Checked off Phase 5 tasks list inside [TODO.md](file:///e:/DEVS/PasteBin/docs/TODO.md).
+
+## Session 18: CLI Client Tool
+- **Date**: 2026-07-31
+- **Status**: Completed ✅
+- **Objective**: Implement a Node.js CLI tool supporting login, upload, retrieve, and list commands for terminal developers.
+- **Outcomes**:
+  - Scaffolded the `@pastebin/cli` package under [apps/cli](file:///e:/DEVS/PasteBin/apps/cli) with ESM TypeScript specifications.
+  - Implemented commands in [index.ts](file:///e:/DEVS/PasteBin/apps/cli/src/index.ts): `login` (saves JWT locally to `~/.pastebin-config.json`), `upload` (reads and posts file text), `get` (shows paste with basic comment highlighting), and `list` (presents public pastes in an interactive table).
+  - Registered start script `"cli": "npm run start -w @pastebin/cli"` inside root [package.json](file:///e:/DEVS/PasteBin/package.json).
+  - Documented ADR decisions inside [DECISIONS.md](file:///e:/DEVS/PasteBin/docs/DECISIONS.md) under Decision #009 and the CLI client components inside [ARCHITECTURE.md](file:///e:/DEVS/PasteBin/docs/ARCHITECTURE.md).

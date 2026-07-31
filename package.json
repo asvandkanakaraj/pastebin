@@ -12,7 +12,8 @@
     "build": "npm run build --workspaces --if-present",
     "lint": "npm run lint --workspaces --if-present",
     "format": "prettier --write .",
-    "test": "npm run test --workspaces --if-present"
+    "test": "npm run test --workspaces --if-present",
+    "cli": "npm run start -w @pastebin/cli"
   },
   "devDependencies": {
     "typescript": "^7.0.2"

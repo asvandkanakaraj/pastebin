@@ -1,0 +1,25 @@
+{
+  "name": "@pastebin/cli",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "main": "dist/index.js",
+  "bin": {
+    "pastebin": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "start": "tsc && node dist/index.js"
+  },
+  "dependencies": {
+    "commander": "^12.1.0",
+    "axios": "^1.7.2",
+    "chalk": "^5.3.0",
+    "form-data": "^4.0.0",
+    "@pastebin/shared": "*"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.5",
+    "@types/node": "^20.14.9"
+  }
+}
