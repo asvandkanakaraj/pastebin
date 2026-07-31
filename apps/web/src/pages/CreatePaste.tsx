@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import {
@@ -74,7 +74,7 @@ console.log(greetUser(user));
 console.log(2 + 2);`);
 
   // Editor Preferences & UI States
-  const [editorTheme, setEditorTheme] = useState<'vs-dark' | 'light'>('vs-dark');
+  const [editorTheme, setEditorTheme] = useState<'vs-dark' | 'light'>('light');
   const [showLineNumbers, setShowLineNumbers] = useState<'on' | 'off'>('on');
   const [tabSize, setTabSize] = useState<number>(2);
   const [cursorPos, setCursorPos] = useState({ line: 1, col: 1 });
@@ -86,12 +86,6 @@ console.log(2 + 2);`);
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  // Sync editor theme with system theme if not user-toggled
-  useEffect(() => {
-    const isDark = document.documentElement.classList.contains('dark');
-    setEditorTheme(isDark ? 'vs-dark' : 'light');
-  }, []);
 
   const handleEditorMount = (editor: any) => {
     editor.onDidChangeCursorPosition((e: any) => {

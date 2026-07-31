@@ -21,35 +21,14 @@ export function CodeEditor({
   onMount,
 }: CodeEditorProps) {
   const { theme } = useTheme();
-  
+
   // Resolve base theme mapping
   const currentTheme = editorTheme || (theme === 'dark' ? 'vs-dark' : 'light');
-  const selectedTheme = currentTheme === 'vs-dark' ? 'pastebin-dark' : 'pastebin-light';
+  const selectedTheme = currentTheme === 'vs-dark' ? 'pastebin-white' : 'pastebin-cream';
 
   const handleEditorWillMount = (monaco: any) => {
-    // Custom premium dark theme matching the mockup
-    monaco.editor.defineTheme('pastebin-dark', {
-      base: 'vs-dark',
-      inherit: true,
-      rules: [
-        { token: 'comment', foreground: '64748b', fontStyle: 'italic' },
-        { token: 'keyword', foreground: '3b82f6', fontStyle: 'bold' },
-        { token: 'string', foreground: '38bdf8' },
-        { token: 'number', foreground: 'f59e0b' },
-        { token: 'type', foreground: '10b981' },
-      ],
-      colors: {
-        'editor.background': '#0f172a', // Deep Slate-900
-        'editor.foreground': '#cbd5e1',
-        'editor.lineHighlightBackground': '#1e293b60',
-        'editorLineNumber.foreground': '#475569',
-        'editorLineNumber.activeForeground': '#38bdf8',
-        'editorGutter.background': '#0f172a',
-      }
-    });
-
-    // Custom premium light theme matching the mockup
-    monaco.editor.defineTheme('pastebin-light', {
+    // Custom premium white theme
+    monaco.editor.defineTheme('pastebin-white', {
       base: 'vs',
       inherit: true,
       rules: [
@@ -66,12 +45,38 @@ export function CodeEditor({
         'editorLineNumber.foreground': '#94a3b8',
         'editorLineNumber.activeForeground': '#2563eb',
         'editorGutter.background': '#ffffff',
-      }
+      },
+    });
+
+    // Custom premium cream theme (sepia/ivory warm feel)
+    monaco.editor.defineTheme('pastebin-cream', {
+      base: 'vs',
+      inherit: true,
+      rules: [
+        { token: 'comment', foreground: '8a99ad', fontStyle: 'italic' },
+        { token: 'keyword', foreground: '1d4ed8', fontStyle: 'bold' },
+        { token: 'string', foreground: '0891b2' },
+        { token: 'number', foreground: 'b45309' },
+        { token: 'type', foreground: '047857' },
+      ],
+      colors: {
+        'editor.background': '#faf6eb', // Premium Ivory Cream
+        'editor.foreground': '#334155',
+        'editor.lineHighlightBackground': '#f4eedb',
+        'editorLineNumber.foreground': '#94a3b8',
+        'editorLineNumber.activeForeground': '#2563eb',
+        'editorGutter.background': '#faf6eb',
+      },
     });
   };
 
+  const wrapperClass =
+    selectedTheme === 'pastebin-cream'
+      ? 'bg-[#faf6eb] border-slate-200'
+      : 'bg-[#ffffff] border-slate-200';
+
   return (
-    <div className="w-full border border-slate-200 dark:border-slate-800 overflow-hidden shadow-inner bg-slate-50 dark:bg-slate-950">
+    <div className={`w-full border overflow-hidden shadow-inner ${wrapperClass}`}>
       <Editor
         height="400px"
         language={language}
@@ -81,7 +86,7 @@ export function CodeEditor({
         beforeMount={handleEditorWillMount}
         onMount={onMount}
         loading={
-          <div className="flex h-[400px] w-full items-center justify-center bg-slate-50 dark:bg-slate-950 font-mono text-xs text-slate-400">
+          <div className="flex h-[400px] w-full items-center justify-center font-mono text-xs text-slate-400">
             Loading Monaco Editor...
           </div>
         }
