@@ -25,6 +25,8 @@
 - [x] Delete Logic & Security Checks
 - [x] User Authentication (JWT) & Auth UI (Sign In / Sign Up)
 - [x] User Dashboard & Snippet Management History
-- [ ] Private Pastes & Password Protection (Staging Decryption Controls)
+- [x] Private Pastes & Password Protection (Staging Decryption Controls)
+- [x] Global Search & Filtering
 - [ ] Custom key aliases for paste links
 - [ ] CLI executable tool for posting pastes from terminal
+- [ ] Rate Limiting & Security Hardening (Symmetric encryption, robust rate limit triggers)

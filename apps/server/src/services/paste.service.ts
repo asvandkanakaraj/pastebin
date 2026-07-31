@@ -111,16 +111,31 @@ export class PasteService {
     return { success: true };
   }
 
-  static async listPublicPastes(page = 1, limit = 10) {
+  static async listPublicPastes(page = 1, limit = 10, search?: string, language?: string) {
     const skip = (page - 1) * limit;
 
-    const whereClause = {
+    const whereClause: any = {
       isPublic: true,
       OR: [
         { expiresAt: null },
         { expiresAt: { gt: new Date() } }
       ]
     };
+
+    if (language) {
+      whereClause.language = language;
+    }
+
+    if (search) {
+      whereClause.AND = [
+        {
+          OR: [
+            { title: { contains: search, mode: 'insensitive' } },
+            { content: { contains: search, mode: 'insensitive' } }
+          ]
+        }
+      ];
+    }
 
     const [pastes, totalCount] = await Promise.all([
       db.paste.findMany({

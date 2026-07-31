@@ -108,6 +108,8 @@ Returns a paginated list of all active public pastes.
 - **Query Parameters**:
   - `page`: (Optional, default `1`) Page number to fetch.
   - `limit`: (Optional, default `10`) Number of records per page.
+  - `search`: (Optional) Case-insensitive search string matching titles or contents.
+  - `language`: (Optional) Strict programming language filter.
 - **Success Response (200 OK)**:
   ```json
   {

@@ -149,3 +149,14 @@
   - Added visibility badges on Browse and Dashboard lists displaying lock icons for password-protected nodes.
   - Created new security policy record [SECURITY.md](file:///e:/DEVS/PasteBin/docs/SECURITY.md).
   - Verified private page routing: confirmed anonymous access to private pastes is strictly forbidden.
+
+## Session 12: Global Search & Language Filtering
+- **Date**: 2026-07-31
+- **Status**: Completed ✅
+- **Objective**: Implement text search across titles and content, add programming language filtering, sync filters with browser URL query parameters, and add debounce.
+- **Outcomes**:
+  - Modified `listPublicPastes` in [paste.service.ts](file:///e:/DEVS/PasteBin/apps/server/src/services/paste.service.ts) to filter using case-insensitive contains logic.
+  - Added support for search and language params in the Express controller layer.
+  - Refactored [BrowsePastes.tsx](file:///e:/DEVS/PasteBin/apps/web/src/pages/BrowsePastes.tsx) to use `useSearchParams` for URL state synchronization.
+  - Implemented 300ms input debouncing to throttle search query API requests.
+  - Styled language filter dropdown selectors and clear buttons, including a fallback view for empty search results.

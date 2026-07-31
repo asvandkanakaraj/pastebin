@@ -47,7 +47,9 @@ export class PasteController {
     try {
       const page = parseInt(req.query.page as string) || 1;
       const limit = parseInt(req.query.limit as string) || 10;
-      const pastes = await PasteService.listPublicPastes(page, limit);
+      const search = req.query.search as string | undefined;
+      const language = req.query.language as string | undefined;
+      const pastes = await PasteService.listPublicPastes(page, limit, search, language);
       res.json(pastes);
     } catch (error) {
       next(error);
