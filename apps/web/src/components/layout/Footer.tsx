@@ -7,19 +7,22 @@ export function Footer() {
         <span className="text-xs text-slate-500">
           &copy; {new Date().getFullYear()} {APP_NAME}. All rights reserved.
         </span>
-        <div className="flex gap-6 text-xs font-medium text-slate-500">
-          <a href="#" className="hover:text-indigo-500 transition-colors">
+        <div className="flex gap-6 text-xs font-medium text-slate-550">
+          <a href="/docs/API.md" className="hover:text-blue-600 transition-colors">
             API Docs
           </a>
           <a
             href="https://github.com/asvandkanakaraj/PasteBin"
             target="_blank"
             rel="noreferrer"
-            className="hover:text-indigo-500 transition-colors"
+            className="hover:text-blue-600 transition-colors"
           >
             GitHub
           </a>
-          <a href="#" className="hover:text-indigo-500 transition-colors">
+          <a href="#" className="hover:text-blue-600 transition-colors">
+            Privacy
+          </a>
+          <a href="#" className="hover:text-blue-600 transition-colors">
             Terms
           </a>
         </div>
