@@ -7,10 +7,27 @@ import fs from 'fs/promises';
 import path from 'path';
 import os from 'os';
 import readline from 'readline';
+import clipboardy from 'clipboardy';
+import ora from 'ora';
 
 const program = new Command();
 const CONFIG_PATH = path.join(os.homedir(), '.pastebin-config.json');
 const API_URL = process.env.PASTEBIN_API_URL || 'http://localhost:5000/api';
+
+const BANNER = `
+  _____           _         ____  _
+ |  __ \\         | |       |  _ \\(_)
+ | |__) |__  ___ | |_ ___  | |_) |_ _ __
+ |  ___/ _ \`/ __|| __/ _ \\ |  _ <| | '_ \\
+ | |  | (_| \\__ \\| |_  __/ | |_) | | | | |
+ |_|   \\__,_|___/ \\__\\___| |____/|_|_| |_|
+`;
+
+function printBanner() {
+  console.log(chalk.bold.cyan(BANNER));
+  console.log(chalk.bold.gray(` Terminal Code-Sharing Client v1.0.0`));
+  console.log(chalk.gray('-'.repeat(50)) + '\n');
+}
 
 // Helper to load JWT configuration
 async function loadToken(): Promise<string | null> {
@@ -33,7 +50,7 @@ async function saveToken(token: string) {
 }
 
 // Helper to prompt user input
-function askQuestion(query: string, isPassword = false): Promise<string> {
+function askQuestion(query: string): Promise<string> {
   const rl = readline.createInterface({
     input: process.stdin,
     output: process.stdout,
@@ -59,6 +76,7 @@ program
   .description('Authenticate with PasteBin API and retrieve JWT session token')
   .action(async () => {
     try {
+      printBanner();
       console.log(chalk.blue('--- Authenticate with PasteBin ---'));
       const email = await askQuestion('Enter your email: ');
       const password = await askQuestion('Enter your password: ');
@@ -68,12 +86,16 @@ program
         return;
       }
 
-      console.log(chalk.yellow('Logging in...'));
-      const response = await axios.post(`${API_URL}/auth/login`, { email, password });
-      
-      const { token } = response.data;
-      await saveToken(token);
-      console.log(chalk.green('✓ Authentication successful! Session token saved.'));
+      const loader = ora('Authenticating with server...').start();
+      try {
+        const response = await axios.post(`${API_URL}/auth/login`, { email, password });
+        const { token } = response.data;
+        await saveToken(token);
+        loader.succeed('Authentication successful! Session token saved.');
+      } catch (error: any) {
+        loader.fail('Authentication failed.');
+        throw error;
+      }
     } catch (error: any) {
       const msg = error.response?.data?.message || error.message;
       console.error(chalk.red(`✗ Login failed: ${msg}`));
@@ -90,6 +112,7 @@ program
   .option('--password <password>', 'Protect the paste with a password')
   .action(async (file, options) => {
     try {
+      printBanner();
       // Read local file
       const absolutePath = path.resolve(file);
       const content = await fs.readFile(absolutePath, 'utf-8');
@@ -106,23 +129,38 @@ program
         headers['Authorization'] = `Bearer ${token}`;
       }
 
-      console.log(chalk.yellow('Uploading paste...'));
-      const response = await axios.post(
-        `${API_URL}/pastes`,
-        {
-          title,
-          content,
-          language,
-          isPublic,
-          password,
-        },
-        { headers }
-      );
+      const loader = ora('Uploading file content to PasteBin...').start();
+      try {
+        const response = await axios.post(
+          `${API_URL}/pastes`,
+          {
+            title,
+            content,
+            language,
+            isPublic,
+            password,
+          },
+          { headers }
+        );
 
-      const paste = response.data;
-      console.log(chalk.green('✓ Paste successfully uploaded!'));
-      console.log(chalk.cyan(`ID:        ${paste.id}`));
-      console.log(chalk.cyan(`URL:       http://localhost:5173/paste/${paste.id}`));
+        const paste = response.data;
+        const pasteUrl = `http://localhost:5173/paste/${paste.id}`;
+        loader.succeed('Paste successfully uploaded!');
+        
+        console.log(chalk.cyan(`ID:        ${paste.id}`));
+        console.log(chalk.cyan(`URL:       ${pasteUrl}`));
+
+        // Copy URL to Clipboard
+        try {
+          clipboardy.writeSync(pasteUrl);
+          console.log(chalk.green('✓ URL copied to clipboard automatically!'));
+        } catch (clipErr) {
+          // Suppress copy errors if clipboard is not accessible in headless shells
+        }
+      } catch (error: any) {
+        loader.fail('Upload failed.');
+        throw error;
+      }
     } catch (error: any) {
       const msg = error.response?.data?.message || error.message;
       console.error(chalk.red(`✗ Upload failed: ${msg}`));
@@ -136,33 +174,48 @@ program
   .option('--password <password>', 'Password for protected pastes')
   .action(async (id, options) => {
     try {
+      printBanner();
       const token = await loadToken();
       const headers: any = {};
       if (token) {
         headers['Authorization'] = `Bearer ${token}`;
       }
 
-      console.log(chalk.yellow('Fetching paste...'));
+      const loader = ora('Fetching paste content...').start();
       
       let response;
       try {
         response = await axios.get(`${API_URL}/pastes/${id}`, { headers });
+        loader.succeed('Paste retrieved successfully.');
       } catch (err: any) {
         if (err.response?.status === 401 && err.response?.data?.message?.includes('Password required')) {
-          const pass = options.password || await askQuestion('This paste is password protected. Enter password: ');
-          const verifyResp = await axios.post(`${API_URL}/pastes/${id}/verify`, { password: pass });
-          const tempToken = verifyResp.data.token;
-          headers['Authorization'] = `Bearer ${tempToken}`;
+          loader.warn('This paste is password protected.');
+          const pass = options.password || await askQuestion('Enter password: ');
+          
+          const verifyLoader = ora('Verifying password...').start();
+          try {
+            const verifyResp = await axios.post(`${API_URL}/pastes/${id}/verify`, { password: pass });
+            const tempToken = verifyResp.data.token;
+            headers['Authorization'] = `Bearer ${tempToken}`;
+            verifyLoader.succeed('Password verified.');
+          } catch (verifyErr) {
+            verifyLoader.fail('Incorrect password.');
+            throw verifyErr;
+          }
+
+          const fetchLoader = ora('Fetching paste content...').start();
           response = await axios.get(`${API_URL}/pastes/${id}`, { headers });
+          fetchLoader.succeed('Paste retrieved successfully.');
         } else {
+          loader.fail('Fetch failed.');
           throw err;
         }
       }
 
       const paste = response.data;
-      console.log(chalk.bold.green(`=== ${paste.title} (${paste.language}) ===`));
+      console.log('\n' + chalk.bold.green(`=== ${paste.title} (${paste.language}) ===`));
       console.log(chalk.gray(`Created: ${new Date(paste.createdAt).toLocaleString()}`));
-      console.log(chalk.gray('-'.repeat(40)));
+      console.log(chalk.gray('-'.repeat(50)));
       
       const lines = paste.content.split('\n');
       for (const line of lines) {
@@ -172,7 +225,7 @@ program
           console.log(line);
         }
       }
-      console.log(chalk.gray('-'.repeat(40)));
+      console.log(chalk.gray('-'.repeat(50)) + '\n');
     } catch (error: any) {
       const msg = error.response?.data?.message || error.message;
       console.error(chalk.red(`✗ Fetch failed: ${msg}`));
@@ -185,8 +238,18 @@ program
   .description('List recent public pastes')
   .action(async () => {
     try {
-      console.log(chalk.yellow('Retrieving public pastes...'));
-      const response = await axios.get(`${API_URL}/pastes?page=1&limit=10`);
+      printBanner();
+      const loader = ora('Retrieving public pastes...').start();
+      
+      let response;
+      try {
+        response = await axios.get(`${API_URL}/pastes?page=1&limit=10`);
+        loader.succeed('Public pastes retrieved.');
+      } catch (error) {
+        loader.fail('Failed to retrieve public pastes.');
+        throw error;
+      }
+
       const { pastes } = response.data;
 
       if (!pastes || pastes.length === 0) {

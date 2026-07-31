@@ -39,4 +39,7 @@
 
 ## Phase 6: CLI Client & Extras (Future Phase)
 - [x] CLI Client Tool (CLI executable tool for posting pastes directly from terminal)
-- [ ] CLI Distribution & Polish (NPM link commands, executable package distributions)
+- [x] CLI Distribution & Polish (NPM link commands, executable package distributions)
+
+## Phase 7: Security Audit & Performance (Future Phase)
+- [ ] Security Audit & Performance (SQL checking, index scans, performance tuning)
