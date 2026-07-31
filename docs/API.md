@@ -209,3 +209,31 @@ Verifies account credentials and dispatches session JWT.
   ```
 - **Error Responses**:
   - `401 Unauthorized`: Invalid email or password.
+
+---
+
+### 3. Retrieve User Pastes
+Returns all active and expired pastes created by the authenticated user session.
+
+- **Method**: `GET`
+- **URL**: `/api/pastes/me`
+- **Headers**:
+  - `Authorization`: `Bearer <token>` (Required)
+- **Success Response (200 OK)**:
+  ```json
+  [
+    {
+      "id": "clz4u3w...",
+      "title": "Private snippet",
+      "content": "print('hello')",
+      "language": "python",
+      "isPublic": false,
+      "userId": "user-uuid-here",
+      "expiresAt": null,
+      "createdAt": "2026-07-31T08:00:00.000Z",
+      "updatedAt": "2026-07-31T08:00:00.000Z"
+    }
+  ]
+  ```
+- **Error Responses**:
+  - `401 Unauthorized`: Access token required or signature verify check failed.

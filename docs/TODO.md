@@ -24,6 +24,7 @@
 - [x] History feed listing recent public pastes (Public List & Discovery)
 - [x] Delete Logic & Security Checks
 - [x] User Authentication (JWT) & Auth UI (Sign In / Sign Up)
-- [ ] User Dashboard & Snippet Management History
+- [x] User Dashboard & Snippet Management History
+- [ ] Private Pastes & Password Protection (Staging Decryption Controls)
 - [ ] Custom key aliases for paste links
 - [ ] CLI executable tool for posting pastes from terminal

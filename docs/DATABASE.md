@@ -55,3 +55,12 @@ Stores code snippets, highlight details, access restrictions, and validation met
 | `userId` | `VARCHAR(36)` | `FOREIGN KEY` (User) | Creator references |
 | `createdAt` | `TIMESTAMP` | `DEFAULT CURRENT_TIMESTAMP` | Paste upload timestamp |
 | `updatedAt` | `TIMESTAMP` | `DEFAULT CURRENT_TIMESTAMP` | Last updated timestamp |
+
+---
+
+## Relation Integrity
+
+### User-Paste (1:N) Relationship
+- Each `Paste` can optionally belong to a `User` (represented by `userId` foreign key). If the paste is created anonymously, `userId` will be stored as `null`.
+- **Integrity Constraints**: The `userId` references the primary key `id` of the `User` table.
+- **On Delete Action**: If a `User` record is deleted, all pastes created by that user are cascade-deleted (`onDelete: Cascade` relation strategy) to prevent orphaned records in the database.

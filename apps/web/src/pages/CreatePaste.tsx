@@ -4,6 +4,7 @@ import axios from 'axios';
 import { Terminal, Save, Lock } from 'lucide-react';
 import { CreatePasteSchema } from '@pastebin/shared';
 import { CodeEditor } from '../components/editor/CodeEditor.js';
+import { useAuth } from '../components/auth-provider.js';
 
 const LANGUAGES = [
   { value: 'plaintext', label: 'Plain Text' },
@@ -26,6 +27,7 @@ const EXPIRATION_OPTIONS = [
 ];
 
 export function CreatePaste() {
+  const { token } = useAuth();
   const navigate = useNavigate();
   const [title, setTitle] = useState('');
   const [language, setLanguage] = useState('javascript');
@@ -60,7 +62,11 @@ export function CreatePaste() {
     }
 
     try {
-      const response = await axios.post('http://localhost:5000/api/pastes', payload);
+      const headers: any = {};
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+      const response = await axios.post('http://localhost:5000/api/pastes', payload, { headers });
       navigate(`/v/${response.data.id}`);
     } catch (err: any) {
       console.error('Create paste failed:', err);

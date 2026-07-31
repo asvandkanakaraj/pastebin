@@ -9,6 +9,7 @@ export class PasteService {
     isPublic?: boolean;
     password?: string;
     expiresInSeconds?: number;
+    userId?: string;
   }) {
     let passwordHash: string | undefined = undefined;
     if (data.password) {
@@ -28,6 +29,7 @@ export class PasteService {
         isPublic: data.isPublic !== false,
         passwordHash,
         expiresAt,
+        userId: data.userId || null,
       },
     });
   }
@@ -106,6 +108,17 @@ export class PasteService {
       totalPages,
       currentPage: page,
     };
+  }
+
+  static async listUserPastes(userId: string) {
+    const pastes = await db.paste.findMany({
+      where: {
+        userId,
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return pastes.map(({ passwordHash, ...safePaste }) => safePaste);
   }
 
   static async deletePaste(id: string, passwordInput?: string) {

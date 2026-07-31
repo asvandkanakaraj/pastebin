@@ -1,5 +1,5 @@
 import { Link, useNavigate } from 'react-router-dom';
-import { Terminal, Plus, Search, Globe, LogOut, LogIn, User } from 'lucide-react';
+import { Terminal, Plus, Search, Globe, LogOut, LogIn, User, LayoutDashboard } from 'lucide-react';
 import { ModeToggle } from '../mode-toggle.js';
 import { useAuth } from '../auth-provider.js';
 
@@ -47,6 +47,16 @@ export function Navbar() {
             <Globe className="h-4 w-4" />
             <span>Browse</span>
           </Link>
+
+          {user && (
+            <Link
+              to="/dashboard"
+              className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-600 hover:text-slate-900 dark:text-slate-355 dark:hover:text-white transition-colors"
+            >
+              <LayoutDashboard className="h-4 w-4" />
+              <span>Dashboard</span>
+            </Link>
+          )}
 
           <Link
             to="/"

@@ -7,6 +7,7 @@ import { ViewPaste } from './pages/ViewPaste.js';
 import { BrowsePastes } from './pages/BrowsePastes.js';
 import { Login } from './pages/Login.js';
 import { Register } from './pages/Register.js';
+import { Dashboard } from './pages/Dashboard.js';
 
 function App() {
   return (
@@ -20,6 +21,7 @@ function App() {
               <Route path="/browse" element={<BrowsePastes />} />
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
+              <Route path="/dashboard" element={<Dashboard />} />
             </Routes>
           </MainLayout>
         </BrowserRouter>

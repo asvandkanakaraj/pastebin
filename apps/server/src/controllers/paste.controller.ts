@@ -6,7 +6,8 @@ export class PasteController {
   static async createPaste(req: Request, res: Response, next: NextFunction) {
     try {
       const validatedData = CreatePasteSchema.parse(req.body);
-      const paste = await PasteService.createPaste(validatedData);
+      const userId = (req as any).user?.userId;
+      const paste = await PasteService.createPaste({ ...validatedData, userId });
       res.status(201).json(paste);
     } catch (error) {
       next(error);
@@ -29,6 +30,22 @@ export class PasteController {
       const page = parseInt(req.query.page as string) || 1;
       const limit = parseInt(req.query.limit as string) || 10;
       const pastes = await PasteService.listPublicPastes(page, limit);
+      res.json(pastes);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async getMyPastes(req: Request, res: Response, next: NextFunction) {
+    try {
+      const userId = (req as any).user?.userId;
+      if (!userId) {
+        return res.status(401).json({
+          error: 'UnauthorizedError',
+          message: 'Access token required',
+        });
+      }
+      const pastes = await PasteService.listUserPastes(userId);
       res.json(pastes);
     } catch (error) {
       next(error);
