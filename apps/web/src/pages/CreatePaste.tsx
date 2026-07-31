@@ -84,7 +84,9 @@ export function CreatePaste() {
           <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
             <Terminal className="text-indigo-500 h-6 w-6" /> Create New Paste
           </h1>
-          <p className="text-xs text-slate-500">Share your snippet securely with custom expiration and syntax highlights.</p>
+          <p className="text-xs text-slate-500">
+            Share your snippet securely with custom expiration and syntax highlights.
+          </p>
         </div>
       </div>
 
@@ -93,7 +95,10 @@ export function CreatePaste() {
         <div className="lg:col-span-3 space-y-4">
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-sm space-y-4">
             <div className="flex flex-col gap-1.5">
-              <label htmlFor="title" className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+              <label
+                htmlFor="title"
+                className="text-xs font-semibold text-slate-700 dark:text-slate-300"
+              >
                 Title (Optional)
               </label>
               <input
@@ -110,7 +115,11 @@ export function CreatePaste() {
               <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
                 Content
               </label>
-              <CodeEditor value={content} onChange={(val) => setContent(val || '')} language={language} />
+              <CodeEditor
+                value={content}
+                onChange={(val) => setContent(val || '')}
+                language={language}
+              />
             </div>
           </div>
         </div>
@@ -122,7 +131,10 @@ export function CreatePaste() {
 
             {/* Language Select */}
             <div className="flex flex-col gap-1.5">
-              <label htmlFor="language" className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+              <label
+                htmlFor="language"
+                className="text-xs font-semibold text-slate-700 dark:text-slate-300"
+              >
                 Language
               </label>
               <select
@@ -141,7 +153,10 @@ export function CreatePaste() {
 
             {/* Expiration Select */}
             <div className="flex flex-col gap-1.5">
-              <label htmlFor="expiration" className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+              <label
+                htmlFor="expiration"
+                className="text-xs font-semibold text-slate-700 dark:text-slate-300"
+              >
                 Expiration
               </label>
               <select
@@ -183,7 +198,10 @@ export function CreatePaste() {
 
             {/* Password Protection */}
             <div className="flex flex-col gap-1.5 border-t border-slate-100 dark:border-slate-800 pt-4">
-              <label htmlFor="password" className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1">
+              <label
+                htmlFor="password"
+                className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1"
+              >
                 <Lock size={12} /> Password (Optional)
               </label>
               <input

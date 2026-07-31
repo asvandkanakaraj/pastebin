@@ -9,6 +9,7 @@ The PasteBin CLI Client (`@pastebin/cli`) provides developer-centric terminal ac
 You can install the CLI globally on your system directly from the repository:
 
 ### Installation via Global Linking
+
 1. From the repository root directory, run:
    ```bash
    npm link -w @pastebin/cli
@@ -19,6 +20,7 @@ You can install the CLI globally on your system directly from the repository:
    ```
 
 ### Global Installation via Tarball/Directory
+
 ```bash
 npm install -g apps/cli
 ```
@@ -28,7 +30,9 @@ npm install -g apps/cli
 ## 2. Command Reference
 
 ### 1. `login`
+
 Authenticate against the backend REST API server and save session configurations.
+
 - **Command**:
   ```bash
   pastebin login
@@ -38,7 +42,9 @@ Authenticate against the backend REST API server and save session configurations
 ---
 
 ### 2. `upload`
+
 Create a new code paste snippet from a local file.
+
 - **Command**:
   ```bash
   pastebin upload <file-path> [options]
@@ -57,7 +63,9 @@ Create a new code paste snippet from a local file.
 ---
 
 ### 3. `get`
+
 Fetch and print the content of a paste to your terminal.
+
 - **Command**:
   ```bash
   pastebin get <paste-id> [options]
@@ -73,7 +81,9 @@ Fetch and print the content of a paste to your terminal.
 ---
 
 ### 4. `list`
+
 Fetch and display the most recent public pastes in a clean format.
+
 - **Command**:
   ```bash
   pastebin list
@@ -84,4 +94,5 @@ Fetch and display the most recent public pastes in a clean format.
 ## 3. Environment Configurations
 
 You can configure the target API host URL using environment variables:
+
 - **`PASTEBIN_API_URL`**: Target REST API endpoint server (defaults to `http://localhost:5000/api`).

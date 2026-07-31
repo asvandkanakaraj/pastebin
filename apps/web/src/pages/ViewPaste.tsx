@@ -1,7 +1,17 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { Terminal, Lock, Clock, Eye, AlertCircle, ArrowLeft, Copy, Check, Trash2 } from 'lucide-react';
+import {
+  Terminal,
+  Lock,
+  Clock,
+  Eye,
+  AlertCircle,
+  ArrowLeft,
+  Copy,
+  Check,
+  Trash2,
+} from 'lucide-react';
 import Editor from '@monaco-editor/react';
 import { useTheme } from '../components/theme-provider.js';
 
@@ -135,8 +145,12 @@ export function ViewPaste() {
           <Lock size={28} className="animate-pulse" />
         </div>
         <div>
-          <h2 className="text-lg font-bold text-slate-800 dark:text-slate-200">Password Required</h2>
-          <p className="text-xs text-slate-500 mt-1">This snippet is encrypted. Enter the password to unlock its content.</p>
+          <h2 className="text-lg font-bold text-slate-800 dark:text-slate-200">
+            Password Required
+          </h2>
+          <p className="text-xs text-slate-500 mt-1">
+            This snippet is encrypted. Enter the password to unlock its content.
+          </p>
         </div>
 
         <form onSubmit={handlePasswordSubmit} className="space-y-3 text-left">
@@ -151,7 +165,8 @@ export function ViewPaste() {
           />
           {passwordError && (
             <div className="text-xs text-rose-500 font-semibold flex items-center gap-1.5">
-              <AlertCircle size={12} />{passwordError}
+              <AlertCircle size={12} />
+              {passwordError}
             </div>
           )}
           <button
@@ -165,7 +180,10 @@ export function ViewPaste() {
         </form>
 
         <div className="pt-2 border-t border-slate-100 dark:border-slate-800 text-[11px]">
-          <Link to="/" className="text-indigo-500 hover:underline flex items-center justify-center gap-1">
+          <Link
+            to="/"
+            className="text-indigo-500 hover:underline flex items-center justify-center gap-1"
+          >
             <ArrowLeft size={10} /> Back to Home
           </Link>
         </div>
@@ -181,10 +199,16 @@ export function ViewPaste() {
         </div>
         <div>
           <h2 className="text-lg font-bold text-slate-800 dark:text-slate-200">Private Paste</h2>
-          <p className="text-xs text-slate-500 mt-1">This snippet is private and only accessible by its creator. If you believe you should have access, ask the owner to share a direct link.</p>
+          <p className="text-xs text-slate-500 mt-1">
+            This snippet is private and only accessible by its creator. If you believe you should
+            have access, ask the owner to share a direct link.
+          </p>
         </div>
         <div className="pt-2 border-t border-slate-100 dark:border-slate-800 text-[11px]">
-          <Link to="/" className="text-indigo-500 hover:underline flex items-center justify-center gap-1">
+          <Link
+            to="/"
+            className="text-indigo-500 hover:underline flex items-center justify-center gap-1"
+          >
             <ArrowLeft size={10} /> Back to Home
           </Link>
         </div>
@@ -199,11 +223,16 @@ export function ViewPaste() {
           <AlertCircle size={28} className="animate-bounce" />
         </div>
         <div>
-          <h2 className="text-lg font-bold text-slate-800 dark:text-slate-200">Error Loading Paste</h2>
+          <h2 className="text-lg font-bold text-slate-800 dark:text-slate-200">
+            Error Loading Paste
+          </h2>
           <p className="text-xs text-slate-500 mt-1">{error}</p>
         </div>
         <div className="pt-2 border-t border-slate-100 dark:border-slate-800 text-[11px]">
-          <Link to="/" className="text-indigo-500 hover:underline flex items-center justify-center gap-1">
+          <Link
+            to="/"
+            className="text-indigo-500 hover:underline flex items-center justify-center gap-1"
+          >
             <ArrowLeft size={10} /> Back to Home
           </Link>
         </div>
@@ -221,9 +250,12 @@ export function ViewPaste() {
               <AlertCircle size={24} />
             </div>
             <div>
-              <h3 className="text-md font-bold text-slate-800 dark:text-slate-200">Delete Snippet?</h3>
+              <h3 className="text-md font-bold text-slate-800 dark:text-slate-200">
+                Delete Snippet?
+              </h3>
               <p className="text-xs text-slate-500 mt-1.5 leading-relaxed">
-                Are you sure you want to delete this paste? This will permanently delete the content from the cloud database. This action is irreversible.
+                Are you sure you want to delete this paste? This will permanently delete the content
+                from the cloud database. This action is irreversible.
               </p>
             </div>
             <div className="flex items-center gap-3">
@@ -258,7 +290,8 @@ export function ViewPaste() {
               {paste.language}
             </span>
             <span className="flex items-center gap-1">
-              <Clock size={12} /> Expiration: {paste.expiresAt ? new Date(paste.expiresAt).toLocaleString() : 'Never'}
+              <Clock size={12} /> Expiration:{' '}
+              {paste.expiresAt ? new Date(paste.expiresAt).toLocaleString() : 'Never'}
             </span>
             <span className="flex items-center gap-1">
               <Eye size={12} /> {paste.isPublic ? 'Public' : 'Private link'}
@@ -281,7 +314,7 @@ export function ViewPaste() {
             <Trash2 size={12} />
             <span>Delete</span>
           </button>
-          
+
           <Link
             to="/"
             className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg bg-indigo-600 px-4 text-xs font-bold text-white shadow-md hover:bg-indigo-500 focus:outline-none dark:bg-indigo-500 dark:hover:bg-indigo-400 transition-colors"

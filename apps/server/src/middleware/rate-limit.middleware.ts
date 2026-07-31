@@ -7,8 +7,8 @@ export const globalRateLimiter = rateLimit({
   legacyHeaders: false, // Disable the `X-RateLimit-*` headers
   message: {
     error: 'TooManyRequests',
-    message: 'Too many requests from this IP. Please try again after 15 minutes.'
-  }
+    message: 'Too many requests from this IP. Please try again after 15 minutes.',
+  },
 });
 
 export const strictRateLimiter = rateLimit({
@@ -18,8 +18,8 @@ export const strictRateLimiter = rateLimit({
   legacyHeaders: false,
   message: {
     error: 'TooManyRequests',
-    message: 'Too many requests targeting sensitive routes. Please try again after 15 minutes.'
-  }
+    message: 'Too many requests targeting sensitive routes. Please try again after 15 minutes.',
+  },
 });
 
 export const deleteRateLimiter = rateLimit({
@@ -29,6 +29,6 @@ export const deleteRateLimiter = rateLimit({
   legacyHeaders: false,
   message: {
     error: 'TooManyRequests',
-    message: 'Too many delete requests from this IP. Please try again after 1 minute.'
-  }
+    message: 'Too many delete requests from this IP. Please try again after 1 minute.',
+  },
 });

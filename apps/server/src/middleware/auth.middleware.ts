@@ -32,7 +32,11 @@ export function authMiddleware(req: AuthenticatedRequest, res: Response, next: N
   }
 }
 
-export function optionalAuthMiddleware(req: AuthenticatedRequest, res: Response, next: NextFunction) {
+export function optionalAuthMiddleware(
+  req: AuthenticatedRequest,
+  res: Response,
+  next: NextFunction
+) {
   const authHeader = req.headers.authorization;
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     return next();

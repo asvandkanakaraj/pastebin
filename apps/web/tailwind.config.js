@@ -70,4 +70,4 @@ export default {
     },
   },
   plugins: [tailwindAnimate],
-}
+};

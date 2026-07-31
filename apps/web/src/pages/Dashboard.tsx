@@ -1,7 +1,17 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { Terminal, Calendar, Eye, Trash2, ShieldAlert, Plus, Lock, Unlock, AlertCircle } from 'lucide-react';
+import {
+  Terminal,
+  Calendar,
+  Eye,
+  Trash2,
+  ShieldAlert,
+  Plus,
+  Lock,
+  Unlock,
+  AlertCircle,
+} from 'lucide-react';
 import { useAuth } from '../components/auth-provider.js';
 
 export function Dashboard() {
@@ -73,11 +83,15 @@ export function Dashboard() {
           <AlertCircle size={28} />
         </div>
         <div>
-          <h2 className="text-lg font-bold text-slate-800 dark:text-slate-200">Error Loading Dashboard</h2>
+          <h2 className="text-lg font-bold text-slate-800 dark:text-slate-200">
+            Error Loading Dashboard
+          </h2>
           <p className="text-xs text-slate-500 mt-1">{error}</p>
         </div>
         <div className="pt-2 border-t border-slate-100 dark:border-slate-800 text-[11px]">
-          <Link to="/" className="text-indigo-500 hover:underline">Back to Home</Link>
+          <Link to="/" className="text-indigo-500 hover:underline">
+            Back to Home
+          </Link>
         </div>
       </div>
     );
@@ -93,9 +107,12 @@ export function Dashboard() {
               <ShieldAlert size={24} />
             </div>
             <div>
-              <h3 className="text-md font-bold text-slate-800 dark:text-slate-200">Delete Snippet?</h3>
+              <h3 className="text-md font-bold text-slate-800 dark:text-slate-200">
+                Delete Snippet?
+              </h3>
               <p className="text-xs text-slate-500 mt-1.5 leading-relaxed">
-                Are you sure you want to delete this paste? This will permanently delete the content from the cloud database. This action is irreversible.
+                Are you sure you want to delete this paste? This will permanently delete the content
+                from the cloud database. This action is irreversible.
               </p>
             </div>
             <div className="flex items-center gap-3">
@@ -124,7 +141,9 @@ export function Dashboard() {
         <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
           <Terminal className="text-indigo-500 h-6 w-6" /> My Dashboard
         </h1>
-        <p className="text-xs text-slate-500 mt-1">Manage and audit snippets associated with {user?.email}.</p>
+        <p className="text-xs text-slate-500 mt-1">
+          Manage and audit snippets associated with {user?.email}.
+        </p>
       </div>
 
       {pastes.length === 0 ? (
@@ -133,8 +152,12 @@ export function Dashboard() {
             <Plus size={32} />
           </div>
           <div>
-            <h2 className="text-md font-bold text-slate-800 dark:text-slate-200">No Pastes Created Yet</h2>
-            <p className="text-xs text-slate-500 mt-1">You haven't uploaded any code snippets under this user account yet.</p>
+            <h2 className="text-md font-bold text-slate-800 dark:text-slate-200">
+              No Pastes Created Yet
+            </h2>
+            <p className="text-xs text-slate-500 mt-1">
+              You haven't uploaded any code snippets under this user account yet.
+            </p>
           </div>
           <Link
             to="/"
@@ -149,16 +172,29 @@ export function Dashboard() {
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50">
-                  <th className="p-4 text-xs font-bold uppercase tracking-wider text-slate-400">Title</th>
-                  <th className="p-4 text-xs font-bold uppercase tracking-wider text-slate-400">Language</th>
-                  <th className="p-4 text-xs font-bold uppercase tracking-wider text-slate-400">Created Date</th>
-                  <th className="p-4 text-xs font-bold uppercase tracking-wider text-slate-400">Visibility</th>
-                  <th className="p-4 text-xs font-bold uppercase tracking-wider text-slate-400 text-right">Actions</th>
+                  <th className="p-4 text-xs font-bold uppercase tracking-wider text-slate-400">
+                    Title
+                  </th>
+                  <th className="p-4 text-xs font-bold uppercase tracking-wider text-slate-400">
+                    Language
+                  </th>
+                  <th className="p-4 text-xs font-bold uppercase tracking-wider text-slate-400">
+                    Created Date
+                  </th>
+                  <th className="p-4 text-xs font-bold uppercase tracking-wider text-slate-400">
+                    Visibility
+                  </th>
+                  <th className="p-4 text-xs font-bold uppercase tracking-wider text-slate-400 text-right">
+                    Actions
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
                 {pastes.map((p) => (
-                  <tr key={p.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-850/20 transition-colors">
+                  <tr
+                    key={p.id}
+                    className="hover:bg-slate-50/50 dark:hover:bg-slate-850/20 transition-colors"
+                  >
                     <td className="p-4 text-xs font-semibold text-slate-955 dark:text-white max-w-[200px] truncate">
                       {p.title || 'Untitled Paste'}
                     </td>

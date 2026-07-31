@@ -5,6 +5,7 @@ This document describes the API routes exposed by the Express backend.
 ## Endpoints
 
 ### 1. Create Paste
+
 Creates a new code snippet paste with optional security settings.
 
 - **Method**: `POST`
@@ -12,14 +13,14 @@ Creates a new code snippet paste with optional security settings.
 - **Headers**:
   - `Content-Type: application/json`
 - **Request Body (JSON validated via Zod)**:
-  | Field | Type | Description |
-  |---|---|---|
-  | `title` | `string` | (Optional) Title, max 100 characters |
-  | `content` | `string` | (Required) Raw paste content, minimum 1 character |
-  | `language` | `string` | (Optional) Syntax highlighting format (default: `plaintext`) |
-  | `isPublic` | `boolean` | (Optional) Search indexing visibility (default: `true`) |
-  | `password` | `string` | (Optional) Password check protection, minimum 4 characters |
-  | `expiresInSeconds` | `integer` | (Optional) Lifespan of the paste in seconds |
+  | Field              | Type      | Description                                                  |
+  | ------------------ | --------- | ------------------------------------------------------------ |
+  | `title`            | `string`  | (Optional) Title, max 100 characters                         |
+  | `content`          | `string`  | (Required) Raw paste content, minimum 1 character            |
+  | `language`         | `string`  | (Optional) Syntax highlighting format (default: `plaintext`) |
+  | `isPublic`         | `boolean` | (Optional) Search indexing visibility (default: `true`)      |
+  | `password`         | `string`  | (Optional) Password check protection, minimum 4 characters   |
+  | `expiresInSeconds` | `integer` | (Optional) Lifespan of the paste in seconds                  |
 - **Success Response (201 Created)**:
   ```json
   {
@@ -47,6 +48,7 @@ Creates a new code snippet paste with optional security settings.
 ---
 
 ### 2. Retrieve Paste
+
 Fetches a single paste by its ID.
 
 - **Method**: `GET`
@@ -67,7 +69,7 @@ Fetches a single paste by its ID.
     "updatedAt": "2026-07-31T08:12:00.000Z"
   }
   ```
-  *(Note: `passwordHash` is excluded from the returned object for security).*
+  _(Note: `passwordHash` is excluded from the returned object for security)._
 - **Error Responses**:
   - `401 Unauthorized`: Password is required but was not provided in headers.
     ```json
@@ -101,6 +103,7 @@ Fetches a single paste by its ID.
 ---
 
 ### 3. List Public Pastes
+
 Returns a paginated list of all active public pastes.
 
 - **Method**: `GET`
@@ -135,6 +138,7 @@ Returns a paginated list of all active public pastes.
 ---
 
 ### 4. Delete Paste
+
 Removes a paste.
 
 - **Method**: `DELETE`
@@ -142,7 +146,7 @@ Removes a paste.
 - **Headers**:
   - `x-paste-password`: (Optional) Required if the paste is protected.
 - **Success Response (204 No Content)**:
-  *No response body returned.*
+  _No response body returned._
 - **Error Responses**:
   - `401 Unauthorized`: Password is required to delete.
   - `403 Forbidden`: Password mismatch.
@@ -160,6 +164,7 @@ Removes a paste.
 ## Auth Endpoints
 
 ### 1. Register User
+
 Creates a new user account with hashed passwords.
 
 - **Method**: `POST`
@@ -186,6 +191,7 @@ Creates a new user account with hashed passwords.
 ---
 
 ### 2. Login User
+
 Verifies account credentials and dispatches session JWT.
 
 - **Method**: `POST`
@@ -215,6 +221,7 @@ Verifies account credentials and dispatches session JWT.
 ---
 
 ### 3. Retrieve User Pastes
+
 Returns all active and expired pastes created by the authenticated user session.
 
 - **Method**: `GET`
@@ -247,26 +254,32 @@ Returns all active and expired pastes created by the authenticated user session.
 The PasteBin API uses standard HTTP response status codes to indicate success or failure. Each status code maps to specific scenarios:
 
 ### 1. `400 Bad Request`
+
 - **Context**: Schema validation check failed.
 - **Scenarios**: Empty `content`, `title` exceeding 100 characters, or invalid Zod parameters.
 
 ### 2. `401 Unauthorized`
+
 - **Context**: Authentication failed or is missing.
 - **Scenarios**: Invalid login credentials, missing or malformed JWT token inside the `Authorization` header, or query requests targeting password-protected pastes without supplying a password verification token.
 
 ### 3. `403 Forbidden`
+
 - **Context**: Permission checks rejected.
 - **Scenarios**: Non-owner attempts to read or delete private pastes (`isPublic: false`).
 
 ### 4. `404 Not Found`
+
 - **Context**: Resource could not be resolved.
 - **Scenarios**: Non-existent paste ID or attempt to retrieve a paste that has already reached its expiration timestamp (`expiresAt < Now`).
 
 ### 5. `429 Too Many Requests`
+
 - **Context**: Rate limiter threshold triggered.
 - **Scenarios**: Exceeded the maximum allowance of requests (100 requests per 15 mins globally, 10 requests per 15 mins for auth/posts, or 5 requests per 1 min for delete).
 
 ### 6. `500 Internal Server Error`
+
 - **Context**: Server error encountered.
 - **Scenarios**: Database link failure, server crash, or runtime exceptions.
 
@@ -277,15 +290,17 @@ The PasteBin API uses standard HTTP response status codes to indicate success or
 The Node.js CLI client (`pastebin`) acts as a consumer of these endpoints. The CLI handles request and response states as follows:
 
 ### 1. Authentication Handshake (`login`)
+
 - **Action**: Dispatches a `POST /api/auth/login` containing user-typed inputs.
 - **Outcome**: Captures the returned JSON `token` and persists it locally to `~/.pastebin-config.json`.
 
 ### 2. Secure Upload (`upload`)
+
 - **Action**: Reads the specified file content, checks `~/.pastebin-config.json` for active tokens, and dispatches a `POST /api/pastes` request.
 - **Headers**: Automatically injects `Authorization: Bearer <token>` if authenticated.
 - **Clipboard integration**: On a `201 Created` response, automatically copies the paste URL to the user's OS clipboard.
 
 ### 3. Retrieve and View (`get <id>`)
+
 - **Action**: Dispatches a `GET /api/pastes/:id`.
 - **Password Check**: If the endpoint returns a `401 Unauthorized` with a "Password required" message, the CLI prompts the user for the password, verifies it via `POST /api/pastes/:id/verify`, and uses the returned token to complete the fetch.
-

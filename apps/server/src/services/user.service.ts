@@ -49,11 +49,7 @@ export class UserService {
       throw error;
     }
 
-    const token = jwt.sign(
-      { userId: user.id, email: user.email },
-      JWT_SECRET,
-      { expiresIn: '7d' }
-    );
+    const token = jwt.sign({ userId: user.id, email: user.email }, JWT_SECRET, { expiresIn: '7d' });
 
     const { passwordHash: _, ...safeUser } = user;
     return {

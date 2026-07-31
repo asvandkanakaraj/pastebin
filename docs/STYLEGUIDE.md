@@ -7,6 +7,7 @@ This document defines the visual design system, styling guidelines, and theme va
 PasteBin utilizes a developer-first dark/light system optimized for syntax readability and visual hierarchy.
 
 ### Dark Mode (Default)
+
 - **Background**: `#09090b` (Slate-950)
 - **Cards/Containers**: `#18181b` (Slate-900)
 - **Primary Indigo Accent**: `#6366f1` (Indigo-500)
@@ -14,6 +15,7 @@ PasteBin utilizes a developer-first dark/light system optimized for syntax reada
 - **Border borders**: `#27272a` (Slate-800)
 
 ### Light Mode
+
 - **Background**: `#ffffff` (White)
 - **Cards/Containers**: `#f8fafc` (Slate-50)
 - **Primary Indigo Accent**: `#4f46e5` (Indigo-600)

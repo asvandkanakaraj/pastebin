@@ -65,10 +65,7 @@ function askQuestion(query: string): Promise<string> {
 }
 
 // CLI Config setup
-program
-  .name('pastebin')
-  .description('PasteBin Code Sharing CLI Client')
-  .version('1.0.0');
+program.name('pastebin').description('PasteBin Code Sharing CLI Client').version('1.0.0');
 
 // Login Command
 program
@@ -107,7 +104,11 @@ program
   .command('upload <file>')
   .description('Upload a local file content as a new paste')
   .option('-t, --title <title>', 'Title of the paste')
-  .option('-l, --language <language>', 'Programming language (e.g. javascript, python, rust)', 'plaintext')
+  .option(
+    '-l, --language <language>',
+    'Programming language (e.g. javascript, python, rust)',
+    'plaintext'
+  )
   .option('-p, --private', 'Create a private paste', false)
   .option('--password <password>', 'Protect the paste with a password')
   .action(async (file, options) => {
@@ -146,7 +147,7 @@ program
         const paste = response.data;
         const pasteUrl = `http://localhost:5173/paste/${paste.id}`;
         loader.succeed('Paste successfully uploaded!');
-        
+
         console.log(chalk.cyan(`ID:        ${paste.id}`));
         console.log(chalk.cyan(`URL:       ${pasteUrl}`));
 
@@ -182,19 +183,24 @@ program
       }
 
       const loader = ora('Fetching paste content...').start();
-      
+
       let response;
       try {
         response = await axios.get(`${API_URL}/pastes/${id}`, { headers });
         loader.succeed('Paste retrieved successfully.');
       } catch (err: any) {
-        if (err.response?.status === 401 && err.response?.data?.message?.includes('Password required')) {
+        if (
+          err.response?.status === 401 &&
+          err.response?.data?.message?.includes('Password required')
+        ) {
           loader.warn('This paste is password protected.');
-          const pass = options.password || await askQuestion('Enter password: ');
-          
+          const pass = options.password || (await askQuestion('Enter password: '));
+
           const verifyLoader = ora('Verifying password...').start();
           try {
-            const verifyResp = await axios.post(`${API_URL}/pastes/${id}/verify`, { password: pass });
+            const verifyResp = await axios.post(`${API_URL}/pastes/${id}/verify`, {
+              password: pass,
+            });
             const tempToken = verifyResp.data.token;
             headers['Authorization'] = `Bearer ${tempToken}`;
             verifyLoader.succeed('Password verified.');
@@ -216,7 +222,7 @@ program
       console.log('\n' + chalk.bold.green(`=== ${paste.title} (${paste.language}) ===`));
       console.log(chalk.gray(`Created: ${new Date(paste.createdAt).toLocaleString()}`));
       console.log(chalk.gray('-'.repeat(50)));
-      
+
       const lines = paste.content.split('\n');
       for (const line of lines) {
         if (line.trim().startsWith('//') || line.trim().startsWith('#')) {
@@ -240,7 +246,7 @@ program
     try {
       printBanner();
       const loader = ora('Retrieving public pastes...').start();
-      
+
       let response;
       try {
         response = await axios.get(`${API_URL}/pastes?page=1&limit=10`);
@@ -258,11 +264,11 @@ program
       }
 
       console.log(chalk.bold.magenta('\nRecent Public Pastes'));
-      console.log(chalk.gray('=' .repeat(60)));
+      console.log(chalk.gray('='.repeat(60)));
       console.log(
         `${chalk.bold('ID').padEnd(12)} | ${chalk.bold('Title').padEnd(25)} | ${chalk.bold('Language').padEnd(12)} | ${chalk.bold('Password')}`
       );
-      console.log(chalk.gray('=' .repeat(60)));
+      console.log(chalk.gray('='.repeat(60)));
 
       for (const paste of pastes) {
         const idCol = paste.id.substring(0, 10).padEnd(12);
@@ -271,7 +277,7 @@ program
         const passCol = paste.hasPassword ? chalk.red('Yes') : chalk.green('No');
         console.log(`${idCol} | ${titleCol} | ${langCol} | ${passCol}`);
       }
-      console.log(chalk.gray('=' .repeat(60)) + '\n');
+      console.log(chalk.gray('='.repeat(60)) + '\n');
     } catch (error: any) {
       const msg = error.response?.data?.message || error.message;
       console.error(chalk.red(`✗ List failed: ${msg}`));

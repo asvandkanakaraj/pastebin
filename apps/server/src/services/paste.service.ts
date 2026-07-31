@@ -116,10 +116,7 @@ export class PasteService {
 
     const whereClause: any = {
       isPublic: true,
-      OR: [
-        { expiresAt: null },
-        { expiresAt: { gt: new Date() } }
-      ]
+      OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
     };
 
     if (language) {
@@ -131,9 +128,9 @@ export class PasteService {
         {
           OR: [
             { title: { contains: search, mode: 'insensitive' } },
-            { content: { contains: search, mode: 'insensitive' } }
-          ]
-        }
+            { content: { contains: search, mode: 'insensitive' } },
+          ],
+        },
       ];
     }
 
@@ -146,7 +143,7 @@ export class PasteService {
       }),
       db.paste.count({
         where: whereClause,
-      })
+      }),
     ]);
 
     const totalPages = Math.ceil(totalCount / limit);

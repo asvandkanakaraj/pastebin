@@ -6,7 +6,13 @@ import { sanitizeMiddleware } from '../middleware/sanitize.middleware.js';
 
 const router = Router();
 
-router.post('/', strictRateLimiter, optionalAuthMiddleware, sanitizeMiddleware, PasteController.createPaste);
+router.post(
+  '/',
+  strictRateLimiter,
+  optionalAuthMiddleware,
+  sanitizeMiddleware,
+  PasteController.createPaste
+);
 router.get('/', PasteController.listPastes);
 router.get('/me', authMiddleware, PasteController.getMyPastes);
 router.get('/:id', optionalAuthMiddleware, PasteController.getPaste);

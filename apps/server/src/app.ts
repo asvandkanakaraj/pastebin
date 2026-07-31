@@ -29,10 +29,10 @@ app.use(
       directives: {
         defaultSrc: ["'self'"],
         scriptSrc: ["'self'", "'unsafe-inline'"],
-        styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
-        fontSrc: ["'self'", "https://fonts.gstatic.com"],
-        imgSrc: ["'self'", "data:", "https:"],
-        connectSrc: ["'self'", "http://localhost:5000", "http://localhost:5173"],
+        styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
+        fontSrc: ["'self'", 'https://fonts.gstatic.com'],
+        imgSrc: ["'self'", 'data:', 'https:'],
+        connectSrc: ["'self'", 'http://localhost:5000', 'http://localhost:5173'],
         upgradeInsecureRequests: [],
       },
     },
@@ -59,7 +59,9 @@ app.use(
       method: tokens.method(req, res),
       url: tokens.url(req, res),
       status: Number(tokens.status(req, res)),
-      responseTime: tokens['response-time'](req, res) ? `${tokens['response-time'](req, res)} ms` : undefined,
+      responseTime: tokens['response-time'](req, res)
+        ? `${tokens['response-time'](req, res)} ms`
+        : undefined,
       timestamp: new Date().toISOString(),
       ip: req.ip || req.socket.remoteAddress,
     };

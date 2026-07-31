@@ -1,7 +1,17 @@
 import { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
-import { Terminal, Calendar, Eye, FileText, ChevronLeft, ChevronRight, Lock, Search, X } from 'lucide-react';
+import {
+  Terminal,
+  Calendar,
+  Eye,
+  FileText,
+  ChevronLeft,
+  ChevronRight,
+  Lock,
+  Search,
+  X,
+} from 'lucide-react';
 
 // Simple in-memory cache for client-side search pagination results
 interface CacheEntry {
@@ -24,7 +34,7 @@ const POPULAR_LANGUAGES = [
   { value: 'html', label: 'HTML' },
   { value: 'css', label: 'CSS' },
   { value: 'json', label: 'JSON' },
-  { value: 'markdown', label: 'Markdown' }
+  { value: 'markdown', label: 'Markdown' },
 ];
 
 export function BrowsePastes() {
@@ -63,13 +73,13 @@ export function BrowsePastes() {
         )}&language=${encodeURIComponent(languageVal)}`
       );
       const { pastes: fetchedPastes, totalPages: pages, totalCount: count } = response.data;
-      
+
       // Save cache entry
       browseCache.set(cacheKey, {
         pastes: fetchedPastes || [],
         totalPages: pages || 1,
         totalCount: count || 0,
-        cachedAt: Date.now()
+        cachedAt: Date.now(),
       });
 
       setPastes(fetchedPastes || []);
@@ -158,7 +168,9 @@ export function BrowsePastes() {
         <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
           <Terminal className="text-indigo-500 h-6 w-6" /> Public Pastes
         </h1>
-        <p className="text-xs text-slate-500 mt-1">Discover snippets shared publicly by other developers ({totalCount} total).</p>
+        <p className="text-xs text-slate-500 mt-1">
+          Discover snippets shared publicly by other developers ({totalCount} total).
+        </p>
       </div>
 
       {/* Search and Filters Panel */}
@@ -211,7 +223,10 @@ export function BrowsePastes() {
       {loading && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-pulse">
           {[1, 2, 3, 4, 5, 6].map((i) => (
-            <div key={i} className="h-56 bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 space-y-4">
+            <div
+              key={i}
+              className="h-56 bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 space-y-4"
+            >
               <div className="h-4 bg-slate-200 dark:bg-slate-800 rounded w-2/3" />
               <div className="h-3 bg-slate-200 dark:bg-slate-800 rounded w-1/3" />
               <div className="h-20 bg-slate-200 dark:bg-slate-850 rounded w-full" />
@@ -228,8 +243,12 @@ export function BrowsePastes() {
           {search || language ? (
             <>
               <div>
-                <h2 className="text-md font-bold text-slate-800 dark:text-slate-200">No Search Results Found</h2>
-                <p className="text-xs text-slate-500 mt-1">Try adjusting your search terms or language filters to find what you need.</p>
+                <h2 className="text-md font-bold text-slate-800 dark:text-slate-200">
+                  No Search Results Found
+                </h2>
+                <p className="text-xs text-slate-500 mt-1">
+                  Try adjusting your search terms or language filters to find what you need.
+                </p>
               </div>
               <button
                 onClick={handleClearFilters}
@@ -241,8 +260,12 @@ export function BrowsePastes() {
           ) : (
             <>
               <div>
-                <h2 className="text-md font-bold text-slate-800 dark:text-slate-200">No Public Pastes Found</h2>
-                <p className="text-xs text-slate-500 mt-1">Be the first to create and publish a code snippet!</p>
+                <h2 className="text-md font-bold text-slate-800 dark:text-slate-200">
+                  No Public Pastes Found
+                </h2>
+                <p className="text-xs text-slate-500 mt-1">
+                  Be the first to create and publish a code snippet!
+                </p>
               </div>
               <Link
                 to="/"
@@ -270,7 +293,10 @@ export function BrowsePastes() {
                     </h2>
                     <div className="flex items-center gap-1.5 shrink-0">
                       {p.hasPassword && (
-                        <span className="p-1 bg-amber-500/10 border border-amber-500/20 rounded-md text-amber-500 dark:text-amber-400" title="Password Protected">
+                        <span
+                          className="p-1 bg-amber-500/10 border border-amber-500/20 rounded-md text-amber-500 dark:text-amber-400"
+                          title="Password Protected"
+                        >
                           <Lock size={10} />
                         </span>
                       )}

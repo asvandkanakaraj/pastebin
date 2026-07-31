@@ -5,17 +5,29 @@ import { AuthProvider } from './components/auth-provider.js';
 import { MainLayout } from './components/layout/MainLayout.js';
 
 // React lazy loaded page components
-const CreatePaste = lazy(() => import('./pages/CreatePaste.js').then((m) => ({ default: m.CreatePaste })));
-const ViewPaste = lazy(() => import('./pages/ViewPaste.js').then((m) => ({ default: m.ViewPaste })));
-const BrowsePastes = lazy(() => import('./pages/BrowsePastes.js').then((m) => ({ default: m.BrowsePastes })));
+const CreatePaste = lazy(() =>
+  import('./pages/CreatePaste.js').then((m) => ({ default: m.CreatePaste }))
+);
+const ViewPaste = lazy(() =>
+  import('./pages/ViewPaste.js').then((m) => ({ default: m.ViewPaste }))
+);
+const BrowsePastes = lazy(() =>
+  import('./pages/BrowsePastes.js').then((m) => ({ default: m.BrowsePastes }))
+);
 const Login = lazy(() => import('./pages/Login.js').then((m) => ({ default: m.Login })));
 const Register = lazy(() => import('./pages/Register.js').then((m) => ({ default: m.Register })));
-const Dashboard = lazy(() => import('./pages/Dashboard.js').then((m) => ({ default: m.Dashboard })));
+const Dashboard = lazy(() =>
+  import('./pages/Dashboard.js').then((m) => ({ default: m.Dashboard }))
+);
 
 // Professional skeleton loading spinner page loader
 function PageLoader() {
   return (
-    <div className="flex h-[60vh] w-full flex-col items-center justify-center space-y-4" role="status" aria-label="Loading page content">
+    <div
+      className="flex h-[60vh] w-full flex-col items-center justify-center space-y-4"
+      role="status"
+      aria-label="Loading page content"
+    >
       <div className="h-12 w-12 animate-spin rounded-full border-4 border-indigo-500 border-t-transparent shadow-lg" />
       <span className="text-sm font-medium text-slate-400 dark:text-slate-500 animate-pulse">
         Loading secure snippet workspace...

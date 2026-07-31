@@ -44,13 +44,18 @@ export function Register() {
         <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white flex items-center justify-center gap-2">
           <UserPlus className="text-indigo-500 h-6 w-6" /> Create Account
         </h1>
-        <p className="text-xs text-slate-500">Sign up to unlock dashboard management and history listings.</p>
+        <p className="text-xs text-slate-500">
+          Sign up to unlock dashboard management and history listings.
+        </p>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">
         {/* Email Input */}
         <div className="flex flex-col gap-1.5">
-          <label htmlFor="email" className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1">
+          <label
+            htmlFor="email"
+            className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1"
+          >
             <Mail size={12} /> Email Address
           </label>
           <input
@@ -66,7 +71,10 @@ export function Register() {
 
         {/* Password Input */}
         <div className="flex flex-col gap-1.5">
-          <label htmlFor="password" className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1">
+          <label
+            htmlFor="password"
+            className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1"
+          >
             <KeyRound size={12} /> Password
           </label>
           <input
@@ -82,7 +90,10 @@ export function Register() {
 
         {/* Confirm Password Input */}
         <div className="flex flex-col gap-1.5">
-          <label htmlFor="confirmPassword" className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1">
+          <label
+            htmlFor="confirmPassword"
+            className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1"
+          >
             <KeyRound size={12} /> Confirm Password
           </label>
           <input
