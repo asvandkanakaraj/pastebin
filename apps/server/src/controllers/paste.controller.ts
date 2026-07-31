@@ -18,8 +18,26 @@ export class PasteController {
     try {
       const { id } = req.params;
       const password = req.headers['x-paste-password'] as string | undefined;
-      const paste = await PasteService.getPasteById(id, password);
+      const userId = (req as any).user?.userId;
+      const paste = await PasteService.getPasteById(id, password, userId);
       res.json(paste);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async verifyPassword(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { id } = req.params;
+      const { password } = req.body;
+      if (!password) {
+        return res.status(400).json({
+          error: 'BadRequestError',
+          message: 'Password is required',
+        });
+      }
+      const result = await PasteService.verifyPastePassword(id, password);
+      res.json(result);
     } catch (error) {
       next(error);
     }

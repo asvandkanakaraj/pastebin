@@ -8,7 +8,8 @@ const router = Router();
 router.post('/', optionalAuthMiddleware, PasteController.createPaste);
 router.get('/', PasteController.listPastes);
 router.get('/me', authMiddleware, PasteController.getMyPastes);
-router.get('/:id', PasteController.getPaste);
+router.get('/:id', optionalAuthMiddleware, PasteController.getPaste);
+router.post('/:id/verify', PasteController.verifyPassword);
 router.delete('/:id', deleteRateLimiter, PasteController.deletePaste);
 
 export default router;

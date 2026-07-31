@@ -34,7 +34,7 @@ export class PasteService {
     });
   }
 
-  static async getPasteById(id: string, passwordInput?: string) {
+  static async getPasteById(id: string, passwordInput?: string, requestingUserId?: string) {
     const paste = await db.paste.findUnique({
       where: { id },
     });
@@ -51,6 +51,14 @@ export class PasteService {
       const error = new Error('Paste has expired');
       (error as any).status = 410; // Gone / Expired
       (error as any).name = 'ExpiredError';
+      throw error;
+    }
+
+    // Privacy check: if isPublic is false and requester is not the owner
+    if (!paste.isPublic && paste.userId !== requestingUserId) {
+      const error = new Error('Access denied to private paste');
+      (error as any).status = 403;
+      (error as any).name = 'ForbiddenError';
       throw error;
     }
 
@@ -73,7 +81,34 @@ export class PasteService {
 
     // Exclude passwordHash from returned object
     const { passwordHash, ...safePaste } = paste;
-    return safePaste;
+    return { ...safePaste, hasPassword: passwordHash !== null };
+  }
+
+  static async verifyPastePassword(id: string, passwordInput: string) {
+    const paste = await db.paste.findUnique({
+      where: { id },
+    });
+
+    if (!paste) {
+      const error = new Error('Paste not found');
+      (error as any).status = 404;
+      (error as any).name = 'NotFoundError';
+      throw error;
+    }
+
+    if (!paste.passwordHash) {
+      return { success: true };
+    }
+
+    const isMatch = await bcrypt.compare(passwordInput, paste.passwordHash);
+    if (!isMatch) {
+      const error = new Error('Incorrect password');
+      (error as any).status = 403;
+      (error as any).name = 'ForbiddenError';
+      throw error;
+    }
+
+    return { success: true };
   }
 
   static async listPublicPastes(page = 1, limit = 10) {
@@ -100,7 +135,10 @@ export class PasteService {
     ]);
 
     const totalPages = Math.ceil(totalCount / limit);
-    const safePastes = pastes.map(({ passwordHash, ...safePaste }) => safePaste);
+    const safePastes = pastes.map(({ passwordHash, ...safePaste }) => ({
+      ...safePaste,
+      hasPassword: passwordHash !== null,
+    }));
 
     return {
       pastes: safePastes,
@@ -118,7 +156,10 @@ export class PasteService {
       orderBy: { createdAt: 'desc' },
     });
 
-    return pastes.map(({ passwordHash, ...safePaste }) => safePaste);
+    return pastes.map(({ passwordHash, ...safePaste }) => ({
+      ...safePaste,
+      hasPassword: passwordHash !== null,
+    }));
   }
 
   static async deletePaste(id: string, passwordInput?: string) {

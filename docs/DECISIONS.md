@@ -133,3 +133,23 @@ We will use **JSON Web Tokens (JWT)** for stateless authentication.
 - **Cons**:
   - Token Revocation: Hard to invalidate a token before its expiration window (mitigated by configuring short lifetimes, e.g. 7 days).
   - Security Risk: If a token is stolen, the attacker has access until expiration. We will enforce TLS/HTTPS in staging and production to secure tokens in transit.
+
+---
+
+## ADR #007: BCrypt Hashing for Paste-Level Passwords
+
+### Status
+Accepted ✅
+
+### Context
+PasteBin supports password-protected snippets. Storing passwords in plain-text format inside the database violates security best practices. If a database dump is leaked, attackers would immediately gain read access to private, restricted user codes.
+
+### Decision
+We will hash paste-level passwords using **BCrypt** (10 salt rounds) before database insertion, storing only the hash signature in the `passwordHash` field.
+
+### Consequences
+- **Pros**:
+  - Secure: Even in the event of database compromise, raw paste passwords remain safe from retrieval since bcrypt is highly resistant to brute-force dictionary attacks.
+  - Consistent: Reuses the same encryption engine (`bcrypt`) employed in user account signups, minimizing system dependency footprints.
+- **Cons**:
+  - Computational Cost: Hashing passwords with bcrypt incurs small CPU costs per creation and verification. Since PasteBin operations are not mass-frequency, this overhead is negligible.

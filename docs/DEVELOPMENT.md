@@ -138,3 +138,14 @@
   - Handled "Empty State" dashboards showing custom "Create Paste" CTA blocks.
   - Injected token authorization headers in paste creation post dispatches.
   - Verified compilation and layout behaviors using subagent flow loops.
+
+## Session 11: Private Pastes & Password Protection
+- **Date**: 2026-07-31
+- **Status**: Completed ✅
+- **Objective**: Implement backend privacy controls and paste verification endpoints, add client visibility selectors, and configure dynamic dashboard/feed status badges.
+- **Outcomes**:
+  - Refactored `getPasteById` query checks to throw `403 Forbidden` if private and requested anonymously, or `401 Unauthorized` if password protected.
+  - Implemented `verifyPastePassword` in `paste.service.ts` and registered route `POST /api/pastes/:id/verify`.
+  - Added visibility badges on Browse and Dashboard lists displaying lock icons for password-protected nodes.
+  - Created new security policy record [SECURITY.md](file:///e:/DEVS/PasteBin/docs/SECURITY.md).
+  - Verified private page routing: confirmed anonymous access to private pastes is strictly forbidden.

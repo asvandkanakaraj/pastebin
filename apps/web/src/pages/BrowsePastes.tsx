@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
-import { Terminal, Calendar, Eye, FileText, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Terminal, Calendar, Eye, FileText, ChevronLeft, ChevronRight, Lock } from 'lucide-react';
 
 export function BrowsePastes() {
   const [pastes, setPastes] = useState<any[]>([]);
@@ -111,9 +111,16 @@ export function BrowsePastes() {
                     <h2 className="text-sm font-bold text-slate-800 dark:text-slate-200 truncate flex-1">
                       {p.title || 'Untitled Paste'}
                     </h2>
-                    <span className="px-2 py-0.5 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700/60 rounded-md font-semibold text-[10px] text-slate-600 dark:text-slate-300 capitalize shrink-0">
-                      {p.language}
-                    </span>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      {p.hasPassword && (
+                        <span className="p-1 bg-amber-500/10 border border-amber-500/20 rounded-md text-amber-500 dark:text-amber-400 animate-pulse" title="Password Protected">
+                          <Lock size={10} />
+                        </span>
+                      )}
+                      <span className="px-2 py-0.5 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700/60 rounded-md font-semibold text-[10px] text-slate-600 dark:text-slate-350 capitalize">
+                        {p.language}
+                      </span>
+                    </div>
                   </div>
 
                   {/* Created Date */}
