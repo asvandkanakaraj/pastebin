@@ -21,8 +21,8 @@
 - [x] View Paste code display (with readOnly Monaco syntax highlighting)
 
 ## Phase 4: Active Sprint (Next Up)
-- [/] Paste Management (List & Delete)
+- [x] History feed listing recent public pastes (Public List & Discovery)
+- [ ] Delete Logic & Security Checks
 - [ ] User authentication system (Sign In / Sign Up layout)
-- [ ] History feed listing recent public pastes
 - [ ] Custom key aliases for paste links
 - [ ] CLI executable tool for posting pastes from terminal

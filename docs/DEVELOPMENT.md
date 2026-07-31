@@ -91,3 +91,14 @@
   - Handled database query verification checks for paste expiration. Attempting to fetch a paste whose `expiresAt` date is in the past triggers a `410 Gone / Expired` HTTP error, displaying a clean "404 - Paste expired" warning block.
   - Refined route parsing of 404 (Not Found) and 410 (Expired) exceptions.
   - Verified expiration behavior: manually adjusted `expiresAt` record timestamps in PostgreSQL database and confirmed client redirection blocks.
+
+## Session 7: Public Discovery & Backend Pagination
+- **Date**: 2026-07-31
+- **Status**: Completed ✅
+- **Objective**: Refactor backend listing endpoint to support offset-based pagination and build a visual discovery grid view for exploring public pastes.
+- **Outcomes**:
+  - Refactored `listPublicPastes` in `@pastebin/database` / server service layer to execute counting queries and return `{ pastes, totalCount, totalPages, currentPage }` metadata wrappers.
+  - Created [BrowsePastes.tsx](file:///e:/DEVS/PasteBin/apps/web/src/pages/BrowsePastes.tsx) showing responsive snippet cards (with title, metadata, line-sliced code block previews, and view route shortcuts).
+  - Integrated dynamic route paths `/browse` in App Router and Navbar link lists.
+  - Coded interactive footer pagination bars managing Prev/Next state bounds.
+  - Verified compilation and output bundle sizes via `npm run build` client checks.

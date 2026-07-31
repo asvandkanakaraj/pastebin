@@ -110,19 +110,24 @@ Returns a paginated list of all active public pastes.
   - `limit`: (Optional, default `10`) Number of records per page.
 - **Success Response (200 OK)**:
   ```json
-  [
-    {
-      "id": "clz4u3w...",
-      "title": "Public snippet",
-      "content": "print('hello')",
-      "language": "python",
-      "isPublic": true,
-      "userId": null,
-      "expiresAt": null,
-      "createdAt": "2026-07-31T08:00:00.000Z",
-      "updatedAt": "2026-07-31T08:00:00.000Z"
-    }
-  ]
+  {
+    "pastes": [
+      {
+        "id": "clz4u3w...",
+        "title": "Public snippet",
+        "content": "print('hello')",
+        "language": "python",
+        "isPublic": true,
+        "userId": null,
+        "expiresAt": null,
+        "createdAt": "2026-07-31T08:00:00.000Z",
+        "updatedAt": "2026-07-31T08:00:00.000Z"
+      }
+    ],
+    "totalCount": 1,
+    "totalPages": 1,
+    "currentPage": 1
+  }
   ```
 
 ---

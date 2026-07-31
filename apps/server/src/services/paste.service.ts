@@ -77,20 +77,35 @@ export class PasteService {
   static async listPublicPastes(page = 1, limit = 10) {
     const skip = (page - 1) * limit;
 
-    const pastes = await db.paste.findMany({
-      where: {
-        isPublic: true,
-        OR: [
-          { expiresAt: null },
-          { expiresAt: { gt: new Date() } }
-        ]
-      },
-      orderBy: { createdAt: 'desc' },
-      skip,
-      take: limit,
-    });
+    const whereClause = {
+      isPublic: true,
+      OR: [
+        { expiresAt: null },
+        { expiresAt: { gt: new Date() } }
+      ]
+    };
 
-    return pastes.map(({ passwordHash, ...safePaste }) => safePaste);
+    const [pastes, totalCount] = await Promise.all([
+      db.paste.findMany({
+        where: whereClause,
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: limit,
+      }),
+      db.paste.count({
+        where: whereClause,
+      })
+    ]);
+
+    const totalPages = Math.ceil(totalCount / limit);
+    const safePastes = pastes.map(({ passwordHash, ...safePaste }) => safePaste);
+
+    return {
+      pastes: safePastes,
+      totalCount,
+      totalPages,
+      currentPage: page,
+    };
   }
 
   static async deletePaste(id: string, passwordInput?: string) {

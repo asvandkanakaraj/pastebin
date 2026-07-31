@@ -1,4 +1,5 @@
-import { Terminal, Plus, Search } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Terminal, Plus, Search, Globe } from 'lucide-react';
 import { ModeToggle } from '../mode-toggle.js';
 
 export function Navbar() {
@@ -6,14 +7,14 @@ export function Navbar() {
     <header className="sticky top-0 z-45 w-full border-b border-slate-200 bg-white/80 backdrop-blur-md dark:border-slate-800 dark:bg-slate-950/80">
       <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
         {/* Logo */}
-        <div className="flex items-center gap-2">
+        <Link to="/" className="flex items-center gap-2 hover:opacity-90">
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-600 text-white dark:bg-indigo-500">
             <Terminal className="h-4.5 w-4.5" />
           </div>
           <span className="text-md font-bold tracking-tight text-slate-900 dark:text-white">
             PasteBin
           </span>
-        </div>
+        </Link>
 
         {/* Search Placeholder */}
         <div className="hidden max-w-xs flex-1 px-8 md:flex">
@@ -29,11 +30,22 @@ export function Navbar() {
         </div>
 
         {/* Actions */}
-        <div className="flex items-center gap-3">
-          <button className="inline-flex h-8 items-center justify-center gap-1.5 rounded-lg bg-indigo-600 px-3.5 text-xs font-semibold text-white shadow-sm hover:bg-indigo-500 focus:outline-none dark:bg-indigo-500 dark:hover:bg-indigo-400 transition-colors">
+        <div className="flex items-center gap-4">
+          <Link
+            to="/browse"
+            className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-600 hover:text-slate-900 dark:text-slate-350 dark:hover:text-white transition-colors"
+          >
+            <Globe className="h-4 w-4" />
+            <span>Browse</span>
+          </Link>
+
+          <Link
+            to="/"
+            className="inline-flex h-8 items-center justify-center gap-1.5 rounded-lg bg-indigo-600 px-3.5 text-xs font-semibold text-white shadow-sm hover:bg-indigo-500 focus:outline-none dark:bg-indigo-500 dark:hover:bg-indigo-400 transition-colors"
+          >
             <Plus className="h-3.5 w-3.5" />
             <span>New Paste</span>
-          </button>
+          </Link>
 
           <ModeToggle />
         </div>
