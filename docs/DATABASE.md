@@ -64,3 +64,26 @@ Stores code snippets, highlight details, access restrictions, and validation met
 - Each `Paste` can optionally belong to a `User` (represented by `userId` foreign key). If the paste is created anonymously, `userId` will be stored as `null`.
 - **Integrity Constraints**: The `userId` references the primary key `id` of the `User` table.
 - **On Delete Action**: If a `User` record is deleted, all pastes created by that user are cascade-deleted (`onDelete: Cascade` relation strategy) to prevent orphaned records in the database.
+
+---
+
+## 4. Performance Indexing Strategy
+
+To maintain sub-millisecond query execution speeds under high data volumes, we enforce a strict index placement policy matching common lookup queries:
+
+### 1. Primary Keys (`User.id` and `Paste.id`)
+- **Type**: Clustered Unique B-Tree Index (implicit).
+- **Reason**: Guarantees unique CUID/UUID addresses, and enables immediate lookups during fetching requests.
+
+### 2. Unique User Emails (`User.email`)
+- **Type**: Unique B-Tree Index (implicit via `@unique`).
+- **Reason**: Assures email uniqueness during signups, and optimizes verification speed during authentication handshakes.
+
+### 3. Paste Creator Reference (`Paste.userId`)
+- **Type**: Explicit B-Tree Index (`@@index([userId])`).
+- **Reason**: Speeds up owner lookup queries (e.g. `GET /api/pastes/me`), preventing table-scans during dashboard listings.
+
+### 4. Expiration Sweeps (`Paste.expiresAt`)
+- **Type**: Explicit B-Tree Index (`@@index([expiresAt])`).
+- **Reason**: Speeds up chronological sweeps checks (identifying and cleaning expired rows), avoiding performance degradation as database records increase.
+

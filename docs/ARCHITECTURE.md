@@ -12,24 +12,52 @@
 ```
 pastebin/
 ├── apps/
-│   ├── web/             # React + Vite Client (Vite Dev Server)
-│   └── server/          # Node.js + Express API Server
+│   ├── web/             # React + Vite Frontend Client
+│   ├── server/          # Node.js + Express API Backend Server
+│   └── cli/             # Commander-based Node.js Terminal Developer Client
 ├── packages/
 │   ├── database/        # Prisma Schema, Migrations, Client Export
-│   └── shared/          # TypeScript interfaces, validation schemas, utility functions
-├── docker/              # Environment configurations for Docker
-├── scripts/             # Infrastructure and deployment automation
-└── docs/                # Project design and technical documentation
+│   └── shared/          # TypeScript shared interfaces, Zod validation schemas
+├── docker/              # Multi-stage Docker config files
+├── scripts/             # Production deployment and automation scripts
+└── docs/                # Project manuals and decisions logs
 ```
 
-## 3. Communication Flow
+## 3. Comprehensive System Architecture Diagram
 ```mermaid
-graph TD
-    Client[apps/web React Client] -->|HTTP Requests| API[apps/server Express API]
-    API -->|Prisma Client| DB[(PostgreSQL Database)]
-    Shared[@pastebin/shared] -->|Type Import| Client
-    Shared -->|Schema / Validation| API
-    DBPackages[@pastebin/database] -->|ORM Client| API
+flowchart TD
+    subgraph Clients ["Client Layer"]
+        Web[React Web SPA - Port 80/5173]
+        CLI[Node.js CLI Executable - Terminal]
+    end
+
+    subgraph Security ["Ingress & Ingress Security"]
+        Nginx[Nginx Reverse Proxy - Port 80]
+        Limiter[Rate Limiting Middleware - Express Rate Limit]
+    end
+
+    subgraph Backend ["Application Layer (Node.js/Express)"]
+        Sanitizer[Sanitization Middleware - sanitize-html]
+        Logger[Winston & Morgan Logger - JSON Files]
+        Controllers[API Express Controllers]
+    end
+
+    subgraph Data ["Data Layer"]
+        Prisma[Prisma ORM Client]
+        DB[(PostgreSQL Database)]
+    end
+
+    %% Communication Flows
+    Web -->|HTTP Requests| Nginx
+    Nginx -->|Reverse Proxy| Limiter
+    CLI -->|Direct HTTP Requests| Limiter
+    
+    Limiter --> Sanitizer
+    Sanitizer --> Controllers
+    Controllers --> Logger
+    
+    Controllers -->|ORM Queries| Prisma
+    Prisma -->|SQL Parameters| DB
 ```
 
 ## 4. Folder Philosophy & Workspaces Code Sharing
@@ -66,7 +94,81 @@ apps/server/src/
 
 ---
 
-## 6. Frontend Architecture
+## 6. Request Lifecycle Data Flow
+
+### 1. Create Paste Lifecycle
+```mermaid
+sequenceDiagram
+    autonumber
+    actor User as Client (Web/CLI)
+    participant Limiter as Rate Limit / Sanitizer
+    participant Controller as Paste Controller
+    participant Service as Paste Service
+    participant DB as Postgres (Prisma)
+
+    User->>Limiter: POST /api/pastes (with content, title, expiresAt, password)
+    Limiter->>Limiter: Check Rate Limits (Max 10 per 15 min)
+    Limiter->>Limiter: Sanitize Input (Strip scripts/HTML)
+    Limiter->>Controller: Validated Request Body
+    Controller->>Controller: Validate Zod Schema (CreatePasteSchema)
+    alt Validation Fails
+        Controller-->>User: 400 Bad Request (Validation Errors)
+    else Validation Passes
+        Controller->>Service: createPaste(payload)
+        alt Password Provided
+            Service->>Service: Hash password via bcrypt (saltRounds=10)
+        end
+        Service->>DB: Prisma.create()
+        DB-->>Service: Created Paste Record
+        Service-->>Controller: Return Paste Model
+        Controller-->>User: 201 Created (ID, URL)
+    end
+```
+
+### 2. Retrieve Paste Lifecycle
+```mermaid
+sequenceDiagram
+    autonumber
+    actor User as Client (Web/CLI)
+    participant Controller as Paste Controller
+    participant Service as Paste Service
+    participant DB as Postgres (Prisma)
+
+    User->>Controller: GET /api/pastes/:id (with optional x-paste-password header)
+    Controller->>Service: getPaste(id, headers)
+    Service->>DB: Prisma.findUnique()
+    DB-->>Service: Return Paste Record (or null)
+    
+    alt Paste Not Found
+        Service-->>User: 404 Not Found
+    else Paste Found
+        alt Expiration Check (expiresAt < Now)
+            Service->>DB: Prisma.delete() (Background Cleanup)
+            Service-->>User: 404 Not Found (Expired Paste)
+        else Active Paste
+            alt Password Protected
+                alt Authorization Header Token Present
+                    Service->>Service: Verify Session JWT signature
+                    alt Token Valid
+                        Service-->>Controller: Return Unlocked Content
+                        Controller-->>User: 200 OK (Paste Content)
+                    else Token Invalid/Expired
+                        Service-->>User: 401 Unauthorized (Password required)
+                    end
+                else No Token Header
+                    Service-->>User: 401 Unauthorized (Password required)
+                end
+            else Open Public/Private (Owner Verification)
+                Service-->>Controller: Return Content
+                Controller-->>User: 200 OK (Paste Content)
+            end
+        end
+    end
+```
+
+---
+
+## 7. Frontend Architecture
 
 The React client located in `apps/web` is built using a modern component-driven architecture:
 

@@ -239,3 +239,53 @@ Returns all active and expired pastes created by the authenticated user session.
   ```
 - **Error Responses**:
   - `401 Unauthorized`: Access token required or signature verify check failed.
+
+---
+
+## Error Codes
+
+The PasteBin API uses standard HTTP response status codes to indicate success or failure. Each status code maps to specific scenarios:
+
+### 1. `400 Bad Request`
+- **Context**: Schema validation check failed.
+- **Scenarios**: Empty `content`, `title` exceeding 100 characters, or invalid Zod parameters.
+
+### 2. `401 Unauthorized`
+- **Context**: Authentication failed or is missing.
+- **Scenarios**: Invalid login credentials, missing or malformed JWT token inside the `Authorization` header, or query requests targeting password-protected pastes without supplying a password verification token.
+
+### 3. `403 Forbidden`
+- **Context**: Permission checks rejected.
+- **Scenarios**: Non-owner attempts to read or delete private pastes (`isPublic: false`).
+
+### 4. `404 Not Found`
+- **Context**: Resource could not be resolved.
+- **Scenarios**: Non-existent paste ID or attempt to retrieve a paste that has already reached its expiration timestamp (`expiresAt < Now`).
+
+### 5. `429 Too Many Requests`
+- **Context**: Rate limiter threshold triggered.
+- **Scenarios**: Exceeded the maximum allowance of requests (100 requests per 15 mins globally, 10 requests per 15 mins for auth/posts, or 5 requests per 1 min for delete).
+
+### 6. `500 Internal Server Error`
+- **Context**: Server error encountered.
+- **Scenarios**: Database link failure, server crash, or runtime exceptions.
+
+---
+
+## CLI Client Integration
+
+The Node.js CLI client (`pastebin`) acts as a consumer of these endpoints. The CLI handles request and response states as follows:
+
+### 1. Authentication Handshake (`login`)
+- **Action**: Dispatches a `POST /api/auth/login` containing user-typed inputs.
+- **Outcome**: Captures the returned JSON `token` and persists it locally to `~/.pastebin-config.json`.
+
+### 2. Secure Upload (`upload`)
+- **Action**: Reads the specified file content, checks `~/.pastebin-config.json` for active tokens, and dispatches a `POST /api/pastes` request.
+- **Headers**: Automatically injects `Authorization: Bearer <token>` if authenticated.
+- **Clipboard integration**: On a `201 Created` response, automatically copies the paste URL to the user's OS clipboard.
+
+### 3. Retrieve and View (`get <id>`)
+- **Action**: Dispatches a `GET /api/pastes/:id`.
+- **Password Check**: If the endpoint returns a `401 Unauthorized` with a "Password required" message, the CLI prompts the user for the password, verifies it via `POST /api/pastes/:id/verify`, and uses the returned token to complete the fetch.
+
