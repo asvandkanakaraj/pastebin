@@ -3,6 +3,16 @@ import { Link, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import { Terminal, Calendar, Eye, FileText, ChevronLeft, ChevronRight, Lock, Search, X } from 'lucide-react';
 
+// Simple in-memory cache for client-side search pagination results
+interface CacheEntry {
+  pastes: any[];
+  totalPages: number;
+  totalCount: number;
+  cachedAt: number;
+}
+const browseCache = new Map<string, CacheEntry>();
+const CACHE_TTL = 30000; // Cache TTL set to 30 seconds
+
 const POPULAR_LANGUAGES = [
   { value: '', label: 'All Languages' },
   { value: 'plaintext', label: 'Plain Text' },
@@ -32,6 +42,18 @@ export function BrowsePastes() {
   const [searchInput, setSearchInput] = useState(search);
 
   const fetchPublicPastes = async (pageVal = 1, searchVal = '', languageVal = '') => {
+    const cacheKey = `${pageVal}-${searchVal}-${languageVal}`;
+    const cached = browseCache.get(cacheKey);
+
+    if (cached && Date.now() - cached.cachedAt < CACHE_TTL) {
+      setPastes(cached.pastes);
+      setTotalPages(cached.totalPages);
+      setTotalCount(cached.totalCount);
+      setLoading(false);
+      setError(null);
+      return;
+    }
+
     setLoading(true);
     setError(null);
     try {
@@ -41,6 +63,15 @@ export function BrowsePastes() {
         )}&language=${encodeURIComponent(languageVal)}`
       );
       const { pastes: fetchedPastes, totalPages: pages, totalCount: count } = response.data;
+      
+      // Save cache entry
+      browseCache.set(cacheKey, {
+        pastes: fetchedPastes || [],
+        totalPages: pages || 1,
+        totalCount: count || 0,
+        cachedAt: Date.now()
+      });
+
       setPastes(fetchedPastes || []);
       setTotalPages(pages || 1);
       setTotalCount(count || 0);
@@ -139,6 +170,7 @@ export function BrowsePastes() {
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
             placeholder="Search public pastes by title or content..."
+            aria-label="Search public pastes"
             className="h-10 w-full rounded-lg border border-slate-200 bg-slate-50/50 pl-10 pr-3.5 text-xs placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 dark:border-slate-800 dark:bg-slate-950 dark:placeholder-slate-500 transition-all"
           />
         </div>
@@ -147,6 +179,7 @@ export function BrowsePastes() {
           <select
             value={language}
             onChange={(e) => handleLanguageChange(e.target.value)}
+            aria-label="Filter pastes by programming language"
             className="h-10 rounded-lg border border-slate-200 bg-slate-50/50 px-3 text-xs focus:outline-none dark:border-slate-800 dark:bg-slate-950"
           >
             {POPULAR_LANGUAGES.map((lang) => (
@@ -159,6 +192,7 @@ export function BrowsePastes() {
           {(search || language) && (
             <button
               onClick={handleClearFilters}
+              aria-label="Clear search filters and language selections"
               className="h-10 inline-flex items-center justify-center gap-1.5 rounded-lg border border-slate-200 bg-white px-4 text-xs font-semibold text-slate-700 hover:bg-slate-50 focus:outline-none dark:border-slate-800 dark:bg-slate-900 dark:text-slate-355 dark:hover:bg-slate-800 transition-colors"
             >
               <X size={14} />
@@ -280,6 +314,7 @@ export function BrowsePastes() {
               <button
                 onClick={handlePrevPage}
                 disabled={page === 1 || loading}
+                aria-label="Previous page"
                 className="h-8.5 w-8.5 inline-flex items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 shadow-sm hover:bg-slate-50 focus:outline-none dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <ChevronLeft size={16} />
@@ -292,6 +327,7 @@ export function BrowsePastes() {
               <button
                 onClick={handleNextPage}
                 disabled={page === totalPages || loading}
+                aria-label="Next page"
                 className="h-8.5 w-8.5 inline-flex items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 shadow-sm hover:bg-slate-50 focus:outline-none dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <ChevronRight size={16} />

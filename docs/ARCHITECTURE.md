@@ -201,3 +201,27 @@ The CLI client (`@pastebin/cli`) provides a command-line interface for developer
 - **REST Integrations (`axios`)**: Handles HTTP requests targeting backend routes `/api/auth` and `/api/pastes`.
 - **Config Storage**: Saves user session tokens (JWTs) locally in `~/.pastebin-config.json`. Subsequent paste operations read this config file to automatically inject authentication headers.
 - **Output Mappings**: Formats list outputs in standard columns and provides syntax highlighting for retrieved snippets using terminal colors (`chalk`).
+
+---
+
+## 13. Frontend Performance & Accessibility (a11y)
+
+### SPA Code Splitting & Lazy Routing
+To maintain low initial load times and optimize Time to Interactive (TTI), the web application enforces lazy loading for page-level components:
+- **Dynamic Imports**: React Router routes are mapped to lazy dynamically imported targets (e.g. `const Browse = React.lazy(...)`), dividing the code bundle into smaller chunks loaded on-demand.
+- **Suspense Transitions**: Route switchers are wrapped in React `<Suspense>` components with structured skeleton fallback screens, preventing blank display delays.
+
+### Monaco Editor Web Workers CDN Offloading
+Monaco Editor contains extensive code parsing and compilation workers. To prevent blocking the main browser thread:
+- **CDN Workers**: `@monaco-editor/react` is configured globally at `main.tsx` to fetch editor files asynchronously from optimized public JSDelivr CDNs.
+- **Off-thread Compilation**: Heavy syntax verification operations execute in background web workers managed by Monaco, leaving the React application interactive.
+
+### Client-Side Query Caching
+To optimize API requests and database queries, the public Browse page implements client-side state caching:
+- **In-Memory TTL Caching**: Retains page results mapped by query parameters (page number, search keywords, language filters) with a 30-second TTL.
+- **Instant rendering**: Switching back and forth between paste views and browse listings displays cached results instantly without reloading animations or REST server roundtrips.
+
+### Accessibility Hardening
+- **ARIA Attributes**: Buttons, selectors, and text fields declare descriptive `aria-label` and `role` fields.
+- **Keyboard Navigation**: Focus rings (`focus:ring`) are declared on all form inputs and links to ensure complete keyboard focus indicators are visible.
+

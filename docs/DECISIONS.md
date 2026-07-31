@@ -50,3 +50,29 @@ We develop a native CLI client under `apps/cli` using Commander, Axios, and Chal
 ### Consequences
 - Developer productivity is boosted with instant command line access.
 - Proved backend APIs are fully client-agnostic and robust.
+
+---
+
+## Decision #010: Frontend Performance Optimization & Accessibility Hardening
+
+### Status
+Accepted ✅
+
+### Context
+As the Single Page Application (SPA) grows, bundling all page components statically inside a single JS entry chunk degrades initial page load performance, increases Time to Interactive (TTI), and wastes bandwidth on resources the user might not visit. Heavy libraries like Monaco Editor can block UI threads if not loaded asynchronously. In addition, user experience must accommodate screen reader and keyboard accessibility standards (a11y).
+
+### Decision
+We implement SPA routing code splitting utilizing `React.lazy()` and `Suspense`, offload Monaco Editor chunk compiles to high-performance CDNs, implement client-side cache layers, and enrich HTML templates with descriptive accessibility tag elements.
+
+### Details
+- **Lazy Routes**: Dynamic imports split pages (`Browse`, `ViewPaste`, `Dashboard`, `Login`, `Register`) into separated browser chunks loaded on-demand during navigation.
+- **UI Skeletons**: Wrapped routes with styled CSS spinners to preserve visually elegant transit states.
+- **Monaco CDN Workers**: Configured `@monaco-editor/react` to pull editor core and worker files dynamically from jsdelivr CDNs, freeing main UI threads.
+- **Query Caching**: Implemented a lightweight, in-memory TTL caching mechanism on the public Browse page to prevent redundant network round-trips.
+- **A11y Enrichment**: Provided descriptive `aria-label` tags, role status indicators, and keyboard focus states across layout buttons and input fields.
+
+### Consequences
+- Time to Interactive (TTI) and initial page loads are optimized.
+- Network overhead is minimized through client-side query caching.
+- Screen readers and keyboard navigations are fully supported.
+
