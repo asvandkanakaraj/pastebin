@@ -14,10 +14,12 @@ export function ViewPaste() {
   const [error, setError] = useState<string | null>(null);
   const [password, setPassword] = useState('');
   const [requiresPassword, setRequiresPassword] = useState(false);
+  const [isForbidden, setIsForbidden] = useState(false);
   const [passwordError, setPasswordError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [unlocking, setUnlocking] = useState(false);
 
   const fetchPaste = async (pw = '') => {
     setLoading(true);
@@ -32,18 +34,24 @@ export function ViewPaste() {
       const response = await axios.get(`http://localhost:5000/api/pastes/${id}`, { headers });
       setPaste(response.data);
       setRequiresPassword(false);
+      setIsForbidden(false);
     } catch (err: any) {
       console.error('Fetch paste error:', err);
       const status = err.response?.status;
-      if (status === 401 || status === 403) {
+      const errorName = err.response?.data?.error;
+      if (status === 401) {
+        // Password required
         setRequiresPassword(true);
-        if (pw) {
-          setPasswordError('Incorrect password');
-        }
+        setIsForbidden(false);
+        if (pw) setPasswordError('Incorrect password. Try again.');
+      } else if (status === 403 && errorName === 'ForbiddenError') {
+        // Private paste — no password prompt
+        setRequiresPassword(false);
+        setIsForbidden(true);
       } else if (status === 410) {
-        setError('404 - Paste has expired and is no longer accessible.');
+        setError('This paste has expired and is no longer accessible.');
       } else if (status === 404) {
-        setError('404 - Paste Not Found');
+        setError('404 — Paste Not Found');
       } else {
         setError(err.response?.data?.message || 'Failed to fetch paste from server');
       }
@@ -56,9 +64,11 @@ export function ViewPaste() {
     fetchPaste();
   }, [id]);
 
-  const handlePasswordSubmit = (e: React.FormEvent) => {
+  const handlePasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    fetchPaste(password);
+    setUnlocking(true);
+    await fetchPaste(password);
+    setUnlocking(false);
   };
 
   const handleCopy = async () => {
@@ -121,34 +131,58 @@ export function ViewPaste() {
   if (requiresPassword) {
     return (
       <div className="w-full max-w-md mx-auto bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-8 shadow-xl relative z-10 text-center space-y-6">
-        <div className="mx-auto p-3.5 bg-indigo-500/10 border border-indigo-500/20 rounded-2xl text-indigo-500 dark:text-indigo-400 w-fit">
+        <div className="mx-auto p-3.5 bg-amber-500/10 border border-amber-500/20 rounded-2xl text-amber-500 dark:text-amber-400 w-fit">
           <Lock size={28} className="animate-pulse" />
         </div>
         <div>
           <h2 className="text-lg font-bold text-slate-800 dark:text-slate-200">Password Required</h2>
-          <p className="text-xs text-slate-500 mt-1">This snippet is protected by a password hash.</p>
+          <p className="text-xs text-slate-500 mt-1">This snippet is encrypted. Enter the password to unlock its content.</p>
         </div>
 
-        <form onSubmit={handlePasswordSubmit} className="space-y-4">
+        <form onSubmit={handlePasswordSubmit} className="space-y-3 text-left">
           <input
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            placeholder="Enter password..."
+            placeholder="Enter paste password..."
+            autoFocus
             required
-            className="h-10 w-full rounded-lg border border-slate-200 bg-slate-50/50 px-3.5 text-sm placeholder-slate-400 focus:outline-none dark:border-slate-800 dark:bg-slate-950 dark:placeholder-slate-500"
+            className="h-10 w-full rounded-lg border border-slate-200 bg-slate-50/50 px-3.5 text-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-400/40 dark:border-slate-800 dark:bg-slate-950 dark:placeholder-slate-500 transition-all"
           />
           {passwordError && (
-            <div className="text-xs text-rose-500 font-medium">{passwordError}</div>
+            <div className="text-xs text-rose-500 font-semibold flex items-center gap-1.5">
+              <AlertCircle size={12} />{passwordError}
+            </div>
           )}
           <button
             type="submit"
-            className="w-full h-10 inline-flex items-center justify-center gap-2 rounded-lg bg-indigo-600 px-4 text-xs font-bold text-white shadow-md hover:bg-indigo-500 focus:outline-none dark:bg-indigo-500 dark:hover:bg-indigo-400 transition-colors"
+            disabled={unlocking}
+            className="w-full h-10 inline-flex items-center justify-center gap-2 rounded-lg bg-amber-500 px-4 text-xs font-bold text-white shadow-md hover:bg-amber-400 focus:outline-none dark:bg-amber-600 dark:hover:bg-amber-500 transition-colors disabled:opacity-50"
           >
-            <span>Decrypt & View</span>
+            <Lock size={13} />
+            <span>{unlocking ? 'Unlocking...' : 'Decrypt & View'}</span>
           </button>
         </form>
 
+        <div className="pt-2 border-t border-slate-100 dark:border-slate-800 text-[11px]">
+          <Link to="/" className="text-indigo-500 hover:underline flex items-center justify-center gap-1">
+            <ArrowLeft size={10} /> Back to Home
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  if (isForbidden) {
+    return (
+      <div className="w-full max-w-md mx-auto bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-8 shadow-xl relative z-10 text-center space-y-6">
+        <div className="mx-auto p-3.5 bg-slate-500/10 border border-slate-500/20 rounded-2xl text-slate-500 dark:text-slate-400 w-fit">
+          <Lock size={28} />
+        </div>
+        <div>
+          <h2 className="text-lg font-bold text-slate-800 dark:text-slate-200">Private Paste</h2>
+          <p className="text-xs text-slate-500 mt-1">This snippet is private and only accessible by its creator. If you believe you should have access, ask the owner to share a direct link.</p>
+        </div>
         <div className="pt-2 border-t border-slate-100 dark:border-slate-800 text-[11px]">
           <Link to="/" className="text-indigo-500 hover:underline flex items-center justify-center gap-1">
             <ArrowLeft size={10} /> Back to Home
