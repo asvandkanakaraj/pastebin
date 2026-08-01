@@ -15,10 +15,12 @@ import {
   Save,
   Share2,
   Users,
+  Bookmark,
 } from 'lucide-react';
 import Editor from '@monaco-editor/react';
 import { useTheme } from '../components/theme-provider.js';
 import { useAuth } from '../components/auth-provider.js';
+import { API_BASE_URL } from '../lib/utils.js';
 
 export function ViewPaste() {
   const { id } = useParams();
@@ -37,6 +39,7 @@ export function ViewPaste() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [unlocking, setUnlocking] = useState(false);
+  const [isBookmarked, setIsBookmarked] = useState(false);
 
   // Editing States
   const [isEditing, setIsEditing] = useState(false);
@@ -60,6 +63,8 @@ export function ViewPaste() {
     setError(null);
     setPasswordError(null);
 
+    const isGuest = !token;
+
     try {
       const headers: any = {};
       if (pw) {
@@ -68,10 +73,24 @@ export function ViewPaste() {
       if (token) {
         headers['Authorization'] = `Bearer ${token}`;
       }
-      const response = await axios.get(`http://localhost:5000/api/pastes/${id}`, { headers });
+      const response = await axios.get(`${API_BASE_URL}/api/pastes/${id}`, { headers });
       setPaste(response.data);
       setRequiresPassword(false);
       setIsForbidden(false);
+
+      // Bookmark checking
+      if (isGuest) {
+        const localSaved = JSON.parse(localStorage.getItem('pb_guest_saved_pastes') || '[]');
+        setIsBookmarked(localSaved.some((p: any) => p.id === response.data.id));
+
+        // Track Recently Viewed (max 5, duplicate moves to top)
+        const localViews = JSON.parse(localStorage.getItem('pb_guest_recently_viewed_pastes') || '[]');
+        const filtered = localViews.filter((p: any) => p.id !== response.data.id);
+        filtered.unshift(response.data);
+        localStorage.setItem('pb_guest_recently_viewed_pastes', JSON.stringify(filtered.slice(0, 5)));
+      } else {
+        setIsBookmarked(response.data.isSaved || false);
+      }
     } catch (err: any) {
       console.error('Fetch paste error:', err);
       const status = err.response?.status;
@@ -97,6 +116,40 @@ export function ViewPaste() {
     }
   };
 
+  const handleToggleBookmark = async () => {
+    if (!paste) return;
+    const isGuest = !token;
+
+    if (isGuest) {
+      const localSaved = JSON.parse(localStorage.getItem('pb_guest_saved_pastes') || '[]');
+      const alreadyBookmarked = localSaved.some((p: any) => p.id === paste.id);
+      let updated = [];
+      if (alreadyBookmarked) {
+        updated = localSaved.filter((p: any) => p.id !== paste.id);
+        setIsBookmarked(false);
+      } else {
+        localSaved.unshift(paste);
+        updated = localSaved;
+        setIsBookmarked(true);
+      }
+      localStorage.setItem('pb_guest_saved_pastes', JSON.stringify(updated));
+      return;
+    }
+
+    try {
+      const headers = { Authorization: `Bearer ${token}` };
+      if (isBookmarked) {
+        await axios.delete(`${API_BASE_URL}/api/pastes/${paste.id}/save`, { headers });
+        setIsBookmarked(false);
+      } else {
+        await axios.post(`${API_BASE_URL}/api/pastes/${paste.id}/save`, {}, { headers });
+        setIsBookmarked(true);
+      }
+    } catch (err) {
+      console.error('Failed to toggle bookmark:', err);
+    }
+  };
+
   useEffect(() => {
     fetchPaste();
   }, [id, token]);
@@ -106,7 +159,7 @@ export function ViewPaste() {
     if (!token) return;
     try {
       const headers = { Authorization: `Bearer ${token}` };
-      const response = await axios.get(`http://localhost:5000/api/pastes/${id}/shares`, {
+      const response = await axios.get(`${API_BASE_URL}/api/pastes/${id}/shares`, {
         headers,
       });
       setSharedUsers(response.data || []);
@@ -133,7 +186,7 @@ export function ViewPaste() {
         const headers: any = {};
         if (token) headers['Authorization'] = `Bearer ${token}`;
         const res = await axios.get(
-          `http://localhost:5000/api/search?q=${encodeURIComponent(searchQuery)}`,
+          `${API_BASE_URL}/api/search?q=${encodeURIComponent(searchQuery)}`,
           { headers }
         );
         // Exclude users already added
@@ -195,7 +248,7 @@ export function ViewPaste() {
       if (token) {
         headers['Authorization'] = `Bearer ${token}`;
       }
-      await axios.delete(`http://localhost:5000/api/pastes/${id}`, { headers });
+      await axios.delete(`${API_BASE_URL}/api/pastes/${id}`, { headers });
       navigate('/browse');
     } catch (err: any) {
       console.error('Delete paste failed:', err);
@@ -221,7 +274,7 @@ export function ViewPaste() {
         headers['Authorization'] = `Bearer ${token}`;
       }
       const response = await axios.put(
-        `http://localhost:5000/api/pastes/${id}`,
+        `${API_BASE_URL}/api/pastes/${id}`,
         {
           title: editTitle.trim(),
           description: editDescription.trim(),
@@ -247,7 +300,7 @@ export function ViewPaste() {
     try {
       const headers = { Authorization: `Bearer ${token}` };
       await axios.post(
-        `http://localhost:5000/api/pastes/${id}/share`,
+        `${API_BASE_URL}/api/pastes/${id}/share`,
         {
           usernameOrEmail: selectedUser.username,
           permission: 'READ',
@@ -270,7 +323,7 @@ export function ViewPaste() {
     try {
       const headers = { Authorization: `Bearer ${token}` };
       await axios.post(
-        `http://localhost:5000/api/pastes/${id}/share`,
+        `${API_BASE_URL}/api/pastes/${id}/share`,
         {
           usernameOrEmail: targetUser.username,
           permission,
@@ -287,7 +340,7 @@ export function ViewPaste() {
     if (!token) return;
     try {
       const headers = { Authorization: `Bearer ${token}` };
-      await axios.delete(`http://localhost:5000/api/pastes/${id}/share/${targetUserId}`, {
+      await axios.delete(`${API_BASE_URL}/api/pastes/${id}/share/${targetUserId}`, {
         headers,
       });
       await fetchShares();
@@ -699,6 +752,21 @@ export function ViewPaste() {
             >
               <Share2 size={12} />
               <span>Share</span>
+            </button>
+          )}
+
+          {/* Bookmark / Save Button */}
+          {paste && (
+            <button
+              onClick={handleToggleBookmark}
+              className={`inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border px-4 text-xs font-bold shadow-sm focus:outline-none transition-colors ${
+                isBookmarked
+                  ? 'bg-blue-650 border-blue-600 text-white hover:bg-blue-700'
+                  : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800'
+              }`}
+            >
+              <Bookmark size={12} className={isBookmarked ? 'fill-current' : ''} />
+              <span>{isBookmarked ? 'Bookmarked' : 'Bookmark'}</span>
             </button>
           )}
 

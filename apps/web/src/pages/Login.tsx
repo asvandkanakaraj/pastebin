@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { KeyRound, Mail, LogIn, AlertCircle, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../components/auth-provider.js';
+import { API_BASE_URL } from '../lib/utils.js';
 
 export function Login() {
   const { login } = useAuth();
@@ -19,7 +20,7 @@ export function Login() {
     setLoading(true);
 
     try {
-      const response = await axios.post('http://localhost:5000/api/auth/login', {
+      const response = await axios.post(`${API_BASE_URL}/api/auth/login`, {
         email: email.trim(),
         password,
       });

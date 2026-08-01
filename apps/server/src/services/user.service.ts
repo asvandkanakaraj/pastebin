@@ -86,9 +86,16 @@ export class UserService {
   }
 
   static async getUserProfileByUsername(username: string, requestingUserId?: string) {
-    const user = await db.user.findUnique({
-      where: { username },
+    const lowercaseUsername = username.toLowerCase();
+    let user = await db.user.findUnique({
+      where: { username: lowercaseUsername },
     });
+
+    if (!user && lowercaseUsername.includes('@')) {
+      user = await db.user.findUnique({
+        where: { email: lowercaseUsername },
+      });
+    }
 
     if (!user) {
       const error = new Error('User not found');

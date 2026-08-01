@@ -1,28 +1,12 @@
 import { Request, Response, NextFunction } from 'express';
 import { UserService } from '../services/user.service.js';
+import { RegisterSchema, LoginSchema } from '@pastebin/shared';
 
 export class AuthController {
   static async register(req: Request, res: Response, next: NextFunction) {
     try {
-      const { email, password } = req.body;
-      if (!email || !password) {
-        return res.status(400).json({
-          error: 'BadRequestError',
-          message: 'Email and password are required',
-        });
-      }
-
-      const trimmedEmail = String(email).trim().toLowerCase();
-      const trimmedPassword = String(password).trim();
-
-      if (!trimmedEmail || !trimmedPassword) {
-        return res.status(400).json({
-          error: 'BadRequestError',
-          message: 'Email and password cannot be empty or whitespaces',
-        });
-      }
-
-      const user = await UserService.registerUser(trimmedEmail, trimmedPassword);
+      const validatedData = RegisterSchema.parse(req.body);
+      const user = await UserService.registerUser(validatedData.email, validatedData.password);
       res.status(201).json(user);
     } catch (error) {
       next(error);
@@ -31,18 +15,8 @@ export class AuthController {
 
   static async login(req: Request, res: Response, next: NextFunction) {
     try {
-      const { email, password } = req.body;
-      if (!email || !password) {
-        return res.status(400).json({
-          error: 'BadRequestError',
-          message: 'Email and password are required',
-        });
-      }
-
-      const trimmedEmail = String(email).trim().toLowerCase();
-      const trimmedPassword = String(password).trim();
-
-      const result = await UserService.loginUser(trimmedEmail, trimmedPassword);
+      const validatedData = LoginSchema.parse(req.body);
+      const result = await UserService.loginUser(validatedData.email, validatedData.password);
       res.json(result);
     } catch (error) {
       next(error);

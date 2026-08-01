@@ -25,6 +25,10 @@ dotenv.config({ path: path.resolve(__dirname, '../../../.env') });
 
 const app = express();
 
+const allowedOrigins = process.env.CORS_ORIGIN
+  ? process.env.CORS_ORIGIN.split(',')
+  : ['http://localhost:5173', 'http://localhost:3000', 'http://localhost:5000'];
+
 // Apply Helmet security headers with explicit Content-Security-Policy (CSP)
 app.use(
   helmet({
@@ -35,7 +39,7 @@ app.use(
         styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
         fontSrc: ["'self'", 'https://fonts.gstatic.com'],
         imgSrc: ["'self'", 'data:', 'https:'],
-        connectSrc: ["'self'", 'http://localhost:5000', 'http://localhost:5173'],
+        connectSrc: ["'self'", ...allowedOrigins],
         upgradeInsecureRequests: [],
       },
     },
@@ -48,7 +52,7 @@ app.use(globalRateLimiter);
 // CORS configuration - only allow requests from specific frontend origins
 app.use(
   cors({
-    origin: ['http://localhost:5173', 'http://localhost:3000'],
+    origin: allowedOrigins,
     credentials: true,
   })
 );

@@ -22,6 +22,7 @@ Our platform leverages a modern, cohesive tech stack across all layers:
 
 ## ✨ Key Features
 
+- **Dual User Experience (Guest vs. Authenticated)**: Instant guest snippet creation with a fixed 1-hour expiration limit, local browser storage caches, and alphanumeric code sharing, alongside cloud-synchronized, highly secured registered workspace accounts.
 - **Monaco Code Editor**: Fully integrated code-sharing panel supporting dynamic language syntax highlighting, dark/light theme switching, and Esc-triggered fullscreen overlays.
 - **Developer CLI Client (`pastebin`)**: Upload local files, retrieve snippets with syntax highlighting, list public entries, and login directly from your terminal. Includes automated OS clipboard copying.
 - **JWT Stateless Authentication**: User registration, login, and secure user profile linkages.

@@ -17,6 +17,7 @@ import {
   Check,
 } from 'lucide-react';
 import { useAuth } from '../components/auth-provider.js';
+import { API_BASE_URL } from '../lib/utils.js';
 
 interface UserProfileData {
   user: {
@@ -88,7 +89,7 @@ export function UserProfile() {
       if (token) {
         headers['Authorization'] = `Bearer ${token}`;
       }
-      const res = await axios.get<UserProfileData>(`http://localhost:5000/api/users/${username}`, {
+      const res = await axios.get<UserProfileData>(`${API_BASE_URL}/api/users/${username}`, {
         headers,
       });
       setProfile(res.data);
@@ -154,7 +155,7 @@ export function UserProfile() {
         const headers: any = {};
         if (token) headers['Authorization'] = `Bearer ${token}`;
         const res = await axios.get(
-          `http://localhost:5000/api/users/check-username?username=${encodeURIComponent(
+          `${API_BASE_URL}/api/users/check-username?username=${encodeURIComponent(
             editUsername
           )}`,
           { headers }
@@ -208,7 +209,7 @@ export function UserProfile() {
     try {
       const headers = { Authorization: `Bearer ${token}` };
       const res = await axios.put(
-        `http://localhost:5000/api/users/profile`,
+        `${API_BASE_URL}/api/users/profile`,
         {
           displayName: editDisplayName.trim(),
           username: editUsername.trim().toLowerCase(),
@@ -260,7 +261,7 @@ export function UserProfile() {
       if (token) headers['Authorization'] = `Bearer ${token}`;
 
       // Hit API view paste verify
-      await axios.get(`http://localhost:5000/api/pastes/${showPinUnlockModal.id}`, { headers });
+      await axios.get(`${API_BASE_URL}/api/pastes/${showPinUnlockModal.id}`, { headers });
 
       // PIN is correct, close modal and redirect to paste
       setShowPinUnlockModal(null);

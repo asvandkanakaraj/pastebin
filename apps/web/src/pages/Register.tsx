@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { KeyRound, Mail, UserPlus, AlertCircle, Eye, EyeOff } from 'lucide-react';
+import { API_BASE_URL } from '../lib/utils.js';
 
 export function Register() {
   const navigate = useNavigate();
@@ -25,7 +26,7 @@ export function Register() {
     setLoading(true);
 
     try {
-      await axios.post('http://localhost:5000/api/auth/register', {
+      await axios.post(`${API_BASE_URL}/api/auth/register`, {
         email: email.trim(),
         password,
       });

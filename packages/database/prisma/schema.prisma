@@ -12,6 +12,9 @@ model User {
   email        String       @unique
   username     String       @unique
   passwordHash String
+  displayName  String?
+  avatarUrl    String?
+  bio          String?
   pastes       Paste[]
   shares       Share[]
   savedPastes  SavedPaste[]

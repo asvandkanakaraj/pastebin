@@ -3,6 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import { Search, User, FileText, AlertCircle, FileQuestion, ArrowLeft } from 'lucide-react';
 import type { SearchResults as SearchResultsType } from '../features/search/types/index.js';
+import { API_BASE_URL } from '../lib/utils.js';
 
 export function SearchResults() {
   const [searchParams] = useSearchParams();
@@ -24,7 +25,7 @@ export function SearchResults() {
 
     axios
       .get<SearchResultsType>(
-        `http://localhost:5000/api/search?q=${encodeURIComponent(query.trim())}`,
+        `${API_BASE_URL}/api/search?q=${encodeURIComponent(query.trim())}`,
         {
           signal: abortController.signal,
         }

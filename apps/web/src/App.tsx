@@ -22,6 +22,9 @@ const SearchResults = lazy(() =>
 const UserProfile = lazy(() =>
   import('./pages/UserProfile.js').then((m) => ({ default: m.UserProfile }))
 );
+const NotFound = lazy(() =>
+  import('./pages/NotFound.js').then((m) => ({ default: m.NotFound }))
+);
 
 // Professional skeleton loading spinner page loader
 function PageLoader() {
@@ -54,6 +57,7 @@ function App() {
                 <Route path="/register" element={<Register />} />
                 <Route path="/search" element={<SearchResults />} />
                 <Route path="/profile/:username" element={<UserProfile />} />
+                <Route path="*" element={<NotFound />} />
               </Routes>
             </Suspense>
           </MainLayout>

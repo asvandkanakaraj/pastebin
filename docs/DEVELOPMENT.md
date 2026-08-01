@@ -437,3 +437,19 @@
   - Refactored `getUserProfileByUsername` service to isolate statistics and tabs for owners vs visitors.
   - Built centered Edit Profile modal in `UserProfile.tsx` supporting base64 avatar uploads, displayName overrides, and bio counters.
   - Integrated keyboard accessibility (ESC modal dismiss) and tab selection constraints.
+
+## Session 32: Guest Mode & Authenticated UX Restructure
+
+- **Date**: 2026-08-01
+- **Status**: Completed ✅
+- **Objective**: Implement Guest Mode vs. Authenticated User Experience restructuring. Unlock ownership and persistence on registration while keeping guest actions transient and storing state in browser caches.
+- **Outcomes**:
+  - Reconfigured paste ID generation in `PasteService.createPaste` to produce unique 8-character uppercase alphanumeric codes.
+  - Implemented backend Guest constraints, forcing guest pastes to 1-hour expirations, Public visibility only, and empty shares.
+  - Enforced edit/delete safety checks on Guest pastes, throwing `403 ForbiddenError` when modification is attempted.
+  - Redesigned `SearchService.globalSearch` parameters to match users by username/displayName and pastes by title/Paste Code ID (exact matches receiving score priority 0).
+  - Configured `CreatePaste.tsx` layout: locked guest expiration selector to 1 hour, disabled Private/Secret buttons with inline explanations, and implemented a Guest success Modal displaying Paste URL and Paste Code with clipboard copying.
+  - Updated `BrowsePastes.tsx` to conditionally load transient states from local storage (`pb_guest_recent_pastes`, `pb_guest_saved_pastes`, `pb_guest_recently_viewed_pastes`) if not authenticated. Hides workspace modification triggers (Edit, Delete, Shared With Me).
+  - Modified `ViewPaste.tsx` to handle guest bookmarks locally, log transient recent views, and added a Bookmark toggle action button to the view header.
+  - Updated unit tests to support return changes and confirmed monorepo compiles successfully.
+

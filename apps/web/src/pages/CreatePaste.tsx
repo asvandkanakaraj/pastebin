@@ -5,7 +5,6 @@ import {
   FilePlus2,
   Sun,
   Moon,
-  List,
   Maximize2,
   Minimize2,
   Copy,
@@ -23,6 +22,7 @@ import {
 import { CreatePasteSchema } from '@pastebin/shared';
 import { CodeEditor } from '../components/editor/CodeEditor.js';
 import { useAuth } from '../components/auth-provider.js';
+import { API_BASE_URL } from '../lib/utils.js';
 
 const LANGUAGES = [
   { value: 'javascript', label: 'JavaScript' },
@@ -48,12 +48,13 @@ const EXPIRATION_OPTIONS = [
 export function CreatePaste() {
   const { token } = useAuth();
   const navigate = useNavigate();
+  const isGuest = !token;
 
   // Paste Form Data
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [language, setLanguage] = useState('javascript');
-  const [expiration, setExpiration] = useState('never');
+  const [expiration, setExpiration] = useState(isGuest ? '3600' : 'never');
   const [visibility, setVisibility] = useState<'PUBLIC' | 'PRIVATE' | 'SECRET'>('PUBLIC');
   const [pinOption, setPinOption] = useState<'auto' | 'custom'>('auto');
   const [customPin, setCustomPin] = useState('');
@@ -72,7 +73,7 @@ const user = 'Developer';
 console.log(greetUser(user));
 console.log(2 + 2);`);
 
-  // Editor Preferences & UI States (persisted)
+  // Editor Preferences & UI States
   const [editorTheme, _setEditorTheme] = useState<'vs-dark' | 'light'>(
     (localStorage.getItem('pb_editor_theme') as 'vs-dark' | 'light') || 'vs-dark'
   );
@@ -84,7 +85,7 @@ console.log(2 + 2);`);
   const [copied, setCopied] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
 
-  // Sharing states
+  // Sharing states (Owner only)
   const [sharedUsers, setSharedUsers] = useState<
     Array<{ id: string; username: string; email: string; permission: 'READ' | 'WRITE' }>
   >([]);
@@ -95,71 +96,31 @@ console.log(2 + 2);`);
   const [searching, setSearching] = useState(false);
   const [shareSuccess, setShareSuccess] = useState<string | null>(null);
 
+  // Creation State Controls
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Real-time debounced user search
-  useEffect(() => {
-    if (!searchQuery.trim()) {
-      setSearchResults([]);
-      return;
-    }
-    const timer = setTimeout(async () => {
-      setSearching(true);
-      try {
-        const headers: any = {};
-        if (token) headers['Authorization'] = `Bearer ${token}`;
-        const res = await axios.get(
-          `http://localhost:5000/api/search?q=${encodeURIComponent(searchQuery)}`,
-          { headers }
-        );
-        // Filter suggestions (exclude users already added)
-        const matched = (res.data.users || []).filter((u: any) => {
-          return !sharedUsers.some((su) => su.id === u.id);
-        });
-        setSearchResults(matched);
-      } catch (err) {
-        console.error('Search users failed:', err);
-      } finally {
-        setSearching(false);
-      }
-    }, 300);
-    return () => clearTimeout(timer);
-  }, [searchQuery, sharedUsers, token]);
+  // Guest Success Modal Details
+  const [createdPasteData, setCreatedPasteData] = useState<any | null>(null);
+  const [copiedUrl, setCopiedUrl] = useState(false);
+  const [copiedCode, setCopiedCode] = useState(false);
 
-  // Auto-generate PIN if PRIVATE and auto-generate selected
   useEffect(() => {
-    if (visibility === 'PRIVATE' && pinOption === 'auto' && !customPin) {
-      const generated = Math.floor(100000 + Math.random() * 900000).toString();
-      setCustomPin(generated);
+    if (isGuest) {
+      setExpiration('3600');
+      setVisibility('PUBLIC');
     }
-  }, [visibility, pinOption, customPin]);
+  }, [isGuest]);
 
-  // Persist preferences functions
   const setEditorTheme = (theme: 'vs-dark' | 'light') => {
     _setEditorTheme(theme);
     localStorage.setItem('pb_editor_theme', theme);
   };
 
-  const setShowLineNumbers = (val: 'on' | 'off') => {
-    _setShowLineNumbers(val);
-    localStorage.setItem('pb_editor_line_numbers', val);
+  const setShowLineNumbers = (mode: 'on' | 'off') => {
+    _setShowLineNumbers(mode);
+    localStorage.setItem('pb_editor_line_numbers', mode);
   };
-
-  // Fullscreen ESC listener & modal ESC listener
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        if (showAdvanced) {
-          setShowAdvanced(false);
-        } else if (isFullscreen) {
-          setIsFullscreen(false);
-        }
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isFullscreen, showAdvanced]);
 
   const handleEditorMount = (editor: any) => {
     editor.onDidChangeCursorPosition((e: any) => {
@@ -170,24 +131,70 @@ console.log(2 + 2);`);
     });
   };
 
-  const handleCopy = () => {
-    navigator.clipboard.writeText(content);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+  // Keyboard accessibility listeners (ESC fullscreen exits & modals close)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setIsFullscreen(false);
+        setShowAdvanced(false);
+        setCreatedPasteData(null);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  // Debounced User Lookup inside Sharing modal
+  useEffect(() => {
+    if (!searchQuery.trim() || isGuest) {
+      setSearchResults([]);
+      return;
+    }
+    const timer = setTimeout(async () => {
+      setSearching(true);
+      try {
+        const headers = token ? { Authorization: `Bearer ${token}` } : {};
+        const response = await axios.get(
+          `${API_BASE_URL}/api/search?q=${encodeURIComponent(searchQuery)}`,
+          { headers }
+        );
+        // Exclude users already added
+        const matched = (response.data.users || []).filter((u: any) => {
+          return !sharedUsers.some((su) => su.id === u.id);
+        });
+        setSearchResults(matched);
+      } catch (err) {
+        console.error('Failed to search users:', err);
+      } finally {
+        setSearching(false);
+      }
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery, sharedUsers, token, isGuest]);
+
+  const handleCopyClipboard = async () => {
+    try {
+      await navigator.clipboard.writeText(content);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error('Failed to copy paste:', err);
+    }
   };
 
   const getExpirationDescription = (val: string) => {
+    if (isGuest) return 'Fixed: 1 hour for Guest Mode.';
     switch (val) {
       case 'never':
-        return 'The paste will never expire.';
+        return 'Keep this snippet stored indefinitely.';
       case '3600':
-        return 'The paste will expire in 1 hour.';
+        return 'Inaccessible after 1 hour.';
       case '86400':
-        return 'The paste will expire in 24 hours.';
+        return 'Inaccessible after 24 hours.';
       case '604800':
-        return 'The paste will expire in 7 days.';
+        return 'Inaccessible after 7 days.';
       case '2592000':
-        return 'The paste will expire in 30 days.';
+        return 'Inaccessible after 30 days.';
       default:
         return '';
     }
@@ -195,22 +202,22 @@ console.log(2 + 2);`);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError(null);
     setLoading(true);
+    setError(null);
 
-    const payload = {
+    const payload: any = {
       title: title.trim() || undefined,
       description: description.trim() || undefined,
       content,
       language,
-      visibility,
-      isPublic: visibility === 'PUBLIC',
-      password: visibility === 'PRIVATE' ? customPin.trim() : undefined,
-      expiresInSeconds: expiration === 'never' ? undefined : parseInt(expiration),
-      shares: sharedUsers.map((su) => ({ userId: su.id, permission: su.permission })),
+      visibility: isGuest ? 'PUBLIC' : visibility,
+      isPublic: isGuest ? true : visibility === 'PUBLIC',
+      password: !isGuest && visibility === 'PRIVATE' ? customPin.trim() : undefined,
+      expiresInSeconds: isGuest ? 3600 : expiration === 'never' ? undefined : parseInt(expiration),
+      shares: isGuest ? undefined : sharedUsers.map((su) => ({ userId: su.id, permission: su.permission })),
     };
 
-    // Schema Validation
+    // Validation checks
     const validation = CreatePasteSchema.safeParse(payload);
     if (!validation.success) {
       const errorMsg = validation.error.errors[0]?.message || 'Validation failed';
@@ -224,12 +231,22 @@ console.log(2 + 2);`);
       if (token) {
         headers['Authorization'] = `Bearer ${token}`;
       }
-      const response = await axios.post('http://localhost:5000/api/pastes', payload, { headers });
-      navigate(`/v/${response.data.id}`);
+      const response = await axios.post(`${API_BASE_URL}/api/pastes`, payload, { headers });
+
+      if (isGuest) {
+        // Save Guest transient details inside browser localStorage
+        const recents = JSON.parse(localStorage.getItem('pb_guest_recent_pastes') || '[]');
+        recents.unshift(response.data);
+        localStorage.setItem('pb_guest_recent_pastes', JSON.stringify(recents));
+
+        // Open guest success modal
+        setCreatedPasteData(response.data);
+      } else {
+        navigate(`/v/${response.data.id}`);
+      }
     } catch (err: any) {
       console.error('Create paste failed:', err);
-      const serverError = err.response?.data?.message || 'Failed to save paste to server';
-      setError(serverError);
+      setError(err.response?.data?.message || 'Failed to save paste to server');
     } finally {
       setLoading(false);
     }
@@ -237,18 +254,116 @@ console.log(2 + 2);`);
 
   return (
     <div className="w-full max-w-7xl mx-auto py-2 md:py-6 space-y-6">
-      {/* Centered Advanced Settings Dialog Modal */}
-      {showAdvanced && (
+      {/* Guest Success Dialog Modal Overlay */}
+      {createdPasteData && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 backdrop-blur-sm p-4"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 backdrop-blur-sm p-4 animate-in fade-in duration-200"
           role="dialog"
           aria-modal="true"
         >
-          <div className="w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-2xl flex flex-col max-h-[90vh] animate-in fade-in zoom-in-95 duration-155 relative">
-            {/* Header */}
+          <div className="w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-2xl text-center space-y-5 animate-in zoom-in-95 duration-200 relative text-left">
+            <div className="mx-auto p-3.5 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl text-emerald-500 dark:text-emerald-450 w-fit flex items-center justify-center">
+              <Check size={28} className="animate-bounce" />
+            </div>
+            <div className="text-center">
+              <h2 className="text-lg font-bold text-slate-850 dark:text-white">
+                Guest Paste Created!
+              </h2>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
+                Your transient paste has been successfully published. Note that guest pastes expire automatically in exactly 1 hour.
+              </p>
+            </div>
+
+            <div className="space-y-4 py-2">
+              {/* Paste URL */}
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">
+                  Paste URL
+                </label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    readOnly
+                    value={`${window.location.origin}/v/${createdPasteData.id}`}
+                    className="h-10 w-full rounded-lg border border-slate-200 bg-slate-50/50 px-3 pr-10 text-xs focus:outline-none dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 select-all"
+                  />
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      await navigator.clipboard.writeText(`${window.location.origin}/v/${createdPasteData.id}`);
+                      setCopiedUrl(true);
+                      setTimeout(() => setCopiedUrl(false), 2000);
+                    }}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-655"
+                  >
+                    {copiedUrl ? <Check size={14} className="text-emerald-500" /> : <Copy size={14} />}
+                  </button>
+                </div>
+              </div>
+
+              {/* Paste Code */}
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">
+                  8-Character Paste Code
+                </label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    readOnly
+                    value={createdPasteData.id}
+                    className="h-10 w-full rounded-lg border border-slate-200 bg-slate-50/50 px-3 pr-10 text-xs font-mono font-bold tracking-widest text-blue-600 dark:text-blue-400 dark:border-slate-800 dark:bg-slate-950 select-all"
+                  />
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      await navigator.clipboard.writeText(createdPasteData.id);
+                      setCopiedCode(true);
+                      setTimeout(() => setCopiedCode(false), 2000);
+                    }}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-655"
+                  >
+                    {copiedCode ? <Check size={14} className="text-emerald-500" /> : <Copy size={14} />}
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setCreatedPasteData(null);
+                  setTitle('');
+                  setDescription('');
+                  setContent('');
+                }}
+                className="flex-1 h-10 inline-flex items-center justify-center rounded-lg border border-slate-200 bg-white px-4 text-xs font-bold text-slate-700 hover:bg-slate-50 focus:outline-none dark:border-slate-800 dark:bg-slate-900 dark:text-slate-350 dark:hover:bg-slate-800 transition-colors"
+              >
+                Create Another
+              </button>
+              <button
+                type="button"
+                onClick={() => navigate(`/v/${createdPasteData.id}`)}
+                className="flex-1 h-10 inline-flex items-center justify-center rounded-lg bg-blue-600 px-4 text-xs font-bold text-white shadow-md hover:bg-blue-700 focus:outline-none transition-colors"
+              >
+                View Paste
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Advanced Settings Modal (Authenticated Users only) */}
+      {!isGuest && showAdvanced && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 backdrop-blur-sm p-4 animate-in fade-in duration-200"
+          role="dialog"
+          aria-modal="true"
+        >
+          <div className="w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-2xl flex flex-col max-h-[90vh] animate-in fade-in zoom-in-95 duration-155 relative text-left">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800 select-none">
               <div className="flex items-center gap-2">
-                <Settings className="text-blue-500 h-5 w-5 animate-spin duration-1000" />
+                <Settings className="text-blue-500 h-5 w-5" />
                 <h2 className="text-sm font-bold text-slate-800 dark:text-white">
                   Advanced Sharing Configurations
                 </h2>
@@ -262,10 +377,8 @@ console.log(2 + 2);`);
               </button>
             </div>
 
-            {/* Scrollable Content */}
-            <div className="flex-1 overflow-y-auto py-4 space-y-5 pr-1 select-none">
-              {/* Search User Block */}
-              <div className="space-y-2">
+            <div className="flex-1 overflow-y-auto py-4 space-y-4">
+              <div className="space-y-1">
                 <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">
                   Search Username or Email
                 </label>
@@ -274,39 +387,31 @@ console.log(2 + 2);`);
                     type="text"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="Type name or email address..."
+                    placeholder="Type username or email address..."
                     className="h-10 w-full rounded-lg border border-slate-200 bg-slate-50/50 px-3.5 text-xs focus:outline-none dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100"
                   />
-
-                  {/* Suggestions list */}
                   {searchQuery && (searchResults.length > 0 || searching) && (
-                    <div className="absolute left-0 right-0 mt-1.5 z-55 max-h-48 overflow-y-auto bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-850 rounded-lg shadow-lg">
+                    <div className="absolute left-0 right-0 mt-1.5 z-55 max-h-48 overflow-y-auto bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg shadow-lg">
                       {searching ? (
-                        <div className="p-3 text-xs text-slate-450 dark:text-slate-500 text-center">
-                          Searching...
-                        </div>
+                        <div className="p-3 text-xs text-slate-400 text-center">Searching...</div>
                       ) : (
-                        searchResults.map((user) => (
+                        searchResults.map((u) => (
                           <button
-                            key={user.id}
+                            key={u.id}
                             type="button"
                             onClick={() => {
-                              setSharedUsers([...sharedUsers, { ...user, permission: 'READ' }]);
+                              setSharedUsers([...sharedUsers, { ...u, permission: 'READ' }]);
                               setSearchQuery('');
-                              setSearchResults([]);
                             }}
-                            className="w-full flex items-center justify-between p-2.5 hover:bg-slate-50 dark:hover:bg-slate-900 border-b border-slate-100 dark:border-slate-800 last:border-b-0 text-left text-xs text-slate-700 dark:text-slate-300"
+                            className="w-full flex items-center justify-between p-2.5 hover:bg-slate-50 dark:hover:bg-slate-900 border-b border-slate-100 dark:border-slate-800 last:border-b-0 text-left text-xs"
                           >
-                            <div className="flex items-center gap-2">
-                              <span className="flex h-6 w-6 items-center justify-center rounded-full bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400 font-bold uppercase text-[9px]">
-                                {user.username.slice(0, 2)}
-                              </span>
-                              <div>
-                                <p className="font-bold">{user.username}</p>
-                                <p className="text-[9px] text-slate-400">{user.email}</p>
-                              </div>
+                            <div>
+                              <p className="font-bold text-slate-700 dark:text-slate-300">
+                                {u.username}
+                              </p>
+                              <p className="text-[9px] text-slate-400">{u.email}</p>
                             </div>
-                            <span className="text-[10px] text-blue-600 dark:text-blue-450 font-bold">
+                            <span className="text-[10px] text-blue-600 dark:text-blue-400 font-bold">
                               + Add
                             </span>
                           </button>
@@ -317,39 +422,36 @@ console.log(2 + 2);`);
                 </div>
               </div>
 
-              {/* Followers List Placeholder */}
-              <div className="space-y-2">
+              <div className="space-y-1">
                 <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">
                   Quick Share (Followers)
                 </label>
-                <span className="text-[11px] text-slate-450 dark:text-slate-500 italic block pl-1">
+                <span className="text-[11px] text-slate-450 italic block pl-1">
                   No followers yet.
                 </span>
               </div>
 
-              {/* Shared List */}
               <div className="space-y-2">
                 <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">
                   Shared With
                 </label>
-
                 {sharedUsers.length === 0 ? (
                   <span className="text-[11px] text-slate-400 dark:text-slate-600 italic block pl-1">
                     Not shared with anyone yet.
                   </span>
                 ) : (
-                  <div className="border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden divide-y divide-slate-100 dark:divide-slate-800 bg-white dark:bg-slate-950">
+                  <div className="border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden divide-y divide-slate-100 dark:divide-slate-805 bg-white dark:bg-slate-950">
                     {sharedUsers.map((item) => (
                       <div key={item.id} className="flex items-center justify-between p-3 text-xs">
                         <div className="flex items-center gap-2">
-                          <span className="flex h-7 w-7 items-center justify-center rounded-full bg-slate-100 text-slate-650 dark:bg-slate-900 dark:text-slate-400 font-bold uppercase text-[10px]">
+                          <span className="flex h-7 w-7 items-center justify-center rounded-full bg-slate-150 text-slate-650 dark:bg-slate-900 font-bold uppercase text-[10px]">
                             {item.username.slice(0, 2)}
                           </span>
                           <div>
-                            <p className="font-bold text-slate-700 dark:text-slate-305">
+                            <p className="font-bold text-slate-700 dark:text-slate-300">
                               {item.username}
                             </p>
-                            <p className="text-[9px] text-slate-405">{item.email}</p>
+                            <p className="text-[9px] text-slate-400">{item.email}</p>
                           </div>
                         </div>
 
@@ -362,26 +464,18 @@ console.log(2 + 2);`);
                                   su.id === item.id
                                     ? { ...su, permission: e.target.value as any }
                                     : su
-                                )
+                                  )
                               );
                             }}
-                            className="bg-transparent border-none text-[11px] font-bold text-blue-600 hover:text-blue-700 dark:text-blue-450 focus:outline-none cursor-pointer"
+                            className="bg-transparent border-none text-[11px] font-bold text-blue-600 hover:text-blue-700 dark:text-blue-400 focus:outline-none cursor-pointer"
                           >
-                            <option value="READ" className="bg-white dark:bg-slate-900">
-                              Read Only
-                            </option>
-                            <option value="WRITE" className="bg-white dark:bg-slate-900">
-                              Read & Write
-                            </option>
+                            <option value="READ" className="bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300">Read Only</option>
+                            <option value="WRITE" className="bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300">Read & Write</option>
                           </select>
-
                           <button
                             type="button"
-                            onClick={() => {
-                              setSharedUsers(sharedUsers.filter((su) => su.id !== item.id));
-                            }}
+                            onClick={() => setSharedUsers(sharedUsers.filter((su) => su.id !== item.id))}
                             className="text-rose-500 hover:text-rose-700 font-bold p-1 transition-colors"
-                            title="Remove Access"
                           >
                             ✕
                           </button>
@@ -393,17 +487,16 @@ console.log(2 + 2);`);
               </div>
             </div>
 
-            {/* Footer */}
             <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex justify-end gap-2 items-center">
               {shareSuccess && (
                 <span className="text-[11px] text-emerald-500 font-bold mr-auto">
-                  ✓ Configured shared users successfully
+                  {shareSuccess}
                 </span>
               )}
               <button
                 type="button"
                 onClick={() => {
-                  setShareSuccess('✓ Sharing success');
+                  setShareSuccess('✓ Configuration Applied');
                   setTimeout(() => {
                     setShareSuccess(null);
                     setShowAdvanced(false);
@@ -419,7 +512,7 @@ console.log(2 + 2);`);
         </div>
       )}
 
-      {/* Title Header */}
+      {/* Main Form Fields */}
       <div className="flex items-center gap-4">
         <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-50 text-blue-600 dark:bg-blue-955/40 dark:text-blue-450 shadow-sm shrink-0">
           <FilePlus2 className="h-6 w-6" />
@@ -434,11 +527,9 @@ console.log(2 + 2);`);
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-4 gap-6 items-start">
-        {/* Left main editor card column */}
+      <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-4 gap-6 items-start select-none">
         <div className="lg:col-span-3 space-y-6">
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-sm space-y-5">
-            {/* Title block */}
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-sm space-y-5 animate-in fade-in-50 duration-200">
             <div className="flex flex-col gap-2">
               <label
                 htmlFor="title-input"
@@ -452,20 +543,17 @@ console.log(2 + 2);`);
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder="Name of this paste..."
-                className="h-11 w-full rounded-lg border border-slate-200 bg-slate-50/50 px-4 text-sm placeholder-slate-400 focus:border-blue-550 focus:outline-none dark:border-slate-800 dark:bg-slate-950 dark:placeholder-slate-655 dark:focus:border-blue-500"
+                className="h-11 w-full rounded-lg border border-slate-200 bg-slate-50/50 px-4 text-sm placeholder-slate-400 focus:border-blue-550 focus:outline-none dark:border-slate-800 dark:bg-slate-950 dark:placeholder-slate-655"
               />
             </div>
 
-            {/* Code editor container */}
             <div
               className={`border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden flex flex-col ${
                 isFullscreen ? 'fixed inset-0 z-50 bg-white dark:bg-slate-950 p-4' : 'relative'
               }`}
             >
-              {/* Editor Toolbar */}
-              <div className="bg-slate-55/50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-4 py-2.5 flex flex-wrap items-center justify-between gap-3 text-xs select-none">
+              <div className="bg-slate-55/50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-4 py-2.5 flex flex-wrap items-center justify-between gap-3 text-xs">
                 <div className="flex items-center gap-3">
-                  {/* Language Selector */}
                   <div className="relative">
                     <select
                       value={language}
@@ -482,9 +570,7 @@ console.log(2 + 2);`);
                   </div>
                 </div>
 
-                {/* Toolbar Buttons */}
                 <div className="flex items-center gap-1.5">
-                  {/* Theme Button */}
                   <button
                     type="button"
                     onClick={() => setEditorTheme(editorTheme === 'vs-dark' ? 'light' : 'vs-dark')}
@@ -494,58 +580,55 @@ console.log(2 + 2);`);
                     {editorTheme === 'vs-dark' ? <Sun size={14} /> : <Moon size={14} />}
                   </button>
 
-                  {/* Line Numbers Toggle */}
                   <button
                     type="button"
                     onClick={() => setShowLineNumbers(showLineNumbers === 'on' ? 'off' : 'on')}
-                    className={`h-8 w-8 inline-flex items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-955 dark:text-slate-400 dark:hover:bg-slate-800 transition-colors ${
-                      showLineNumbers === 'on' ? 'ring-1 ring-blue-500' : ''
+                    className={`h-8 px-2.5 inline-flex items-center justify-center gap-1 rounded-lg border text-xs font-bold transition-colors ${
+                      showLineNumbers === 'on'
+                        ? 'bg-blue-50 border-blue-200 text-blue-650 dark:bg-blue-955/20 dark:border-blue-900/40 dark:text-blue-400'
+                        : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-400'
                     }`}
                     title="Toggle Line Numbers"
                   >
-                    <List size={14} />
+                    <span>123</span>
                   </button>
 
-                  {/* Fullscreen Button */}
                   <button
                     type="button"
                     onClick={() => setIsFullscreen(!isFullscreen)}
-                    className="h-8 w-8 inline-flex items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-650 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-400 dark:hover:bg-slate-850 transition-colors"
+                    className="h-8 w-8 inline-flex items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-660 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-400 dark:hover:bg-slate-800 transition-colors"
                     title="Toggle Fullscreen"
                   >
-                    {isFullscreen ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
+                    {isFullscreen ? <Minimize2 size={13} /> : <Maximize2 size={13} />}
                   </button>
 
-                  {/* Copy Button */}
                   <button
                     type="button"
-                    onClick={handleCopy}
-                    className="h-8 w-8 inline-flex items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-650 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-955 dark:text-slate-400 dark:hover:bg-slate-850 transition-colors"
-                    title="Copy Editor Code"
+                    onClick={handleCopyClipboard}
+                    className="h-8 px-3 inline-flex items-center justify-center gap-1.5 rounded-lg border border-slate-200 bg-white text-slate-660 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-400 dark:hover:bg-slate-800 transition-colors"
+                    title="Copy Full Code"
                   >
-                    {copied ? <Check size={14} className="text-green-550" /> : <Copy size={14} />}
+                    {copied ? <Check size={12} className="text-emerald-500" /> : <Copy size={12} />}
+                    <span>{copied ? 'Copied!' : 'Copy'}</span>
                   </button>
                 </div>
               </div>
 
-              {/* Code editor */}
-              <CodeEditor
-                value={content}
-                onChange={(val) => setContent(val || '')}
-                language={language}
-                editorTheme={editorTheme}
-                lineNumbers={showLineNumbers}
-                tabSize={2}
-                height={isFullscreen ? 'calc(100vh - 120px)' : '400px'}
-                onMount={handleEditorMount}
-              />
+              <div className="flex-1 min-h-[380px]">
+                <CodeEditor
+                  value={content}
+                  language={language}
+                  editorTheme={editorTheme}
+                  lineNumbers={showLineNumbers}
+                  onChange={(val) => setContent(val || '')}
+                  tabSize={2}
+                  height={isFullscreen ? 'calc(100vh - 120px)' : '400px'}
+                  onMount={handleEditorMount}
+                />
+              </div>
 
-              {/* Status bar */}
-              <div className="bg-slate-55/50 dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 px-4 py-2 flex items-center justify-between text-[11px] font-mono text-slate-450 dark:text-slate-500 select-none">
-                <div className="flex items-center gap-1.5 capitalize font-medium">
-                  <span className="h-2 w-2 rounded-full bg-emerald-500 shrink-0" />
-                  <span>{language}</span>
-                </div>
+              <div className="bg-slate-55/30 dark:bg-slate-900/50 border-t border-slate-200 dark:border-slate-800 px-4 py-2 flex items-center justify-between text-[10px] text-slate-455 font-semibold select-none">
+                <span>{language.toUpperCase()} WORKSPACE</span>
                 <div className="flex items-center gap-4">
                   <span>
                     Ln {cursorPos.line}, Col {cursorPos.col}
@@ -556,9 +639,7 @@ console.log(2 + 2);`);
             </div>
           </div>
 
-          {/* Highlights Row */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mt-6 select-none">
-            {/* Private card */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mt-6">
             <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 rounded-xl shadow-xs space-y-1.5">
               <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-50 text-blue-600 dark:bg-blue-955/40 dark:text-blue-400">
                 <Shield size={16} />
@@ -571,7 +652,6 @@ console.log(2 + 2);`);
               </p>
             </div>
 
-            {/* Fast card */}
             <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 rounded-xl shadow-xs space-y-1.5">
               <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-50 text-amber-600 dark:bg-amber-955/40 dark:text-amber-400">
                 <Zap size={16} />
@@ -584,7 +664,6 @@ console.log(2 + 2);`);
               </p>
             </div>
 
-            {/* Highlighting card */}
             <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 rounded-xl shadow-xs space-y-1.5">
               <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-purple-50 text-purple-600 dark:bg-purple-950/40 dark:text-purple-400">
                 <CodeIcon size={16} />
@@ -597,7 +676,6 @@ console.log(2 + 2);`);
               </p>
             </div>
 
-            {/* Sharing card */}
             <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 rounded-xl shadow-xs space-y-1.5">
               <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400">
                 <Link2 size={16} />
@@ -610,9 +688,8 @@ console.log(2 + 2);`);
           </div>
         </div>
 
-        {/* Configurations Sidebar */}
         <div className="space-y-6">
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-sm space-y-5">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-sm space-y-5 animate-in fade-in-50 duration-200">
             <div className="flex items-center gap-2 border-b border-slate-100 dark:border-slate-800 pb-3 select-none">
               <Settings className="text-slate-450 h-4.5 w-4.5" />
               <h2 className="text-sm font-bold text-slate-800 dark:text-white">Settings</h2>
@@ -635,7 +712,7 @@ console.log(2 + 2);`);
                 placeholder="Describe what this paste contains..."
                 className="w-full rounded-lg border border-slate-200 bg-slate-50/50 p-2.5 text-xs focus:outline-none dark:border-slate-800 dark:bg-slate-950 resize-none dark:placeholder-slate-600 leading-normal"
               />
-              <span className="text-[9px] text-slate-400 dark:text-slate-500 text-right select-none pr-0.5">
+              <span className="text-[9px] text-slate-405 text-right pr-0.5">
                 {description.length} / 300
               </span>
             </div>
@@ -651,24 +728,31 @@ console.log(2 + 2);`);
               <div className="relative">
                 <select
                   id="exp-select"
-                  value={expiration}
+                  disabled={isGuest}
+                  value={isGuest ? '3600' : expiration}
                   onChange={(e) => setExpiration(e.target.value)}
-                  className="appearance-none h-10 w-full rounded-lg border border-slate-200 bg-slate-50/50 px-3 pr-10 text-xs font-medium focus:outline-none dark:border-slate-800 dark:bg-slate-950 dark:text-slate-300"
+                  className="appearance-none h-10 w-full rounded-lg border border-slate-200 bg-slate-50/50 px-3 pr-10 text-xs font-medium focus:outline-none dark:border-slate-800 dark:bg-slate-955 dark:text-slate-300 disabled:opacity-80"
                 >
-                  {EXPIRATION_OPTIONS.map((opt) => (
-                    <option key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </option>
-                  ))}
+                  {isGuest ? (
+                    <option value="3600">1 Hour (Guest Mode)</option>
+                  ) : (
+                    EXPIRATION_OPTIONS.map((opt) => (
+                      <option key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </option>
+                    ))
+                  )}
                 </select>
-                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-455 pointer-events-none" />
+                {!isGuest && <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-455 pointer-events-none" />}
               </div>
               <span className="text-[10px] text-slate-400 dark:text-slate-500 leading-normal pl-0.5 select-none">
-                {getExpirationDescription(expiration)}
+                {getExpirationDescription(isGuest ? '3600' : expiration)}
               </span>
-              <p className="text-[9px] text-slate-400 dark:text-slate-550 leading-relaxed mt-0.5 select-none italic pl-0.5">
-                This paste will automatically become inaccessible after the selected expiration.
-              </p>
+              {isGuest && (
+                <span className="text-[9px] text-amber-500 font-semibold leading-relaxed mt-0.5 italic pl-0.5">
+                  Guest pastes are fixed to 1 Hour limits. Please sign in to extend expirations.
+                </span>
+              )}
             </div>
 
             {/* Visibility Selector */}
@@ -678,17 +762,20 @@ console.log(2 + 2);`);
               </label>
               <div className="grid grid-cols-3 gap-1.5">
                 {[
-                  { id: 'PUBLIC', label: '🌍 Public' },
-                  { id: 'PRIVATE', label: '🔒 Private' },
-                  { id: 'SECRET', label: '👻 Secret' },
+                  { id: 'PUBLIC', label: '🌍 Public', disabled: false },
+                  { id: 'PRIVATE', label: '🔒 Private', disabled: isGuest },
+                  { id: 'SECRET', label: '👻 Secret', disabled: isGuest },
                 ].map((opt) => (
                   <button
                     key={opt.id}
                     type="button"
-                    onClick={() => setVisibility(opt.id as any)}
+                    disabled={opt.disabled}
+                    onClick={() => !opt.disabled && setVisibility(opt.id as any)}
                     className={`py-2 px-1 text-center rounded-lg border text-[10px] font-bold transition-all ${
                       visibility === opt.id
                         ? 'bg-blue-600 border-blue-600 text-white shadow-sm'
+                        : opt.disabled
+                        ? 'border-slate-100 bg-slate-50/20 text-slate-400 cursor-not-allowed opacity-50 dark:border-slate-850 dark:bg-slate-900/40 dark:text-slate-600'
                         : 'border-slate-200 bg-slate-50/50 text-slate-600 hover:bg-slate-100 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300'
                     }`}
                   >
@@ -696,9 +783,14 @@ console.log(2 + 2);`);
                   </button>
                 ))}
               </div>
+              {isGuest && (
+                <span className="text-[9px] text-slate-450 dark:text-slate-500 leading-normal pl-0.5 select-none block mt-1">
+                  Private and Secret visibility require permanent ownership and access control roles.
+                </span>
+              )}
 
-              {/* Private PIN configs */}
-              {visibility === 'PRIVATE' && (
+              {/* Private PIN configs (Authenticated users only) */}
+              {!isGuest && visibility === 'PRIVATE' && (
                 <div className="space-y-3 mt-3 p-3 bg-slate-50 dark:bg-slate-950/20 border border-slate-200 dark:border-slate-800 rounded-xl animate-in fade-in duration-200">
                   <label className="text-[9px] font-bold text-slate-450 dark:text-slate-400 uppercase tracking-wider">
                     PIN Protection
@@ -749,9 +841,7 @@ console.log(2 + 2);`);
                       <input
                         type={showPin ? 'text' : 'password'}
                         value={customPin}
-                        onChange={(e) =>
-                          setCustomPin(e.target.value.replace(/\D/g, '').slice(0, 8))
-                        }
+                        onChange={(e) => setCustomPin(e.target.value.replace(/\D/g, '').slice(0, 8))}
                         placeholder="4 to 8 digits PIN"
                         className="h-9 w-full rounded-lg border border-slate-200 bg-white px-3 pr-10 text-xs focus:outline-none dark:border-slate-800 dark:bg-slate-955 dark:text-slate-200"
                       />
@@ -765,7 +855,6 @@ console.log(2 + 2);`);
                     </div>
                   )}
 
-                  {/* Inline PIN Validation warning */}
                   {visibility === 'PRIVATE' && (customPin.length < 4 || customPin.length > 8) && (
                     <span className="text-[9px] text-rose-500 font-medium leading-none block pt-0.5">
                       ⚠ PIN must be 4 to 8 digits
@@ -775,31 +864,35 @@ console.log(2 + 2);`);
               )}
             </div>
 
-            {/* Collapsible Advanced Settings (now opens modal dialog!) */}
-            <div className="border-t border-slate-100 dark:border-slate-800 pt-4">
-              <button
-                type="button"
-                onClick={() => setShowAdvanced(true)}
-                className="w-full flex items-center justify-between text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider"
-              >
-                <span>Advanced Settings</span>
-                <ChevronDown size={14} />
-              </button>
-            </div>
+            {/* Sharing rules info / modal launch */}
+            {isGuest ? (
+              <div className="border-t border-slate-100 dark:border-slate-800 pt-4 text-[10px] text-slate-450 italic">
+                Advanced sharing configurations require a registered account.
+              </div>
+            ) : (
+              <div className="border-t border-slate-100 dark:border-slate-800 pt-4">
+                <button
+                  type="button"
+                  onClick={() => setShowAdvanced(true)}
+                  className="w-full flex items-center justify-between text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider"
+                >
+                  <span>Advanced Settings</span>
+                  <ChevronDown size={14} />
+                </button>
+              </div>
+            )}
 
-            {/* Error Message Box */}
             {error && (
               <div className="p-3 bg-rose-50 dark:bg-rose-500/5 border border-rose-100 dark:border-rose-500/10 rounded-lg text-rose-600 dark:text-rose-400 text-xs font-medium leading-normal animate-in shake duration-300">
                 {error}
               </div>
             )}
 
-            {/* Action Buttons */}
             <div className="space-y-3 pt-2 border-t border-slate-100 dark:border-slate-800">
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full h-11 inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 text-xs font-bold text-white shadow-md hover:bg-blue-700 focus:outline-none transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full h-11 inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 text-xs font-bold text-white shadow-md hover:bg-blue-700 focus:outline-none transition-colors disabled:opacity-50"
               >
                 <Save size={14} />
                 <span>{loading ? 'Creating...' : 'Create Paste'}</span>

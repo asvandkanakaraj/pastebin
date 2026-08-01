@@ -538,3 +538,41 @@ Public profiles are queried at `GET /api/users/:username`. The controller employ
 1. **Owner Mode**: Returns complete statistics (Public, Private, Secret, and Saved paste counts) and mounts five navigation tabs: Public, Private, Secret, Saved, and Recently Viewed.
 2. **Visitor Mode**: Blocks access to Secret, Saved, and Recently Viewed views. Statistics are filtered to display only Public and Total (Public + Shared Private) counts. Private pastes created by the user are visible ONLY if the visitor is an authorized guest with shared access.
 3. **Inline Modals**: Account configuration edits (avatar replacement, display names, and bio text limits) are processed in place using modal containers rather than external routes.
+
+---
+
+## 14. Guest Mode Architecture & Client Storage
+
+To allow instant, frictionless tryouts without mandatory signup, the platform implements a dual-mode state architecture separating Guest (Anonymous) and Authenticated users.
+
+### Guest vs. Authenticated Workspaces
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                           Client Browse Page                            │
+└─────────────────────────────────────────────────────────────────────────┘
+                                   │
+                     Is Authenticated? (has Token)
+                                   │
+              ┌────────────────────┴────────────────────┐
+              ▼ (No - Guest Mode)                       ▼ (Yes - Auth Mode)
+     [Local Caches (localStorage)]              [Remote REST Database]
+     - pb_guest_recent_pastes                   - GET /api/workspace
+     - pb_guest_saved_pastes                    - POST /api/pastes/:id/save
+     - pb_guest_recently_viewed_pastes          - GET /api/pastes/:id/shares
+```
+
+### Guest Restrictive Policies
+
+1. **Paste Code & Unique URLs**:
+   - Guest pastes generate a unique 8-character uppercase alphanumeric code (e.g. `A82XK4P9`) which serves directly as the database `id` primary key.
+   - This maps to direct URLs: `/v/A82XK4P9` or `/paste/A82XK4P9`.
+2. **Forced Expiry & Visibility**:
+   - Guest pastes **always expire in exactly 1 Hour**. Expiration selectors are locked in the UI, and the server enforces `expiresAt` creation values.
+   - Guest pastes are forced to `PUBLIC` visibility. Private, Secret, password protection, and custom expiry options are disabled with inline explanations.
+3. **Transient Actions**:
+   - Guests cannot edit or delete published pastes. The server blocks these operations by checking `userId === null` and returning `403 Forbidden`.
+   - Guests track recent creations, bookmarks (saved), and views locally using browser `localStorage` variables.
+4. **Data Persistence Strategy**:
+   - Guest data is bound to the browser's origin. Sign-in flows do not clear or force-migrate these local arrays; they remain accessible on that client.
+

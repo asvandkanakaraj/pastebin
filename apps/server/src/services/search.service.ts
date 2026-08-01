@@ -8,8 +8,9 @@ export class SearchService {
     }
 
     const lowerQuery = query.toLowerCase();
+    const upperQuery = query.toUpperCase();
 
-    // Query matching users (limit to 50 for in-memory sorting)
+    // Query matching users by Username or Email (limit to 50)
     const dbUsers = await db.user.findMany({
       where: {
         OR: [
@@ -22,21 +23,34 @@ export class SearchService {
         id: true,
         email: true,
         username: true,
+        displayName: true,
+        avatarUrl: true,
       },
     });
 
-    // Query matching public, non-expired pastes
+    // Query matching public, non-expired pastes by Title or Paste Code ID
     const dbPastes = await db.paste.findMany({
       where: {
+        visibility: 'PUBLIC',
         isPublic: true,
-        OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
-        title: { contains: query, mode: 'insensitive' },
+        AND: [
+          {
+            OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
+          },
+          {
+            OR: [
+              { title: { contains: query, mode: 'insensitive' } },
+              { id: { equals: query, mode: 'insensitive' } },
+            ],
+          },
+        ],
       },
       take: 50,
       select: {
         id: true,
         title: true,
         isPublic: true,
+        visibility: true,
         language: true,
         createdAt: true,
       },
@@ -58,7 +72,9 @@ export class SearchService {
 
     const getPasteScore = (paste: any) => {
       const title = (paste.title || '').toLowerCase();
+      const code = (paste.id || '').toUpperCase();
 
+      if (code === upperQuery) return 0; // Paste code match has highest priority
       if (title === lowerQuery) return 3;
       if (title.startsWith(lowerQuery)) return 8;
       if (title.includes(lowerQuery)) return 9;

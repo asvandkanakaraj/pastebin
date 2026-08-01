@@ -14,22 +14,43 @@ export class PasteService {
     userId?: string;
     shares?: Array<{ userId: string; permission: 'READ' | 'WRITE' }>;
   }) {
+    const isGuest = !data.userId;
+
     let passwordHash: string | null = null;
-    if (data.password) {
+    if (data.password && !isGuest) {
       passwordHash = await bcrypt.hash(data.password, 10);
     }
 
     let expiresAt: Date | undefined = undefined;
-    if (data.expiresInSeconds) {
+    if (isGuest) {
+      // Guest pastes always expire after exactly 1 hour
+      expiresAt = new Date(Date.now() + 3600 * 1000);
+    } else if (data.expiresInSeconds) {
       expiresAt = new Date(Date.now() + data.expiresInSeconds * 1000);
     }
 
-    const visibility = data.visibility || (data.isPublic === false ? 'PRIVATE' : 'PUBLIC');
+    const visibility = isGuest ? 'PUBLIC' : (data.visibility || (data.isPublic === false ? 'PRIVATE' : 'PUBLIC'));
     const isPublic = visibility === 'PUBLIC';
 
     return await db.$transaction(async (tx) => {
+      // Generate unique 8-character uppercase alphanumeric ID
+      let pasteId = '';
+      const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+      let isUnique = false;
+      while (!isUnique) {
+        pasteId = '';
+        for (let i = 0; i < 8; i++) {
+          pasteId += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
+        const existing = await tx.paste.findUnique({ where: { id: pasteId } });
+        if (!existing) {
+          isUnique = true;
+        }
+      }
+
       const paste = await tx.paste.create({
         data: {
+          id: pasteId,
           title: data.title,
           description: data.description,
           content: data.content,
@@ -42,7 +63,7 @@ export class PasteService {
         },
       });
 
-      if (data.shares && Array.isArray(data.shares)) {
+      if (!isGuest && data.shares && Array.isArray(data.shares)) {
         await tx.share.createMany({
           data: data.shares.map((s: any) => ({
             pasteId: paste.id,
@@ -161,6 +182,7 @@ export class PasteService {
         .catch((err) => console.error('Failed to log recent view:', err));
     }
 
+    let isSaved = false;
     let sharePermission: string | null = null;
     if (requestingUserId) {
       const share = await db.share.findFirst({
@@ -172,11 +194,21 @@ export class PasteService {
       if (share) {
         sharePermission = share.permission;
       }
+      const saved = await db.savedPaste.findUnique({
+        where: {
+          pasteId_userId: {
+            pasteId: id,
+            userId: requestingUserId,
+          },
+        },
+      });
+      isSaved = !!saved;
     }
 
     return {
       ...safePaste,
       sharePermission,
+      isSaved,
       hasPassword: passwordHash !== null,
     };
   }
@@ -225,7 +257,7 @@ export class PasteService {
         {
           OR: [
             { title: { contains: search, mode: 'insensitive' } },
-            { content: { contains: search, mode: 'insensitive' } },
+            { id: { equals: search, mode: 'insensitive' } },
           ],
         },
       ];
@@ -283,29 +315,22 @@ export class PasteService {
       throw error;
     }
 
+    // Guest pastes cannot be deleted
+    if (!paste.userId) {
+      const error = new Error('Access denied. Guest pastes cannot be deleted; they will expire automatically after 1 hour.');
+      (error as any).status = 403;
+      (error as any).name = 'ForbiddenError';
+      throw error;
+    }
+
     // Ownership check: if the paste belongs to a registered user, only that user can delete it
-    if (paste.userId && paste.userId !== requestingUserId) {
+    if (paste.userId !== requestingUserId) {
       const error = new Error('Access denied. You do not own this paste.');
       (error as any).status = 403;
       (error as any).name = 'ForbiddenError';
       throw error;
     }
 
-    if (paste.passwordHash) {
-      if (!passwordInput) {
-        const error = new Error('Password required to delete this paste');
-        (error as any).status = 401;
-        (error as any).name = 'UnauthorizedError';
-        throw error;
-      }
-      const isMatch = await bcrypt.compare(passwordInput, paste.passwordHash);
-      if (!isMatch) {
-        const error = new Error('Incorrect password');
-        (error as any).status = 403;
-        (error as any).name = 'ForbiddenError';
-        throw error;
-      }
-    }
 
     await db.paste.delete({
       where: { id },
@@ -323,6 +348,14 @@ export class PasteService {
       const error = new Error('Paste not found');
       (error as any).status = 404;
       (error as any).name = 'NotFoundError';
+      throw error;
+    }
+
+    // Guest pastes cannot be edited
+    if (!paste.userId) {
+      const error = new Error('Access denied. Guest pastes cannot be edited.');
+      (error as any).status = 403;
+      (error as any).name = 'ForbiddenError';
       throw error;
     }
 

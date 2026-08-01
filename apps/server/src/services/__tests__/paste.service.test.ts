@@ -96,6 +96,7 @@ describe('PasteService Unit Tests', () => {
       expect(result).toEqual({
         ...expectedSafePaste,
         sharePermission: null,
+        isSaved: false,
         hasPassword: false,
       });
     });

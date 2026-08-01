@@ -220,3 +220,33 @@ We deprecate the obsolete vertical dashboard sidebar page and navigation items, 
 - Navigating user content is consolidated, presenting a single, unified view.
 - User data visibility constraints are securely protected at the database query level.
 - Code complexity is reduced by deprecating the generic dashboard modules.
+
+---
+
+## 12. Restructured Dual-User-Experience Model (Guest vs. Authenticated)
+
+### Status
+
+Accepted ✅
+
+### Context
+
+Allowing immediate engagement is critical for developer adoption. Requiring mandatory credentials to try a tool adds friction. To maximize trial conversion rates, the platform must allow guests to immediately author and query snippets, while making authentication highly rewarding by unlocking permanent storage, encryption permissions, and collaborative features.
+
+### Decision
+
+We restructure the application into Guest Mode (transient local-cached state with strict safety boundaries) and Authenticated Mode (persistent cloud state).
+
+### Details
+
+1. **Guest Code Generation**: We generate random, unique 8-character uppercase alphanumeric codes on the server for all paste creations, serving as the ID key.
+2. **Strict Expiration**: Guest pastes are locked to a fixed 1-hour expiration and public visibility.
+3. **Immutability**: Guests cannot update, edit, or delete published pastes. The server rejects these endpoints with 403 Forbidden.
+4. **Local Browser Fallback**: Guests browse workspaces powered by browser `localStorage` feeds (`pb_guest_recent_pastes`, `pb_guest_saved_pastes`, `pb_guest_recently_viewed_pastes`), allowing them to save bookmarks and history locally without signing up.
+
+### Consequences
+
+- Zero friction for onboarding new users.
+- Substantial server resource savings by automatically expiring transient guest pastes after 1 hour.
+- Strong encouragement to sign up to unlock private configurations and team sharing.
+
