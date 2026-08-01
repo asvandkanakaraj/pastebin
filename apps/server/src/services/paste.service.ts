@@ -81,6 +81,40 @@ export class PasteService {
 
     // Exclude passwordHash from returned object
     const { passwordHash, ...safePaste } = paste;
+
+    // Log recent view in background if user is authenticated
+    if (requestingUserId) {
+      db.recentView
+        .upsert({
+          where: {
+            pasteId_userId: {
+              pasteId: id,
+              userId: requestingUserId,
+            },
+          },
+          create: {
+            pasteId: id,
+            userId: requestingUserId,
+          },
+          update: {
+            viewedAt: new Date(),
+          },
+        })
+        .then(async () => {
+          const views = await db.recentView.findMany({
+            where: { userId: requestingUserId },
+            orderBy: { viewedAt: 'desc' },
+          });
+          if (views.length > 5) {
+            const toDelete = views.slice(5).map((v) => v.id);
+            await db.recentView.deleteMany({
+              where: { id: { in: toDelete } },
+            });
+          }
+        })
+        .catch((err) => console.error('Failed to log recent view:', err));
+    }
+
     return { ...safePaste, hasPassword: passwordHash !== null };
   }
 
@@ -174,7 +208,7 @@ export class PasteService {
     }));
   }
 
-  static async deletePaste(id: string, passwordInput?: string) {
+  static async deletePaste(id: string, passwordInput?: string, requestingUserId?: string) {
     const paste = await db.paste.findUnique({
       where: { id },
     });
@@ -183,6 +217,14 @@ export class PasteService {
       const error = new Error('Paste not found');
       (error as any).status = 404;
       (error as any).name = 'NotFoundError';
+      throw error;
+    }
+
+    // Ownership check: if the paste belongs to a registered user, only that user can delete it
+    if (paste.userId && paste.userId !== requestingUserId) {
+      const error = new Error('Access denied. You do not own this paste.');
+      (error as any).status = 403;
+      (error as any).name = 'ForbiddenError';
       throw error;
     }
 
@@ -206,6 +248,151 @@ export class PasteService {
       where: { id },
     });
 
+    return { success: true };
+  }
+
+  static async updatePaste(id: string, requestingUserId: string, data: any) {
+    const paste = await db.paste.findUnique({
+      where: { id },
+    });
+
+    if (!paste) {
+      const error = new Error('Paste not found');
+      (error as any).status = 404;
+      (error as any).name = 'NotFoundError';
+      throw error;
+    }
+
+    if (paste.userId !== requestingUserId) {
+      const error = new Error('Access denied. You do not own this paste.');
+      (error as any).status = 403;
+      (error as any).name = 'ForbiddenError';
+      throw error;
+    }
+
+    const updateData: any = {
+      title: data.title,
+      content: data.content,
+      language: data.language,
+      isPublic: data.isPublic !== false,
+    };
+
+    if (data.password !== undefined) {
+      if (data.password === '') {
+        updateData.passwordHash = null;
+      } else {
+        updateData.passwordHash = await bcrypt.hash(data.password, 10);
+      }
+    }
+
+    return await db.paste.update({
+      where: { id },
+      data: updateData,
+    });
+  }
+
+  static async sharePaste(id: string, requestingUserId: string, usernameOrEmail: string) {
+    const paste = await db.paste.findUnique({
+      where: { id },
+    });
+
+    if (!paste) {
+      const error = new Error('Paste not found');
+      (error as any).status = 404;
+      (error as any).name = 'NotFoundError';
+      throw error;
+    }
+
+    if (paste.userId !== requestingUserId) {
+      const error = new Error('Access denied. You do not own this paste.');
+      (error as any).status = 403;
+      (error as any).name = 'ForbiddenError';
+      throw error;
+    }
+
+    // Find target user by username or email
+    const targetUser = await db.user.findFirst({
+      where: {
+        OR: [{ email: usernameOrEmail }, { username: usernameOrEmail }],
+      },
+    });
+
+    if (!targetUser) {
+      const error = new Error('User not found');
+      (error as any).status = 404;
+      (error as any).name = 'NotFoundError';
+      throw error;
+    }
+
+    if (targetUser.id === requestingUserId) {
+      const error = new Error('You cannot share a paste with yourself');
+      (error as any).status = 400;
+      (error as any).name = 'BadRequestError';
+      throw error;
+    }
+
+    return await db.share.upsert({
+      where: {
+        pasteId_userId: {
+          pasteId: id,
+          userId: targetUser.id,
+        },
+      },
+      create: {
+        pasteId: id,
+        userId: targetUser.id,
+      },
+      update: {},
+    });
+  }
+
+  static async savePaste(id: string, userId: string) {
+    const paste = await db.paste.findUnique({
+      where: { id },
+      include: {
+        shares: {
+          where: { userId },
+        },
+      },
+    });
+
+    if (!paste) {
+      const error = new Error('Paste not found');
+      (error as any).status = 404;
+      (error as any).name = 'NotFoundError';
+      throw error;
+    }
+
+    const isAuthorized = paste.isPublic || paste.userId === userId || paste.shares.length > 0;
+    if (!isAuthorized) {
+      const error = new Error('Access denied');
+      (error as any).status = 403;
+      (error as any).name = 'ForbiddenError';
+      throw error;
+    }
+
+    return await db.savedPaste.upsert({
+      where: {
+        pasteId_userId: {
+          pasteId: id,
+          userId,
+        },
+      },
+      create: {
+        pasteId: id,
+        userId,
+      },
+      update: {},
+    });
+  }
+
+  static async unsavePaste(id: string, userId: string) {
+    await db.savedPaste.deleteMany({
+      where: {
+        pasteId: id,
+        userId,
+      },
+    });
     return { success: true };
   }
 }

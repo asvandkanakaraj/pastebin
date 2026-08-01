@@ -312,6 +312,152 @@ Returns a user profile and list of their public, non-expired pastes.
 
 ---
 
+### 6. Retrieve User Workspace
+
+Returns all sections of the authenticated user's workspace dashboard (My Pastes, Shared With Me, Saved, and Recently Viewed).
+
+- **Method**: `GET`
+- **URL**: `/api/workspace`
+- **Headers**:
+  - `Authorization`: `Bearer <token>` (Required)
+- **Success Response (200 OK)**:
+  ```json
+  {
+    "myPastes": [
+      {
+        "id": "paste-cuid-1",
+        "title": "Personal Code Snip",
+        "content": "const a = 1;",
+        "language": "javascript",
+        "isPublic": false,
+        "createdAt": "2026-08-01T00:00:00.000Z",
+        "updatedAt": "2026-08-01T00:00:00.000Z"
+      }
+    ],
+    "sharedWithMe": [
+      {
+        "id": "paste-cuid-2",
+        "title": "Collaborative Plan",
+        "language": "markdown",
+        "isPublic": true,
+        "createdAt": "2026-08-01T01:00:00.000Z",
+        "ownerUsername": "alice",
+        "sharedAt": "2026-08-01T01:10:00.000Z"
+      }
+    ],
+    "saved": [
+      {
+        "id": "paste-cuid-3",
+        "title": "Useful Cheat Sheet",
+        "language": "plaintext",
+        "isPublic": true,
+        "createdAt": "2026-07-31T20:00:00.000Z",
+        "ownerUsername": "bob",
+        "savedAt": "2026-08-01T02:00:00.000Z"
+      }
+    ],
+    "recentlyViewed": [
+      {
+        "id": "paste-cuid-1",
+        "title": "Personal Code Snip",
+        "language": "javascript",
+        "isPublic": false,
+        "viewedAt": "2026-08-01T02:30:00.000Z"
+      }
+    ]
+  }
+  ```
+
+---
+
+### 7. Update Paste
+
+Allows the owner of a paste to edit its details and content.
+
+- **Method**: `PUT`
+- **URL**: `/api/pastes/:id`
+- **Headers**:
+  - `Authorization`: `Bearer <token>` (Required)
+- **Request Body**:
+  - `title` (Optional string): Paste title.
+  - `content` (Required string): Code content.
+  - `language` (Optional string): Language identifier.
+  - `isPublic` (Optional boolean): Visibility status.
+  - `password` (Optional string): Optional passcode protection.
+- **Success Response (200 OK)**:
+  ```json
+  {
+    "id": "paste-cuid-1",
+    "title": "Updated Title",
+    "content": "const updated = true;",
+    "language": "javascript",
+    "isPublic": true,
+    "createdAt": "2026-08-01T00:00:00.000Z",
+    "updatedAt": "2026-08-01T03:00:00.000Z"
+  }
+  ```
+
+---
+
+### 8. Share Paste
+
+Shares a paste owned by the authenticated user with another user by email or username.
+
+- **Method**: `POST`
+- **URL**: `/api/pastes/:id/share`
+- **Headers**:
+  - `Authorization`: `Bearer <token>` (Required)
+- **Request Body**:
+  - `usernameOrEmail` (Required string): Username or email address of target collaborator.
+- **Success Response (200 OK)**:
+  ```json
+  {
+    "id": "share-uuid-1",
+    "pasteId": "paste-cuid-1",
+    "userId": "target-user-uuid",
+    "createdAt": "2026-08-01T03:05:00.000Z"
+  }
+  ```
+
+---
+
+### 9. Bookmark Paste
+
+Adds a reference link of a paste to the authenticated user's Saved bookmarks folder.
+
+- **Method**: `POST`
+- **URL**: `/api/pastes/:id/save`
+- **Headers**:
+  - `Authorization`: `Bearer <token>` (Required)
+- **Success Response (200 OK)**:
+  ```json
+  {
+    "id": "saved-uuid-1",
+    "pasteId": "paste-cuid-1",
+    "userId": "user-uuid-here",
+    "createdAt": "2026-08-01T03:10:00.000Z"
+  }
+  ```
+
+---
+
+### 10. Remove Bookmarked Paste
+
+Removes a bookmark reference link of a paste from the authenticated user's Saved folder.
+
+- **Method**: `DELETE`
+- **URL**: `/api/pastes/:id/save`
+- **Headers**:
+  - `Authorization`: `Bearer <token>` (Required)
+- **Success Response (200 OK)**:
+  ```json
+  {
+    "success": true
+  }
+  ```
+
+---
+
 ## Error Codes
 
 The PasteBin API uses standard HTTP response status codes to indicate success or failure. Each status code maps to specific scenarios:

@@ -1,365 +1,1108 @@
 import { useEffect, useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import axios from 'axios';
 import {
   Terminal,
-  Calendar,
   Eye,
+  EyeOff,
   FileText,
-  ChevronLeft,
-  ChevronRight,
   Lock,
   Search,
   X,
+  Share2,
+  Trash2,
+  Edit,
+  Copy,
+  Bookmark,
+  Clock,
+  LayoutGrid,
+  List,
+  Plus,
+  RefreshCw,
+  Check,
+  ExternalLink,
 } from 'lucide-react';
+import { useAuth } from '../components/auth-provider.js';
 
-// Simple in-memory cache for client-side search pagination results
-interface CacheEntry {
-  pastes: any[];
-  totalPages: number;
-  totalCount: number;
-  cachedAt: number;
+interface Paste {
+  id: string;
+  title: string | null;
+  content: string;
+  language: string;
+  isPublic: boolean;
+  hasPassword?: boolean;
+  createdAt: string;
+  updatedAt: string;
+  ownerUsername?: string;
+  sharedAt?: string;
+  savedAt?: string;
+  viewedAt?: string;
 }
-const browseCache = new Map<string, CacheEntry>();
-const CACHE_TTL = 30000; // Cache TTL set to 30 seconds
 
-const POPULAR_LANGUAGES = [
-  { value: '', label: 'All Languages' },
-  { value: 'plaintext', label: 'Plain Text' },
-  { value: 'javascript', label: 'JavaScript' },
-  { value: 'typescript', label: 'TypeScript' },
-  { value: 'python', label: 'Python' },
-  { value: 'rust', label: 'Rust' },
-  { value: 'go', label: 'Go' },
-  { value: 'html', label: 'HTML' },
-  { value: 'css', label: 'CSS' },
-  { value: 'json', label: 'JSON' },
-  { value: 'markdown', label: 'Markdown' },
-];
+interface WorkspaceData {
+  myPastes: Paste[];
+  sharedWithMe: Paste[];
+  saved: Paste[];
+  recentlyViewed: Paste[];
+}
 
 export function BrowsePastes() {
-  const [pastes, setPastes] = useState<any[]>([]);
-  const [totalPages, setTotalPages] = useState(1);
-  const [totalCount, setTotalCount] = useState(0);
+  const { user } = useAuth();
+
+  const [workspace, setWorkspace] = useState<WorkspaceData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const [searchParams, setSearchParams] = useSearchParams();
-  const page = parseInt(searchParams.get('page') || '1') || 1;
-  const search = searchParams.get('search') || '';
-  const language = searchParams.get('language') || '';
+  // Search & Filter state for My Pastes section
+  const [myPastesSearch, setMyPastesSearch] = useState('');
+  const [myPastesSort, setMyPastesSort] = useState<'newest' | 'oldest' | 'updated' | 'alpha'>(
+    'newest'
+  );
 
-  const [searchInput, setSearchInput] = useState(search);
+  // Section View Modes (remembers preference)
+  const [viewModes, setViewModes] = useState<{ [key: string]: 'grid' | 'list' }>({
+    myPastes: (localStorage.getItem('pb_view_myPastes') as 'grid' | 'list') || 'grid',
+    sharedWithMe: (localStorage.getItem('pb_view_sharedWithMe') as 'grid' | 'list') || 'grid',
+    saved: (localStorage.getItem('pb_view_saved') as 'grid' | 'list') || 'grid',
+  });
 
-  const fetchPublicPastes = async (pageVal = 1, searchVal = '', languageVal = '') => {
-    const cacheKey = `${pageVal}-${searchVal}-${languageVal}`;
-    const cached = browseCache.get(cacheKey);
+  // Action Modals State
+  const [selectedPaste, setSelectedPaste] = useState<Paste | null>(null);
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [shareInput, setShareInput] = useState('');
+  const [shareLoading, setShareLoading] = useState(false);
+  const [shareError, setShareError] = useState<string | null>(null);
+  const [shareSuccess, setShareSuccess] = useState(false);
 
-    if (cached && Date.now() - cached.cachedAt < CACHE_TTL) {
-      setPastes(cached.pastes);
-      setTotalPages(cached.totalPages);
-      setTotalCount(cached.totalCount);
-      setLoading(false);
-      setError(null);
-      return;
-    }
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editTitle, setEditTitle] = useState('');
+  const [editContent, setEditContent] = useState('');
+  const [editLanguage, setEditLanguage] = useState('plaintext');
+  const [editIsPublic, setEditIsPublic] = useState(true);
+  const [editPassword, setEditPassword] = useState('');
+  const [editLoading, setEditLoading] = useState(false);
+  const [editError, setEditError] = useState<string | null>(null);
 
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+
+  const fetchWorkspace = async () => {
+    if (!user) return;
     setLoading(true);
     setError(null);
     try {
-      const response = await axios.get(
-        `http://localhost:5000/api/pastes?page=${pageVal}&limit=9&search=${encodeURIComponent(
-          searchVal
-        )}&language=${encodeURIComponent(languageVal)}`
-      );
-      const { pastes: fetchedPastes, totalPages: pages, totalCount: count } = response.data;
-
-      // Save cache entry
-      browseCache.set(cacheKey, {
-        pastes: fetchedPastes || [],
-        totalPages: pages || 1,
-        totalCount: count || 0,
-        cachedAt: Date.now(),
+      const token = localStorage.getItem('pb_token');
+      const response = await axios.get('http://localhost:5000/api/workspace', {
+        headers: { Authorization: `Bearer ${token}` },
       });
-
-      setPastes(fetchedPastes || []);
-      setTotalPages(pages || 1);
-      setTotalCount(count || 0);
+      setWorkspace(response.data);
     } catch (err: any) {
-      console.error('Fetch public pastes failed:', err);
-      setError(err.response?.data?.message || 'Failed to retrieve public pastes');
+      console.error('Fetch workspace failed:', err);
+      setError(err.response?.data?.message || 'Failed to retrieve workspace data.');
     } finally {
       setLoading(false);
     }
   };
 
-  // Fetch when page, search or language searchParams change
   useEffect(() => {
-    fetchPublicPastes(page, search, language);
-  }, [page, search, language]);
+    if (user) {
+      fetchWorkspace();
+    }
+  }, [user]);
 
-  // Sync local searchInput state with URL param search changes
-  useEffect(() => {
-    setSearchInput(search);
-  }, [search]);
+  const toggleViewMode = (section: string) => {
+    const nextMode = viewModes[section] === 'grid' ? 'list' : 'grid';
+    setViewModes((prev) => ({ ...prev, [section]: nextMode }));
+    localStorage.setItem(`pb_view_${section}`, nextMode);
+  };
 
-  // Debounced URL updates for search input
-  useEffect(() => {
-    const handler = setTimeout(() => {
-      if (searchInput !== search) {
-        setSearchParams((prev) => {
-          const next = new URLSearchParams(prev);
-          if (searchInput.trim()) {
-            next.set('search', searchInput.trim());
-          } else {
-            next.delete('search');
-          }
-          next.set('page', '1'); // reset page on search update
-          return next;
-        });
-      }
-    }, 300);
+  // 1. My Pastes Operations
+  const handleToggleVisibility = async (paste: Paste) => {
+    try {
+      const token = localStorage.getItem('pb_token');
+      await axios.put(
+        `http://localhost:5000/api/pastes/${paste.id}`,
+        {
+          title: paste.title || '',
+          content: paste.content,
+          language: paste.language,
+          isPublic: !paste.isPublic,
+        },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      fetchWorkspace();
+    } catch (err) {
+      console.error('Toggle visibility error:', err);
+    }
+  };
 
-    return () => clearTimeout(handler);
-  }, [searchInput, search, setSearchParams]);
+  const handleDeletePaste = async (paste: Paste) => {
+    if (!window.confirm(`Are you sure you want to delete "${paste.title || 'this paste'}"?`))
+      return;
+    try {
+      const token = localStorage.getItem('pb_token');
+      await axios.delete(`http://localhost:5000/api/pastes/${paste.id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      fetchWorkspace();
+    } catch (err) {
+      console.error('Delete paste error:', err);
+    }
+  };
 
-  const handleLanguageChange = (lang: string) => {
-    setSearchParams((prev) => {
-      const next = new URLSearchParams(prev);
-      if (lang) {
-        next.set('language', lang);
-      } else {
-        next.delete('language');
-      }
-      next.set('page', '1'); // reset page on language filter
-      return next;
+  const handleDuplicatePaste = async (paste: Paste) => {
+    try {
+      const token = localStorage.getItem('pb_token');
+      await axios.post(
+        'http://localhost:5000/api/pastes',
+        {
+          title: paste.title ? `${paste.title} (Copy)` : 'Copy Paste',
+          content: paste.content,
+          language: paste.language,
+          isPublic: paste.isPublic,
+        },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      fetchWorkspace();
+    } catch (err) {
+      console.error('Duplicate paste error:', err);
+    }
+  };
+
+  // 2. Sharing Operations
+  const openShareModal = (paste: Paste) => {
+    setSelectedPaste(paste);
+    setShareInput('');
+    setShareError(null);
+    setShareSuccess(false);
+    setShowShareModal(true);
+  };
+
+  const handleShareSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedPaste || !shareInput.trim()) return;
+    setShareLoading(true);
+    setShareError(null);
+    setShareSuccess(false);
+    try {
+      const token = localStorage.getItem('pb_token');
+      await axios.post(
+        `http://localhost:5000/api/pastes/${selectedPaste.id}/share`,
+        { usernameOrEmail: shareInput.trim() },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setShareSuccess(true);
+      setTimeout(() => setShowShareModal(false), 1500);
+    } catch (err: any) {
+      setShareError(err.response?.data?.message || 'Failed to share paste.');
+    } finally {
+      setShareLoading(false);
+    }
+  };
+
+  // 3. Edit Operations
+  const openEditModal = (paste: Paste) => {
+    setSelectedPaste(paste);
+    setEditTitle(paste.title || '');
+    setEditContent(paste.content || '');
+    setEditLanguage(paste.language);
+    setEditIsPublic(paste.isPublic);
+    setEditPassword('');
+    setEditError(null);
+    setShowEditModal(true);
+  };
+
+  const handleEditSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedPaste) return;
+    setEditLoading(true);
+    setEditError(null);
+    try {
+      const token = localStorage.getItem('pb_token');
+      await axios.put(
+        `http://localhost:5000/api/pastes/${selectedPaste.id}`,
+        {
+          title: editTitle.trim(),
+          content: editContent,
+          language: editLanguage,
+          isPublic: editIsPublic,
+          password: editPassword || undefined,
+        },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setShowEditModal(false);
+      fetchWorkspace();
+    } catch (err: any) {
+      setEditError(err.response?.data?.message || 'Failed to update paste.');
+    } finally {
+      setEditLoading(false);
+    }
+  };
+
+  // 4. Bookmark Operations
+  const handleBookmarkSave = async (paste: Paste) => {
+    try {
+      const token = localStorage.getItem('pb_token');
+      await axios.post(
+        `http://localhost:5000/api/pastes/${paste.id}/save`,
+        {},
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      fetchWorkspace();
+    } catch (err) {
+      console.error('Bookmark error:', err);
+    }
+  };
+
+  const handleBookmarkRemove = async (paste: Paste) => {
+    try {
+      const token = localStorage.getItem('pb_token');
+      await axios.delete(`http://localhost:5000/api/pastes/${paste.id}/save`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      fetchWorkspace();
+    } catch (err) {
+      console.error('Remove bookmark error:', err);
+    }
+  };
+
+  // Utility copy functions
+  const copyToClipboard = (text: string, id: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedId(id);
+    setTimeout(() => setCopiedId(null), 1500);
+  };
+
+  const copyLink = (pasteId: string) => {
+    const link = `${window.location.origin}/v/${pasteId}`;
+    copyToClipboard(link, pasteId);
+  };
+
+  // Redirect to login if user is not authenticated
+  if (!user) {
+    return (
+      <div className="w-full max-w-md mx-auto bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-8 shadow-xl text-center space-y-6">
+        <div className="mx-auto p-4 bg-indigo-50 dark:bg-indigo-950/30 text-indigo-600 dark:text-indigo-400 rounded-2xl w-fit">
+          <Terminal size={32} />
+        </div>
+        <div className="space-y-2">
+          <h2 className="text-lg font-bold text-slate-800 dark:text-slate-200">
+            Personal Workspace
+          </h2>
+          <p className="text-xs text-slate-500 max-w-sm mx-auto leading-relaxed dark:text-slate-400">
+            Please sign in to view your private pastes library, shared snippets, and bookmarks.
+          </p>
+        </div>
+        <div className="flex gap-3 justify-center">
+          <Link
+            to="/login"
+            className="h-10 inline-flex items-center justify-center rounded-lg bg-indigo-600 px-6 text-xs font-bold text-white shadow-md hover:bg-indigo-500 transition-colors"
+          >
+            Sign In
+          </Link>
+          <Link
+            to="/register"
+            className="h-10 inline-flex items-center justify-center rounded-lg border border-slate-200 bg-white px-6 text-xs font-bold text-slate-700 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-300 dark:hover:bg-slate-850 transition-colors"
+          >
+            Create Account
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  // Loading skeleton state
+  if (loading && !workspace) {
+    return (
+      <div className="w-full max-w-5xl mx-auto space-y-8 animate-pulse">
+        {[1, 2].map((sec) => (
+          <div key={sec} className="space-y-4">
+            <div className="h-6 w-32 bg-slate-200 dark:bg-slate-800 rounded" />
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {[1, 2, 3].map((i) => (
+                <div
+                  key={i}
+                  className="h-32 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5"
+                />
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  // Local filtering logic for My Pastes
+  const myPastesFiltered = (workspace?.myPastes || [])
+    .filter((p) => (p.title || '').toLowerCase().includes(myPastesSearch.toLowerCase()))
+    .sort((a, b) => {
+      if (myPastesSort === 'newest')
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      if (myPastesSort === 'oldest')
+        return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+      if (myPastesSort === 'updated')
+        return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
+      if (myPastesSort === 'alpha') return (a.title || '').localeCompare(b.title || '');
+      return 0;
     });
-  };
-
-  const handleClearFilters = () => {
-    setSearchInput('');
-    setSearchParams({});
-  };
-
-  const handlePrevPage = () => {
-    if (page > 1) {
-      setSearchParams((prev) => {
-        const next = new URLSearchParams(prev);
-        next.set('page', String(page - 1));
-        return next;
-      });
-    }
-  };
-
-  const handleNextPage = () => {
-    if (page < totalPages) {
-      setSearchParams((prev) => {
-        const next = new URLSearchParams(prev);
-        next.set('page', String(page + 1));
-        return next;
-      });
-    }
-  };
 
   return (
-    <div className="w-full max-w-5xl mx-auto space-y-6">
+    <div className="w-full max-w-5xl mx-auto space-y-10">
       {/* Title Header */}
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
-          <Terminal className="text-indigo-500 h-6 w-6" /> Public Pastes
-        </h1>
-        <p className="text-xs text-slate-500 mt-1">
-          Discover snippets shared publicly by other developers ({totalCount} total).
-        </p>
-      </div>
-
-      {/* Search and Filters Panel */}
-      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 rounded-xl shadow-sm">
-        <div className="flex-1 relative">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-          <input
-            type="text"
-            value={searchInput}
-            onChange={(e) => setSearchInput(e.target.value)}
-            placeholder="Search public pastes by title or content..."
-            aria-label="Search public pastes"
-            className="h-10 w-full rounded-lg border border-slate-200 bg-slate-50/50 pl-10 pr-3.5 text-xs placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 dark:border-slate-800 dark:bg-slate-950 dark:placeholder-slate-500 transition-all"
-          />
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
+            <Terminal className="text-indigo-500 h-6 w-6" /> Workspace Dashboard
+          </h1>
+          <p className="text-xs text-slate-500 mt-1">
+            Access, manage, and collaborate on code snippets in your personal hub.
+          </p>
         </div>
-
-        <div className="flex items-center gap-3 shrink-0">
-          <select
-            value={language}
-            onChange={(e) => handleLanguageChange(e.target.value)}
-            aria-label="Filter pastes by programming language"
-            className="h-10 rounded-lg border border-slate-200 bg-slate-50/50 px-3 text-xs focus:outline-none dark:border-slate-800 dark:bg-slate-950"
-          >
-            {POPULAR_LANGUAGES.map((lang) => (
-              <option key={lang.value} value={lang.value}>
-                {lang.label}
-              </option>
-            ))}
-          </select>
-
-          {(search || language) && (
-            <button
-              onClick={handleClearFilters}
-              aria-label="Clear search filters and language selections"
-              className="h-10 inline-flex items-center justify-center gap-1.5 rounded-lg border border-slate-200 bg-white px-4 text-xs font-semibold text-slate-700 hover:bg-slate-50 focus:outline-none dark:border-slate-800 dark:bg-slate-900 dark:text-slate-355 dark:hover:bg-slate-800 transition-colors"
-            >
-              <X size={14} />
-              <span>Clear</span>
-            </button>
-          )}
-        </div>
+        <button
+          onClick={fetchWorkspace}
+          className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-250 bg-white hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-950 text-slate-650 dark:text-slate-300 dark:hover:bg-slate-900 shadow-sm"
+          title="Refresh Workspace"
+        >
+          <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
+        </button>
       </div>
 
       {error && (
-        <div className="p-4 bg-rose-50 dark:bg-rose-500/5 border border-rose-100 dark:border-rose-500/10 rounded-xl text-rose-600 dark:text-rose-400 text-xs font-semibold">
-          {error}
+        <div className="p-4 bg-rose-50 dark:bg-rose-500/5 border border-rose-100 dark:border-rose-500/10 rounded-xl text-rose-600 dark:text-rose-400 text-xs font-semibold flex items-center justify-between">
+          <span>{error}</span>
+          <button onClick={fetchWorkspace} className="underline font-bold hover:opacity-85">
+            Retry
+          </button>
         </div>
       )}
 
-      {loading && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-pulse">
-          {[1, 2, 3, 4, 5, 6].map((i) => (
-            <div
-              key={i}
-              className="h-56 bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 space-y-4"
-            >
-              <div className="h-4 bg-slate-200 dark:bg-slate-800 rounded w-2/3" />
-              <div className="h-3 bg-slate-200 dark:bg-slate-800 rounded w-1/3" />
-              <div className="h-20 bg-slate-200 dark:bg-slate-850 rounded w-full" />
+      {/* SECTION 1 — MY PASTES */}
+      <div className="space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <h2 className="text-md font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2">
+            My Pastes{' '}
+            <span className="text-xs text-slate-400 font-normal">({myPastesFiltered.length})</span>
+          </h2>
+
+          <div className="flex flex-wrap items-center gap-3">
+            {/* Search Input */}
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
+              <input
+                type="text"
+                placeholder="Search my pastes..."
+                value={myPastesSearch}
+                onChange={(e) => setMyPastesSearch(e.target.value)}
+                className="h-8 rounded-lg border border-slate-200 bg-white pl-9 pr-3 text-xs placeholder-slate-400 focus:outline-none dark:border-slate-800 dark:bg-slate-950"
+              />
             </div>
-          ))}
-        </div>
-      )}
 
-      {!loading && pastes.length === 0 && (
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-12 text-center space-y-4 shadow-sm">
-          <div className="mx-auto p-4 bg-slate-100 dark:bg-slate-850 rounded-2xl w-fit text-slate-400">
-            <FileText size={32} />
+            {/* Sort Select */}
+            <select
+              value={myPastesSort}
+              onChange={(e: any) => setMyPastesSort(e.target.value)}
+              className="h-8 rounded-lg border border-slate-200 bg-white px-2.5 text-xs focus:outline-none dark:border-slate-800 dark:bg-slate-955"
+            >
+              <option value="newest">Newest First</option>
+              <option value="oldest">Oldest First</option>
+              <option value="updated">Recently Updated</option>
+              <option value="alpha">Alphabetical</option>
+            </select>
+
+            {/* Grid / List view toggle */}
+            <button
+              onClick={() => toggleViewMode('myPastes')}
+              className="h-8 w-8 inline-flex items-center justify-center rounded-lg border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-950 text-slate-500 hover:text-slate-850"
+            >
+              {viewModes.myPastes === 'grid' ? <List size={14} /> : <LayoutGrid size={14} />}
+            </button>
           </div>
-          {search || language ? (
-            <>
-              <div>
-                <h2 className="text-md font-bold text-slate-800 dark:text-slate-200">
-                  No Search Results Found
-                </h2>
-                <p className="text-xs text-slate-500 mt-1">
-                  Try adjusting your search terms or language filters to find what you need.
-                </p>
-              </div>
-              <button
-                onClick={handleClearFilters}
-                className="inline-flex h-9 items-center justify-center rounded-lg bg-indigo-600 px-4.5 text-xs font-bold text-white shadow-md hover:bg-indigo-500 focus:outline-none dark:bg-indigo-500 dark:hover:bg-indigo-400 transition-colors"
-              >
-                Clear Search Filters
-              </button>
-            </>
-          ) : (
-            <>
-              <div>
-                <h2 className="text-md font-bold text-slate-800 dark:text-slate-200">
-                  No Public Pastes Found
-                </h2>
-                <p className="text-xs text-slate-500 mt-1">
-                  Be the first to create and publish a code snippet!
-                </p>
-              </div>
-              <Link
-                to="/"
-                className="inline-flex h-9 items-center justify-center rounded-lg bg-indigo-600 px-4 text-xs font-bold text-white shadow-md hover:bg-indigo-500 focus:outline-none dark:bg-indigo-500 dark:hover:bg-indigo-400 transition-colors"
-              >
-                Create Paste
-              </Link>
-            </>
-          )}
         </div>
-      )}
 
-      {!loading && pastes.length > 0 && (
-        <div className="space-y-8 animate-in fade-in duration-205">
+        {myPastesFiltered.length === 0 ? (
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-8 text-center text-slate-500 space-y-3 flex flex-col items-center">
+            <FileText size={24} className="text-slate-400" />
+            <span className="text-xs font-semibold">No pastes yet.</span>
+            <Link
+              to="/"
+              className="h-8 inline-flex items-center gap-1 px-4 text-xs bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg font-bold"
+            >
+              <Plus size={14} /> Create Paste
+            </Link>
+          </div>
+        ) : viewModes.myPastes === 'grid' ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {pastes.map((p) => (
+            {myPastesFiltered.map((paste) => (
               <div
-                key={p.id}
-                className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/80 rounded-xl p-5 shadow-sm flex flex-col justify-between hover:shadow-md transition-all hover:-translate-y-0.5 duration-200 h-60"
+                key={paste.id}
+                className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-sm space-y-4 hover:border-slate-350 dark:hover:border-slate-750 transition-colors relative group"
               >
-                <div className="space-y-2 overflow-hidden">
-                  <div className="flex items-center justify-between gap-2">
-                    <h2 className="text-sm font-bold text-slate-800 dark:text-slate-200 truncate flex-1">
-                      {p.title || 'Untitled Paste'}
-                    </h2>
-                    <div className="flex items-center gap-1.5 shrink-0">
-                      {p.hasPassword && (
-                        <span
-                          className="p-1 bg-amber-500/10 border border-amber-500/20 rounded-md text-amber-500 dark:text-amber-400"
-                          title="Password Protected"
-                        >
-                          <Lock size={10} />
-                        </span>
-                      )}
-                      <span className="px-2 py-0.5 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700/60 rounded-md font-semibold text-[10px] text-slate-600 dark:text-slate-350 capitalize">
-                        {p.language}
+                <div>
+                  <div className="flex items-start justify-between gap-2">
+                    <Link
+                      to={`/v/${paste.id}`}
+                      className="text-sm font-bold text-slate-800 dark:text-slate-200 hover:text-indigo-500 transition-colors truncate block max-w-[85%]"
+                    >
+                      {paste.title || 'Untitled Paste'}
+                    </Link>
+                    <span className="text-[9px] font-semibold uppercase px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-550">
+                      {paste.language}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1.5 mt-1.5">
+                    <span
+                      className={`inline-flex items-center gap-1 text-[9px] font-semibold px-2 py-0.5 rounded-full ${
+                        paste.isPublic
+                          ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-500/5 dark:text-emerald-450'
+                          : 'bg-rose-50 text-rose-600 dark:bg-rose-500/5 dark:text-rose-450'
+                      }`}
+                    >
+                      {paste.isPublic ? <Eye size={10} /> : <EyeOff size={10} />}
+                      {paste.isPublic ? 'Public' : 'Private'}
+                    </span>
+                    {paste.hasPassword && (
+                      <span className="inline-flex items-center text-[9px] text-slate-400 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded">
+                        <Lock size={8} /> Protected
                       </span>
-                    </div>
+                    )}
                   </div>
-
-                  {/* Created Date */}
-                  <div className="flex items-center gap-1 text-[10px] text-slate-400">
-                    <Calendar size={10} />
-                    <span>{new Date(p.createdAt).toLocaleDateString()}</span>
-                  </div>
-
-                  {/* Code Preview */}
-                  <pre className="p-3 bg-slate-50 dark:bg-slate-950 border border-slate-200/50 dark:border-slate-800 rounded-lg text-[10px] font-mono text-slate-600 dark:text-slate-300 overflow-hidden select-none h-24 mt-2 leading-relaxed">
-                    <code>
-                      {p.content.split('\n').slice(0, 4).join('\n') || ' '}
-                      {p.content.split('\n').length > 4 && '\n...'}
-                    </code>
-                  </pre>
                 </div>
 
-                <div className="mt-4">
+                <div className="text-[10px] text-slate-400 space-y-0.5 font-mono">
+                  <div>Created: {new Date(paste.createdAt).toLocaleString()}</div>
+                  <div>Updated: {new Date(paste.updatedAt).toLocaleString()}</div>
+                </div>
+
+                <div className="flex items-center gap-2 pt-2 border-t border-slate-100 dark:border-slate-850">
                   <Link
-                    to={`/v/${p.id}`}
-                    className="w-full h-8.5 inline-flex items-center justify-center rounded-lg bg-indigo-600 px-3.5 text-xs font-semibold text-white shadow-sm hover:bg-indigo-500 focus:outline-none dark:bg-indigo-500 dark:hover:bg-indigo-400 transition-colors"
+                    to={`/v/${paste.id}`}
+                    className="flex-1 h-8 inline-flex items-center justify-center rounded-lg bg-slate-50 hover:bg-slate-100 dark:bg-slate-850 dark:hover:bg-slate-800 text-xs font-bold text-slate-700 dark:text-slate-300"
                   >
-                    <Eye size={12} className="mr-1.5" />
-                    <span>View Paste</span>
+                    Open
+                  </Link>
+                  <button
+                    onClick={() => openEditModal(paste)}
+                    className="p-2 rounded-lg bg-slate-50 hover:bg-slate-100 dark:bg-slate-850 dark:hover:bg-slate-800 text-slate-500 hover:text-slate-800"
+                  >
+                    <Edit size={14} />
+                  </button>
+                  <button
+                    onClick={() => openShareModal(paste)}
+                    className="p-2 rounded-lg bg-slate-50 hover:bg-slate-100 dark:bg-slate-850 dark:hover:bg-slate-800 text-slate-500 hover:text-slate-800"
+                    title="Share with User"
+                  >
+                    <Share2 size={14} />
+                  </button>
+                  <button
+                    onClick={() => handleToggleVisibility(paste)}
+                    className="p-2 rounded-lg bg-slate-50 hover:bg-slate-100 dark:bg-slate-850 dark:hover:bg-slate-850 text-slate-500 hover:text-slate-800"
+                    title="Toggle Public/Private"
+                  >
+                    {paste.isPublic ? <EyeOff size={14} /> : <Eye size={14} />}
+                  </button>
+                  <button
+                    onClick={() => copyLink(paste.id)}
+                    className="p-2 rounded-lg bg-slate-50 hover:bg-slate-100 dark:bg-slate-850 dark:hover:bg-slate-800 text-slate-500 hover:text-slate-850"
+                    title="Copy URL Link"
+                  >
+                    {copiedId === paste.id ? (
+                      <Check size={14} className="text-emerald-500" />
+                    ) : (
+                      <Copy size={14} />
+                    )}
+                  </button>
+                  <button
+                    onClick={() => handleDuplicatePaste(paste)}
+                    className="p-2 rounded-lg bg-slate-50 hover:bg-slate-100 dark:bg-slate-850 dark:hover:bg-slate-800 text-slate-500 hover:text-slate-800"
+                    title="Duplicate"
+                  >
+                    <Plus size={14} />
+                  </button>
+                  <button
+                    onClick={() => handleDeletePaste(paste)}
+                    className="p-2 rounded-lg bg-rose-50 hover:bg-rose-100 dark:bg-rose-500/5 dark:hover:bg-rose-500/10 text-rose-500"
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-sm divide-y divide-slate-100 dark:divide-slate-850">
+            {myPastesFiltered.map((paste) => (
+              <div
+                key={paste.id}
+                className="flex items-center justify-between gap-4 p-4 hover:bg-slate-50/50 dark:hover:bg-slate-850/10 transition-colors"
+              >
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <Link
+                      to={`/v/${paste.id}`}
+                      className="text-xs font-bold text-slate-800 dark:text-slate-200 hover:underline truncate"
+                    >
+                      {paste.title || 'Untitled Paste'}
+                    </Link>
+                    <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-550 capitalize">
+                      {paste.language}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-3 text-[10px] text-slate-400 mt-1">
+                    <span>Created: {new Date(paste.createdAt).toLocaleDateString()}</span>
+                    <span>•</span>
+                    <span
+                      className={`inline-flex items-center gap-0.5 ${paste.isPublic ? 'text-emerald-500' : 'text-rose-500'}`}
+                    >
+                      {paste.isPublic ? 'Public' : 'Private'}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <Link
+                    to={`/v/${paste.id}`}
+                    className="h-8 inline-flex items-center justify-center rounded-lg bg-slate-50 hover:bg-slate-100 dark:bg-slate-850 dark:hover:bg-slate-800 px-3 text-xs font-bold text-slate-700 dark:text-slate-300"
+                  >
+                    Open
+                  </Link>
+                  <button
+                    onClick={() => openEditModal(paste)}
+                    className="p-2 rounded-lg bg-slate-50 hover:bg-slate-100 dark:bg-slate-850 dark:hover:bg-slate-800 text-slate-500 hover:text-slate-800"
+                  >
+                    <Edit size={14} />
+                  </button>
+                  <button
+                    onClick={() => copyLink(paste.id)}
+                    className="p-2 rounded-lg bg-slate-50 hover:bg-slate-100 dark:bg-slate-850 dark:hover:bg-slate-800 text-slate-500 hover:text-slate-805"
+                  >
+                    {copiedId === paste.id ? (
+                      <Check size={14} className="text-emerald-500" />
+                    ) : (
+                      <Copy size={14} />
+                    )}
+                  </button>
+                  <button
+                    onClick={() => handleDeletePaste(paste)}
+                    className="p-2 rounded-lg bg-rose-50 hover:bg-rose-100 dark:bg-rose-500/5 dark:hover:bg-rose-500/10 text-rose-500"
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* SECTION 2 — SHARED WITH ME */}
+      <div className="space-y-4 pt-4 border-t border-slate-200 dark:border-slate-800">
+        <div className="flex items-center justify-between">
+          <h2 className="text-md font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2">
+            Shared With Me{' '}
+            <span className="text-xs text-slate-400 font-normal">
+              ({workspace?.sharedWithMe.length || 0})
+            </span>
+          </h2>
+          <button
+            onClick={() => toggleViewMode('sharedWithMe')}
+            className="h-8 w-8 inline-flex items-center justify-center rounded-lg border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-950 text-slate-500 hover:text-slate-800"
+          >
+            {viewModes.sharedWithMe === 'grid' ? <List size={14} /> : <LayoutGrid size={14} />}
+          </button>
+        </div>
+
+        {workspace?.sharedWithMe.length === 0 ? (
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-8 text-center text-slate-500 space-y-2">
+            <span className="text-xs font-semibold">Nothing has been shared with you.</span>
+            <p className="text-[10px] text-slate-400 max-w-xs mx-auto leading-normal">
+              When other users explicitly share their code snippets with your username, they will
+              appear here.
+            </p>
+          </div>
+        ) : viewModes.sharedWithMe === 'grid' ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {workspace?.sharedWithMe.map((paste) => (
+              <div
+                key={paste.id}
+                className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-sm space-y-4 hover:border-slate-350 dark:hover:border-slate-700 transition-colors relative"
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <Link
+                      to={`/v/${paste.id}`}
+                      className="text-sm font-bold text-slate-800 dark:text-slate-200 hover:text-indigo-500 transition-colors truncate block"
+                    >
+                      {paste.title || 'Untitled Shared Paste'}
+                    </Link>
+                    <span className="text-[9px] text-slate-400 mt-1 block">
+                      Owner:{' '}
+                      <span className="font-bold text-slate-500">@{paste.ownerUsername}</span>
+                    </span>
+                  </div>
+                  <span className="text-[9px] font-semibold uppercase px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-550 shrink-0">
+                    {paste.language}
+                  </span>
+                </div>
+
+                <div className="text-[10px] text-slate-400 space-y-0.5 font-mono">
+                  <div>
+                    Shared: {paste.sharedAt ? new Date(paste.sharedAt).toLocaleDateString() : 'N/A'}
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 pt-2 border-t border-slate-100 dark:border-slate-850">
+                  <Link
+                    to={`/v/${paste.id}`}
+                    className="flex-1 h-8 inline-flex items-center justify-center rounded-lg bg-slate-50 hover:bg-slate-100 dark:bg-slate-850 dark:hover:bg-slate-805 text-xs font-bold text-slate-700 dark:text-slate-300"
+                  >
+                    Open
+                  </Link>
+                  <button
+                    onClick={() => copyToClipboard(paste.content, paste.id)}
+                    className="p-2 rounded-lg bg-slate-50 hover:bg-slate-100 dark:bg-slate-850 dark:hover:bg-slate-800 text-slate-550 hover:text-slate-800"
+                    title="Copy Content"
+                  >
+                    {copiedId === paste.id ? (
+                      <Check size={14} className="text-emerald-500" />
+                    ) : (
+                      <Copy size={14} />
+                    )}
+                  </button>
+                  <button
+                    onClick={() => handleBookmarkSave(paste)}
+                    className="p-2 rounded-lg bg-slate-50 hover:bg-slate-100 dark:bg-slate-855 dark:hover:bg-slate-800 text-slate-555 hover:text-slate-800"
+                    title="Save Bookmark"
+                  >
+                    <Bookmark size={14} />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-sm divide-y divide-slate-100 dark:divide-slate-850">
+            {workspace?.sharedWithMe.map((paste) => (
+              <div
+                key={paste.id}
+                className="flex items-center justify-between gap-4 p-4 hover:bg-slate-50/50 dark:hover:bg-slate-850/10 transition-colors"
+              >
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <Link
+                      to={`/v/${paste.id}`}
+                      className="text-xs font-bold text-slate-800 dark:text-slate-200 hover:underline truncate"
+                    >
+                      {paste.title || 'Untitled Shared Paste'}
+                    </Link>
+                    <span className="text-[10px] text-slate-400">by @{paste.ownerUsername}</span>
+                  </div>
+                  <div className="text-[10px] text-slate-400 mt-1 font-mono">
+                    Shared on:{' '}
+                    {paste.sharedAt ? new Date(paste.sharedAt).toLocaleDateString() : 'N/A'}
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Link
+                    to={`/v/${paste.id}`}
+                    className="h-8 inline-flex items-center justify-center rounded-lg bg-slate-50 hover:bg-slate-100 dark:bg-slate-850 dark:hover:bg-slate-800 px-3 text-xs font-bold text-slate-700 dark:text-slate-300"
+                  >
+                    Open
+                  </Link>
+                  <button
+                    onClick={() => handleBookmarkSave(paste)}
+                    className="p-2 rounded-lg bg-slate-50 hover:bg-slate-100 dark:bg-slate-850 dark:hover:bg-slate-800 text-slate-500"
+                  >
+                    <Bookmark size={14} />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* SECTION 3 — SAVED (BOOKMARKS) */}
+      <div className="space-y-4 pt-4 border-t border-slate-200 dark:border-slate-800">
+        <div className="flex items-center justify-between">
+          <h2 className="text-md font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2">
+            Saved Pastes{' '}
+            <span className="text-xs text-slate-400 font-normal">
+              ({workspace?.saved.length || 0})
+            </span>
+          </h2>
+          <button
+            onClick={() => toggleViewMode('saved')}
+            className="h-8 w-8 inline-flex items-center justify-center rounded-lg border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-950 text-slate-500 hover:text-slate-800"
+          >
+            {viewModes.saved === 'grid' ? <List size={14} /> : <LayoutGrid size={14} />}
+          </button>
+        </div>
+
+        {workspace?.saved.length === 0 ? (
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-8 text-center text-slate-500 space-y-1">
+            <span className="text-xs font-semibold">No saved pastes.</span>
+            <p className="text-[10px] text-slate-400 max-w-xs mx-auto">
+              Bookmark pastes owned by others to quickly find them here.
+            </p>
+          </div>
+        ) : viewModes.saved === 'grid' ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {workspace?.saved.map((paste) => (
+              <div
+                key={paste.id}
+                className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-sm space-y-4 hover:border-slate-350 dark:hover:border-slate-700 transition-colors relative"
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <Link
+                      to={`/v/${paste.id}`}
+                      className="text-sm font-bold text-slate-800 dark:text-slate-200 hover:text-indigo-500 transition-colors truncate block"
+                    >
+                      {paste.title || 'Untitled Saved Paste'}
+                    </Link>
+                    <span className="text-[9px] text-slate-400 mt-1 block">
+                      Owner: <span className="font-bold">@{paste.ownerUsername}</span>
+                    </span>
+                  </div>
+                  <span className="text-[9px] font-semibold uppercase px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-850 text-slate-550 shrink-0">
+                    {paste.language}
+                  </span>
+                </div>
+
+                <div className="text-[10px] text-slate-400 space-y-0.5 font-mono">
+                  <div>
+                    Saved At: {paste.savedAt ? new Date(paste.savedAt).toLocaleDateString() : 'N/A'}
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 pt-2 border-t border-slate-100 dark:border-slate-850">
+                  <Link
+                    to={`/v/${paste.id}`}
+                    className="flex-1 h-8 inline-flex items-center justify-center rounded-lg bg-slate-50 hover:bg-slate-100 dark:bg-slate-850 dark:hover:bg-slate-800 text-xs font-bold text-slate-700 dark:text-slate-300"
+                  >
+                    Open
+                  </Link>
+                  <button
+                    onClick={() => copyToClipboard(paste.content, paste.id)}
+                    className="p-2 rounded-lg bg-slate-50 hover:bg-slate-100 dark:bg-slate-850 dark:hover:bg-slate-800 text-slate-550 hover:text-slate-800"
+                    title="Copy Content"
+                  >
+                    {copiedId === paste.id ? (
+                      <Check size={14} className="text-emerald-500" />
+                    ) : (
+                      <Copy size={14} />
+                    )}
+                  </button>
+                  <button
+                    onClick={() => copyLink(paste.id)}
+                    className="p-2 rounded-lg bg-slate-50 hover:bg-slate-100 dark:bg-slate-850 dark:hover:bg-slate-800 text-slate-555 hover:text-slate-800"
+                    title="Share link"
+                  >
+                    {copiedId === paste.id ? (
+                      <Check size={14} className="text-emerald-500" />
+                    ) : (
+                      <ExternalLink size={14} />
+                    )}
+                  </button>
+                  <button
+                    onClick={() => handleBookmarkRemove(paste)}
+                    className="p-2 rounded-lg bg-rose-50 hover:bg-rose-100 dark:bg-rose-500/5 dark:hover:bg-rose-500/10 text-rose-550"
+                    title="Remove Bookmark"
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-sm divide-y divide-slate-100 dark:divide-slate-850">
+            {workspace?.saved.map((paste) => (
+              <div
+                key={paste.id}
+                className="flex items-center justify-between gap-4 p-4 hover:bg-slate-50/50 dark:hover:bg-slate-850/10 transition-colors"
+              >
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <Link
+                      to={`/v/${paste.id}`}
+                      className="text-xs font-bold text-slate-800 dark:text-slate-200 hover:underline truncate"
+                    >
+                      {paste.title || 'Untitled Saved Paste'}
+                    </Link>
+                    <span className="text-[10px] text-slate-400">by @{paste.ownerUsername}</span>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Link
+                    to={`/v/${paste.id}`}
+                    className="h-8 inline-flex items-center justify-center rounded-lg bg-slate-50 hover:bg-slate-100 dark:bg-slate-850 dark:hover:bg-slate-800 px-3 text-xs font-bold text-slate-700 dark:text-slate-300"
+                  >
+                    Open
+                  </Link>
+                  <button
+                    onClick={() => handleBookmarkRemove(paste)}
+                    className="p-2 rounded-lg bg-rose-50 hover:bg-rose-100 dark:bg-rose-500/5 dark:hover:bg-rose-500/10 text-rose-500"
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* SECTION 4 — RECENTLY VIEWED */}
+      <div className="space-y-4 pt-4 border-t border-slate-200 dark:border-slate-800">
+        <h2 className="text-md font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2">
+          Recently Viewed{' '}
+          <span className="text-xs text-slate-400 font-normal">(Last 5 viewed)</span>
+        </h2>
+
+        {!workspace || workspace.recentlyViewed.length === 0 ? (
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-8 text-center text-slate-500 space-y-1">
+            <span className="text-xs font-semibold">No recently viewed pastes.</span>
+            <p className="text-[10px] text-slate-405 max-w-xs mx-auto">
+              Any snippet you click or open will be logged here for quick access.
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {workspace.recentlyViewed.map((paste) => (
+              <div
+                key={paste.id}
+                className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-sm space-y-4 hover:border-slate-350 dark:hover:border-slate-700 transition-colors relative flex flex-col justify-between"
+              >
+                <div>
+                  <div className="flex items-start justify-between gap-2">
+                    <Link
+                      to={`/v/${paste.id}`}
+                      className="text-xs font-bold text-slate-800 dark:text-slate-200 hover:text-indigo-500 transition-colors truncate block max-w-[80%]"
+                    >
+                      {paste.title || 'Untitled Paste'}
+                    </Link>
+                    <span className="text-[9px] font-semibold uppercase px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-550 shrink-0">
+                      {paste.language}
+                    </span>
+                  </div>
+                  <div className="text-[9px] text-slate-400 mt-2 font-mono flex items-center gap-1.5">
+                    <Clock size={10} /> View log:{' '}
+                    {paste.viewedAt ? new Date(paste.viewedAt).toLocaleTimeString() : 'N/A'}
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 pt-2 mt-4 border-t border-slate-100 dark:border-slate-850">
+                  <Link
+                    to={`/v/${paste.id}`}
+                    className="w-full h-8 inline-flex items-center justify-center rounded-lg bg-slate-50 hover:bg-slate-100 dark:bg-slate-850 dark:hover:bg-slate-800 text-xs font-bold text-slate-700 dark:text-slate-300"
+                  >
+                    Open Paste
                   </Link>
                 </div>
               </div>
             ))}
           </div>
+        )}
+      </div>
 
-          {/* Pagination Controls */}
-          {totalPages > 1 && (
-            <div className="flex items-center justify-center gap-4 pt-4 border-t border-slate-200 dark:border-slate-800">
-              <button
-                onClick={handlePrevPage}
-                disabled={page === 1 || loading}
-                aria-label="Previous page"
-                className="h-8.5 w-8.5 inline-flex items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 shadow-sm hover:bg-slate-50 focus:outline-none dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <ChevronLeft size={16} />
-              </button>
-
-              <span className="text-xs text-slate-500 font-mono">
-                Page {page} of {totalPages}
-              </span>
-
-              <button
-                onClick={handleNextPage}
-                disabled={page === totalPages || loading}
-                aria-label="Next page"
-                className="h-8.5 w-8.5 inline-flex items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 shadow-sm hover:bg-slate-50 focus:outline-none dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <ChevronRight size={16} />
-              </button>
+      {/* SHARE MODAL */}
+      {showShareModal && selectedPaste && (
+        <div className="fixed inset-0 bg-slate-900/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+          <div className="bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 w-full max-w-sm rounded-xl p-5 shadow-2xl relative space-y-4">
+            <button
+              onClick={() => setShowShareModal(false)}
+              className="absolute right-4 top-4 text-slate-450 hover:text-slate-700 dark:hover:text-slate-300"
+            >
+              <X size={16} />
+            </button>
+            <div>
+              <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+                <Share2 size={16} className="text-indigo-500" /> Share Paste
+              </h3>
+              <p className="text-[10px] text-slate-500 mt-0.5">
+                Share "{selectedPaste.title || 'Untitled Paste'}" with another workspace
+                collaborator.
+              </p>
             </div>
-          )}
+            {shareSuccess ? (
+              <div className="p-3 bg-emerald-50 dark:bg-emerald-500/5 text-emerald-600 dark:text-emerald-400 text-xs rounded-lg font-semibold text-center">
+                Paste shared successfully!
+              </div>
+            ) : (
+              <form onSubmit={handleShareSubmit} className="space-y-3">
+                <div className="space-y-1">
+                  <label
+                    htmlFor="shareUser"
+                    className="text-[10px] font-bold text-slate-400 uppercase"
+                  >
+                    Username or Email
+                  </label>
+                  <input
+                    id="shareUser"
+                    type="text"
+                    required
+                    placeholder="collaborator_username"
+                    value={shareInput}
+                    onChange={(e) => setShareInput(e.target.value)}
+                    className="h-9 w-full rounded-lg border border-slate-200 bg-slate-50/50 px-3 text-xs focus:outline-none dark:border-slate-800 dark:bg-slate-900"
+                  />
+                </div>
+                {shareError && (
+                  <div className="text-[10px] text-rose-500 font-semibold">{shareError}</div>
+                )}
+                <button
+                  type="submit"
+                  disabled={shareLoading}
+                  className="w-full h-9 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-bold transition-colors disabled:opacity-50"
+                >
+                  {shareLoading ? 'Sharing...' : 'Share Paste'}
+                </button>
+              </form>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* EDIT MODAL */}
+      {showEditModal && selectedPaste && (
+        <div className="fixed inset-0 bg-slate-900/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+          <div className="bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 w-full max-w-md rounded-xl p-5 shadow-2xl relative space-y-4">
+            <button
+              onClick={() => setShowEditModal(false)}
+              className="absolute right-4 top-4 text-slate-400 hover:text-slate-650"
+            >
+              <X size={16} />
+            </button>
+            <div>
+              <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+                <Edit size={16} className="text-indigo-500" /> Edit Paste Details
+              </h3>
+              <p className="text-[10px] text-slate-500 mt-0.5">
+                Update details or password protection settings.
+              </p>
+            </div>
+
+            <form onSubmit={handleEditSubmit} className="space-y-3.5">
+              <div className="space-y-1.5">
+                <label
+                  htmlFor="editTitle"
+                  className="text-[10px] font-bold text-slate-400 uppercase"
+                >
+                  Paste Title
+                </label>
+                <input
+                  id="editTitle"
+                  type="text"
+                  placeholder="Untitled Paste"
+                  value={editTitle}
+                  onChange={(e) => setEditTitle(e.target.value)}
+                  className="h-9 w-full rounded-lg border border-slate-200 bg-slate-50/50 px-3 text-xs focus:outline-none dark:border-slate-800 dark:bg-slate-900"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <label
+                    htmlFor="editLang"
+                    className="text-[10px] font-bold text-slate-400 uppercase"
+                  >
+                    Language
+                  </label>
+                  <select
+                    id="editLang"
+                    value={editLanguage}
+                    onChange={(e) => setEditLanguage(e.target.value)}
+                    className="h-9 w-full rounded-lg border border-slate-200 bg-slate-50/50 px-2 text-xs focus:outline-none dark:border-slate-800 dark:bg-slate-900"
+                  >
+                    <option value="plaintext">Plain Text</option>
+                    <option value="javascript">JavaScript</option>
+                    <option value="typescript">TypeScript</option>
+                    <option value="python">Python</option>
+                    <option value="rust">Rust</option>
+                    <option value="go">Go</option>
+                    <option value="json">JSON</option>
+                  </select>
+                </div>
+                <div className="space-y-1.5">
+                  <label
+                    htmlFor="editVis"
+                    className="text-[10px] font-bold text-slate-400 uppercase"
+                  >
+                    Visibility
+                  </label>
+                  <select
+                    id="editVis"
+                    value={editIsPublic ? 'public' : 'private'}
+                    onChange={(e) => setEditIsPublic(e.target.value === 'public')}
+                    className="h-9 w-full rounded-lg border border-slate-200 bg-slate-50/50 px-2 text-xs focus:outline-none dark:border-slate-800 dark:bg-slate-900"
+                  >
+                    <option value="public">Public</option>
+                    <option value="private">Private</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <label
+                  htmlFor="editPass"
+                  className="text-[10px] font-bold text-slate-400 uppercase flex items-center justify-between"
+                >
+                  <span>Passkey Protection</span>
+                  <span className="text-[8px] text-slate-400 capitalize">
+                    (Leave blank to keep unchanged)
+                  </span>
+                </label>
+                <input
+                  id="editPass"
+                  type="password"
+                  placeholder="••••••••"
+                  value={editPassword}
+                  onChange={(e) => setEditPassword(e.target.value)}
+                  className="h-9 w-full rounded-lg border border-slate-200 bg-slate-50/50 px-3 text-xs focus:outline-none dark:border-slate-800 dark:bg-slate-900"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label
+                  htmlFor="editContent"
+                  className="text-[10px] font-bold text-slate-400 uppercase"
+                >
+                  Paste Code Content
+                </label>
+                <textarea
+                  id="editContent"
+                  required
+                  rows={4}
+                  value={editContent}
+                  onChange={(e) => setEditContent(e.target.value)}
+                  className="w-full rounded-lg border border-slate-200 bg-slate-50/50 p-3 text-xs font-mono focus:outline-none dark:border-slate-800 dark:bg-slate-900"
+                />
+              </div>
+
+              {editError && (
+                <div className="text-[10px] text-rose-500 font-semibold">{editError}</div>
+              )}
+
+              <div className="flex gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowEditModal(false)}
+                  className="flex-1 h-9 rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-50 dark:border-slate-800 dark:text-slate-350 dark:hover:bg-slate-900 text-xs font-bold"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={editLoading}
+                  className="flex-1 h-9 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-bold transition-colors disabled:opacity-50"
+                >
+                  {editLoading ? 'Saving...' : 'Save Changes'}
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
     </div>

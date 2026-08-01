@@ -410,3 +410,59 @@ sequenceDiagram
         end
     end
 ```
+
+---
+
+## 16. Workspace Dashboard Architecture & Cascade Deletion
+
+To deliver a reliable, secure personal workspace, the codebase models explicit sharing, saving (bookmarking), and viewing relationships linking users and pastes.
+
+### Entity Relationship Model
+
+```mermaid
+erDiagram
+    USER {
+        string id PK
+        string email UNIQUE
+        string username UNIQUE
+    }
+    PASTE {
+        string id PK
+        string title
+        string content
+        boolean isPublic
+        string userId FK
+    }
+    SHARE {
+        string id PK
+        string pasteId FK
+        string userId FK
+    }
+    SAVED_PASTE {
+        string id PK
+        string pasteId FK
+        string userId FK
+    }
+    RECENT_VIEW {
+        string id PK
+        string pasteId FK
+        string userId FK
+        datetime viewedAt
+    }
+
+    USER ||--o{ PASTE : "owns"
+    USER ||--o{ SHARE : "shares_with"
+    USER ||--o{ SAVED_PASTE : "bookmarks"
+    USER ||--o{ RECENT_VIEW : "recently_views"
+
+    PASTE ||--o{ SHARE : "has_shares"
+    PASTE ||--o{ SAVED_PASTE : "has_saves"
+    PASTE ||--o{ RECENT_VIEW : "has_views"
+```
+
+### Cascade Deletion Mechanism
+
+Database foreign keys are configured with `onDelete: Cascade` rules to ensure structural integrity:
+
+1. **Paste Deletion**: When a user deletes a paste, the database engine cascadingly deletes all related shares (`Share`), bookmarks (`SavedPaste`), and history logs (`RecentView`), keeping the schema completely clean without orphans.
+2. **Access Control Filtering**: When listing saved pastes or recent history for a user, the backend queries verify that the requesting user is the owner, or is public, or is explicitly shared with. Unauthorized references return an empty/unavailable state to protect secret data.

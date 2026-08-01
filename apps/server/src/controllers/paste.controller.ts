@@ -76,8 +76,84 @@ export class PasteController {
     try {
       const { id } = req.params;
       const password = req.headers['x-paste-password'] as string | undefined;
-      await PasteService.deletePaste(id, password);
+      const userId = (req as any).user?.userId;
+      await PasteService.deletePaste(id, password, userId);
       res.status(204).send();
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async updatePaste(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { id } = req.params;
+      const userId = (req as any).user?.userId;
+      if (!userId) {
+        return res.status(401).json({
+          error: 'UnauthorizedError',
+          message: 'Access token required',
+        });
+      }
+      const updated = await PasteService.updatePaste(id, userId, req.body);
+      res.json(updated);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async sharePaste(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { id } = req.params;
+      const { usernameOrEmail } = req.body;
+      const userId = (req as any).user?.userId;
+      if (!userId) {
+        return res.status(401).json({
+          error: 'UnauthorizedError',
+          message: 'Access token required',
+        });
+      }
+      if (!usernameOrEmail) {
+        return res.status(400).json({
+          error: 'BadRequestError',
+          message: 'Username or email is required to share',
+        });
+      }
+      const shared = await PasteService.sharePaste(id, userId, usernameOrEmail);
+      res.json(shared);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async savePaste(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { id } = req.params;
+      const userId = (req as any).user?.userId;
+      if (!userId) {
+        return res.status(401).json({
+          error: 'UnauthorizedError',
+          message: 'Access token required',
+        });
+      }
+      const saved = await PasteService.savePaste(id, userId);
+      res.json(saved);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async unsavePaste(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { id } = req.params;
+      const userId = (req as any).user?.userId;
+      if (!userId) {
+        return res.status(401).json({
+          error: 'UnauthorizedError',
+          message: 'Access token required',
+        });
+      }
+      const result = await PasteService.unsavePaste(id, userId);
+      res.json(result);
     } catch (error) {
       next(error);
     }

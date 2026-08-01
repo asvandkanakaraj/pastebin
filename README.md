@@ -25,6 +25,7 @@ Our platform leverages a modern, cohesive tech stack across all layers:
 - **Monaco Code Editor**: Fully integrated code-sharing panel supporting dynamic languages syntax highlighting and dark/light theme Swapping.
 - **Developer CLI Client (`pastebin`)**: Upload local files, retrieve snippets with syntax highlighting, list public entries, and login directly from your terminal. Includes automated OS clipboard copying.
 - **JWT Stateless Authentication**: User registration, login, and secure user dashboards displaying past pastes history.
+- **Personal Workspace Dashboard**: Structured workspace sections (My Pastes, Shared With Me, Saved bookmarks, and Recently Viewed logs) containing in-memory filtering, sort orders, and card action modals.
 - **Dynamic Paste Expirations**: Set lifespan durations (10m, 1h, 1d, 1w, 1m) with background database sweep cleaners.
 - **BCrypt Password Protection**: Lock sensitive paste entries with custom passwords checked via secure hashes (`bcrypt`) and handshake verify routes.
 - **Public Directory & Search**: Browse public snippets with real-time text searches, programming languages filtering, and page pagination.

@@ -11,6 +11,7 @@ import pasteRoutes from './routes/paste.routes.js';
 import authRoutes from './routes/auth.routes.js';
 import searchRoutes from './routes/search.routes.js';
 import userRoutes from './routes/user.routes.js';
+import workspaceRoutes from './routes/workspace.routes.js';
 import { errorHandler } from './middleware/error.middleware.js';
 import { globalRateLimiter } from './middleware/rate-limit.middleware.js';
 import { logger } from './utils/logger.js';
@@ -108,6 +109,7 @@ app.use('/api/pastes', pasteRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/search', searchRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/workspace', workspaceRoutes);
 
 // Global Error Handler
 app.use(errorHandler);
