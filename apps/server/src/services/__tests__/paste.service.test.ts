@@ -4,16 +4,22 @@ import { db } from '@pastebin/database';
 
 // Mock the database client module
 vi.mock('@pastebin/database', () => {
-  return {
-    db: {
-      paste: {
-        create: vi.fn(),
-        findUnique: vi.fn(),
-        findMany: vi.fn(),
-        count: vi.fn(),
-        delete: vi.fn(),
-      },
+  const mockDb = {
+    $transaction: vi.fn((cb) => cb(mockDb)),
+    paste: {
+      create: vi.fn(),
+      findUnique: vi.fn(),
+      findMany: vi.fn(),
+      count: vi.fn(),
+      delete: vi.fn(),
     },
+    share: {
+      createMany: vi.fn(),
+      findFirst: vi.fn(),
+    },
+  };
+  return {
+    db: mockDb,
   };
 });
 
@@ -89,6 +95,7 @@ describe('PasteService Unit Tests', () => {
       const { passwordHash, ...expectedSafePaste } = mockPaste;
       expect(result).toEqual({
         ...expectedSafePaste,
+        sharePermission: null,
         hasPassword: false,
       });
     });

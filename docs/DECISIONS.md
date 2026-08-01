@@ -157,3 +157,36 @@ We implement a series of refinements to the paste editor panel, including removi
 - Paste access visibility levels are secure, granular, and easy to configure.
 - User configurations are preserved seamlessly across visits.
 - Custom description fields provide helpful documentation for shared snippets.
+
+---
+
+## Decision #013: Editor System Refinement — Phase 2 (Advanced Settings & Sharing)
+
+### Status
+
+Accepted ✅
+
+### Context
+
+To transform the PasteBin workspace into a secure collaboration suite, we need to introduce granular, role-based sharing permissions, enable direct inline edits for authenticated writers, and simplify visibility settings. Unnecessary complexity (like redundant controls or auto-detect settings) must be eliminated, and advanced sharing options should be presented inside a modern focused dialog instead of cluttered vertical sidebar expansions.
+
+### Decision
+
+We implement database, route, and UI enhancements supporting segmented visibility models (Public, Private, Secret), an inline edit flow for write-access editors, and a centered sharing configurations dialog modal.
+
+### Details
+
+1. **Unnecessary Settings Removal**: Removed duplicate language selects, tab size dropdowns, and language auto-detect options from Create Paste views.
+2. **Segmented Visibility Redesign**: Toggled visibility levels map directly onto `PUBLIC`, `PRIVATE`, and `SECRET` access rules. Secret pastes require logging in as the owner, bypass PINs, and are completely hidden from public indexers/feeds.
+3. **Centered Sharing Modal Dialog**: Advanced Settings opens a responsive centered dialog modal where owners can manage sharing options dynamically.
+4. **Real-time User Search**: Searching by username/email matches real-time debounced queries, displaying matched user suggestions immediately.
+5. **Read Only vs Read & Write Roles**: Introduced a permission field (`READ` / `WRITE`) to the database schema.
+   - `READ` (Read Only): Users can only view, copy, and bookmark the paste.
+   - `WRITE` (Read & Write): Shared editors can edit the title, description, and Monaco content inline.
+6. **Access Revocation**: Removing a user from the modal immediately revokes database sharing permissions.
+
+### Consequences
+
+- Sharing setups are intuitive, isolated, and visually distinct.
+- Collaborative workspaces are enabled safely with strict permission validation layers.
+- Admin dashboard layouts remain uncluttered.

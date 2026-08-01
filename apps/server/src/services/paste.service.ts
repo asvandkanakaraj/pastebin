@@ -12,6 +12,7 @@ export class PasteService {
     password?: string;
     expiresInSeconds?: number;
     userId?: string;
+    shares?: Array<{ userId: string; permission: 'READ' | 'WRITE' }>;
   }) {
     let passwordHash: string | null = null;
     if (data.password) {
@@ -26,18 +27,32 @@ export class PasteService {
     const visibility = data.visibility || (data.isPublic === false ? 'PRIVATE' : 'PUBLIC');
     const isPublic = visibility === 'PUBLIC';
 
-    return await db.paste.create({
-      data: {
-        title: data.title,
-        description: data.description,
-        content: data.content,
-        language: data.language || 'plaintext',
-        visibility,
-        isPublic,
-        passwordHash,
-        expiresAt,
-        userId: data.userId || null,
-      },
+    return await db.$transaction(async (tx) => {
+      const paste = await tx.paste.create({
+        data: {
+          title: data.title,
+          description: data.description,
+          content: data.content,
+          language: data.language || 'plaintext',
+          visibility,
+          isPublic,
+          passwordHash,
+          expiresAt,
+          userId: data.userId || null,
+        },
+      });
+
+      if (data.shares && Array.isArray(data.shares)) {
+        await tx.share.createMany({
+          data: data.shares.map((s: any) => ({
+            pasteId: paste.id,
+            userId: s.userId,
+            permission: s.permission || 'READ',
+          })),
+        });
+      }
+
+      return paste;
     });
   }
 
@@ -62,7 +77,7 @@ export class PasteService {
     }
 
     // Privacy checks
-    if (paste.visibility === 'ONLY_ME') {
+    if (paste.visibility === 'ONLY_ME' || paste.visibility === 'SECRET') {
       if (!requestingUserId || paste.userId !== requestingUserId) {
         const error = new Error('Access denied. Only the owner can view this paste.');
         (error as any).status = 403;
@@ -146,7 +161,24 @@ export class PasteService {
         .catch((err) => console.error('Failed to log recent view:', err));
     }
 
-    return { ...safePaste, hasPassword: passwordHash !== null };
+    let sharePermission: string | null = null;
+    if (requestingUserId) {
+      const share = await db.share.findFirst({
+        where: {
+          pasteId: id,
+          userId: requestingUserId,
+        },
+      });
+      if (share) {
+        sharePermission = share.permission;
+      }
+    }
+
+    return {
+      ...safePaste,
+      sharePermission,
+      hasPassword: passwordHash !== null,
+    };
   }
 
   static async verifyPastePassword(id: string, passwordInput: string) {
@@ -294,26 +326,54 @@ export class PasteService {
       throw error;
     }
 
-    if (paste.userId !== requestingUserId) {
-      const error = new Error('Access denied. You do not own this paste.');
-      (error as any).status = 403;
-      (error as any).name = 'ForbiddenError';
-      throw error;
+    const isOwner = paste.userId === requestingUserId;
+
+    // If not the owner, check if the paste was shared with the user with WRITE permission
+    if (!isOwner) {
+      const share = await db.share.findUnique({
+        where: {
+          pasteId_userId: {
+            pasteId: id,
+            userId: requestingUserId,
+          },
+        },
+      });
+
+      if (!share || share.permission !== 'WRITE') {
+        const error = new Error('Access denied. You do not have write permission for this paste.');
+        (error as any).status = 403;
+        (error as any).name = 'ForbiddenError';
+        throw error;
+      }
     }
 
-    const updateData: any = {
-      title: data.title,
-      content: data.content,
-      language: data.language,
-      isPublic: data.isPublic !== false,
-    };
+    // Prepare update data
+    const updateData: any = {};
 
-    if (data.password !== undefined) {
-      if (data.password === '') {
-        updateData.passwordHash = null;
-      } else {
-        updateData.passwordHash = await bcrypt.hash(data.password, 10);
+    if (isOwner) {
+      // Owner can update all fields
+      updateData.title = data.title;
+      updateData.description = data.description;
+      updateData.content = data.content;
+      updateData.language = data.language;
+
+      const visibility = data.visibility || (data.isPublic === false ? 'PRIVATE' : 'PUBLIC');
+      updateData.visibility = visibility;
+      updateData.isPublic = visibility === 'PUBLIC';
+
+      if (data.password !== undefined) {
+        if (data.password === '') {
+          updateData.passwordHash = null;
+        } else {
+          updateData.passwordHash = await bcrypt.hash(data.password, 10);
+        }
       }
+    } else {
+      // Shared WRITE user can only update content, title, language, and description
+      updateData.title = data.title;
+      updateData.description = data.description;
+      updateData.content = data.content;
+      updateData.language = data.language;
     }
 
     return await db.paste.update({
@@ -322,7 +382,12 @@ export class PasteService {
     });
   }
 
-  static async sharePaste(id: string, requestingUserId: string, usernameOrEmail: string) {
+  static async sharePaste(
+    id: string,
+    requestingUserId: string,
+    usernameOrEmail: string,
+    permission: 'READ' | 'WRITE' = 'READ'
+  ) {
     const paste = await db.paste.findUnique({
       where: { id },
     });
@@ -372,9 +437,76 @@ export class PasteService {
       create: {
         pasteId: id,
         userId: targetUser.id,
+        permission,
       },
-      update: {},
+      update: {
+        permission,
+      },
     });
+  }
+
+  static async getPasteShares(id: string, requestingUserId: string) {
+    const paste = await db.paste.findUnique({
+      where: { id },
+    });
+
+    if (!paste) {
+      const error = new Error('Paste not found');
+      (error as any).status = 404;
+      (error as any).name = 'NotFoundError';
+      throw error;
+    }
+
+    if (paste.userId !== requestingUserId) {
+      const error = new Error('Access denied. You do not own this paste.');
+      (error as any).status = 403;
+      (error as any).name = 'ForbiddenError';
+      throw error;
+    }
+
+    return await db.share.findMany({
+      where: { pasteId: id },
+      include: {
+        user: {
+          select: {
+            id: true,
+            username: true,
+            email: true,
+          },
+        },
+      },
+    });
+  }
+
+  static async removePasteShare(id: string, requestingUserId: string, targetUserId: string) {
+    const paste = await db.paste.findUnique({
+      where: { id },
+    });
+
+    if (!paste) {
+      const error = new Error('Paste not found');
+      (error as any).status = 404;
+      (error as any).name = 'NotFoundError';
+      throw error;
+    }
+
+    if (paste.userId !== requestingUserId) {
+      const error = new Error('Access denied. You do not own this paste.');
+      (error as any).status = 403;
+      (error as any).name = 'ForbiddenError';
+      throw error;
+    }
+
+    await db.share.delete({
+      where: {
+        pasteId_userId: {
+          pasteId: id,
+          userId: targetUserId,
+        },
+      },
+    });
+
+    return { success: true };
   }
 
   static async savePaste(id: string, userId: string) {

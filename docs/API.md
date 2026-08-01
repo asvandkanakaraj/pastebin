@@ -494,6 +494,79 @@ The PasteBin API uses standard HTTP response status codes to indicate success or
 
 ---
 
+## Sharing & Advanced Configurations API
+
+### 1. List Shared Access Users
+
+Retrieves all users a paste is currently shared with.
+
+- **Method**: `GET`
+- **URL**: `/api/pastes/:id/shares`
+- **Headers**:
+  - `Authorization: Bearer <token>` (Required: must be the paste owner)
+- **Success Response (200 OK)**:
+  ```json
+  [
+    {
+      "id": "share-uuid-123",
+      "pasteId": "paste-id-xyz",
+      "userId": "user-uuid-456",
+      "permission": "READ",
+      "createdAt": "2026-08-01T09:12:00.000Z",
+      "user": {
+        "id": "user-uuid-456",
+        "username": "alex",
+        "email": "alex@example.com"
+      }
+    }
+  ]
+  ```
+
+---
+
+### 2. Share Paste with User
+
+Grants or updates user access permissions for a specific paste.
+
+- **Method**: `POST`
+- **URL**: `/api/pastes/:id/share`
+- **Headers**:
+  - `Authorization: Bearer <token>` (Required: must be the paste owner)
+- **Request Body**:
+  | Field             | Type     | Description                                    |
+  | ----------------- | -------- | ---------------------------------------------- |
+  | `usernameOrEmail` | `string` | (Required) Username or email of target user    |
+  | `permission`      | `string` | (Optional) `READ` or `WRITE` (default: `READ`) |
+- **Success Response (200 OK)**:
+  ```json
+  {
+    "id": "share-uuid-123",
+    "pasteId": "paste-id-xyz",
+    "userId": "user-uuid-456",
+    "permission": "WRITE",
+    "createdAt": "2026-08-01T09:12:00.000Z"
+  }
+  ```
+
+---
+
+### 3. Revoke Access (Unshare)
+
+Revokes sharing access permissions for a specific user.
+
+- **Method**: `DELETE`
+- **URL**: `/api/pastes/:id/share/:userId`
+- **Headers**:
+  - `Authorization: Bearer <token>` (Required: must be the paste owner)
+- **Success Response (200 OK)**:
+  ```json
+  {
+    "success": true
+  }
+  ```
+
+---
+
 ## CLI Client Integration
 
 The Node.js CLI client (`pastebin`) acts as a consumer of these endpoints. The CLI handles request and response states as follows:

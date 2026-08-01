@@ -54,7 +54,7 @@ export function CreatePaste() {
   const [description, setDescription] = useState('');
   const [language, setLanguage] = useState('javascript');
   const [expiration, setExpiration] = useState('never');
-  const [visibility, setVisibility] = useState<'PUBLIC' | 'PRIVATE' | 'ONLY_ME'>('PUBLIC');
+  const [visibility, setVisibility] = useState<'PUBLIC' | 'PRIVATE' | 'SECRET'>('PUBLIC');
   const [pinOption, setPinOption] = useState<'auto' | 'custom'>('auto');
   const [customPin, setCustomPin] = useState('');
   const [showPin, setShowPin] = useState(false);
@@ -84,8 +84,48 @@ console.log(2 + 2);`);
   const [copied, setCopied] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
 
+  // Sharing states
+  const [sharedUsers, setSharedUsers] = useState<
+    Array<{ id: string; username: string; email: string; permission: 'READ' | 'WRITE' }>
+  >([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<
+    Array<{ id: string; username: string; email: string }>
+  >([]);
+  const [searching, setSearching] = useState(false);
+  const [shareSuccess, setShareSuccess] = useState<string | null>(null);
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Real-time debounced user search
+  useEffect(() => {
+    if (!searchQuery.trim()) {
+      setSearchResults([]);
+      return;
+    }
+    const timer = setTimeout(async () => {
+      setSearching(true);
+      try {
+        const headers: any = {};
+        if (token) headers['Authorization'] = `Bearer ${token}`;
+        const res = await axios.get(
+          `http://localhost:5000/api/search?q=${encodeURIComponent(searchQuery)}`,
+          { headers }
+        );
+        // Filter suggestions (exclude users already added)
+        const matched = (res.data.users || []).filter((u: any) => {
+          return !sharedUsers.some((su) => su.id === u.id);
+        });
+        setSearchResults(matched);
+      } catch (err) {
+        console.error('Search users failed:', err);
+      } finally {
+        setSearching(false);
+      }
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery, sharedUsers, token]);
 
   // Auto-generate PIN if PRIVATE and auto-generate selected
   useEffect(() => {
@@ -106,16 +146,20 @@ console.log(2 + 2);`);
     localStorage.setItem('pb_editor_line_numbers', val);
   };
 
-  // Fullscreen ESC listener
+  // Fullscreen ESC listener & modal ESC listener
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isFullscreen) {
-        setIsFullscreen(false);
+      if (e.key === 'Escape') {
+        if (showAdvanced) {
+          setShowAdvanced(false);
+        } else if (isFullscreen) {
+          setIsFullscreen(false);
+        }
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isFullscreen]);
+  }, [isFullscreen, showAdvanced]);
 
   const handleEditorMount = (editor: any) => {
     editor.onDidChangeCursorPosition((e: any) => {
@@ -163,6 +207,7 @@ console.log(2 + 2);`);
       isPublic: visibility === 'PUBLIC',
       password: visibility === 'PRIVATE' ? customPin.trim() : undefined,
       expiresInSeconds: expiration === 'never' ? undefined : parseInt(expiration),
+      shares: sharedUsers.map((su) => ({ userId: su.id, permission: su.permission })),
     };
 
     // Schema Validation
@@ -192,6 +237,188 @@ console.log(2 + 2);`);
 
   return (
     <div className="w-full max-w-7xl mx-auto py-2 md:py-6 space-y-6">
+      {/* Centered Advanced Settings Dialog Modal */}
+      {showAdvanced && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 backdrop-blur-sm p-4"
+          role="dialog"
+          aria-modal="true"
+        >
+          <div className="w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-2xl flex flex-col max-h-[90vh] animate-in fade-in zoom-in-95 duration-155 relative">
+            {/* Header */}
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800 select-none">
+              <div className="flex items-center gap-2">
+                <Settings className="text-blue-500 h-5 w-5 animate-spin duration-1000" />
+                <h2 className="text-sm font-bold text-slate-800 dark:text-white">
+                  Advanced Sharing Configurations
+                </h2>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowAdvanced(false)}
+                className="text-slate-400 hover:text-slate-650 dark:hover:text-slate-200 font-bold p-1 transition-colors"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Scrollable Content */}
+            <div className="flex-1 overflow-y-auto py-4 space-y-5 pr-1 select-none">
+              {/* Search User Block */}
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">
+                  Search Username or Email
+                </label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Type name or email address..."
+                    className="h-10 w-full rounded-lg border border-slate-200 bg-slate-50/50 px-3.5 text-xs focus:outline-none dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100"
+                  />
+
+                  {/* Suggestions list */}
+                  {searchQuery && (searchResults.length > 0 || searching) && (
+                    <div className="absolute left-0 right-0 mt-1.5 z-55 max-h-48 overflow-y-auto bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-850 rounded-lg shadow-lg">
+                      {searching ? (
+                        <div className="p-3 text-xs text-slate-450 dark:text-slate-500 text-center">
+                          Searching...
+                        </div>
+                      ) : (
+                        searchResults.map((user) => (
+                          <button
+                            key={user.id}
+                            type="button"
+                            onClick={() => {
+                              setSharedUsers([...sharedUsers, { ...user, permission: 'READ' }]);
+                              setSearchQuery('');
+                              setSearchResults([]);
+                            }}
+                            className="w-full flex items-center justify-between p-2.5 hover:bg-slate-50 dark:hover:bg-slate-900 border-b border-slate-100 dark:border-slate-800 last:border-b-0 text-left text-xs text-slate-700 dark:text-slate-300"
+                          >
+                            <div className="flex items-center gap-2">
+                              <span className="flex h-6 w-6 items-center justify-center rounded-full bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400 font-bold uppercase text-[9px]">
+                                {user.username.slice(0, 2)}
+                              </span>
+                              <div>
+                                <p className="font-bold">{user.username}</p>
+                                <p className="text-[9px] text-slate-400">{user.email}</p>
+                              </div>
+                            </div>
+                            <span className="text-[10px] text-blue-600 dark:text-blue-450 font-bold">
+                              + Add
+                            </span>
+                          </button>
+                        ))
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Followers List Placeholder */}
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">
+                  Quick Share (Followers)
+                </label>
+                <span className="text-[11px] text-slate-450 dark:text-slate-500 italic block pl-1">
+                  No followers yet.
+                </span>
+              </div>
+
+              {/* Shared List */}
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">
+                  Shared With
+                </label>
+
+                {sharedUsers.length === 0 ? (
+                  <span className="text-[11px] text-slate-400 dark:text-slate-600 italic block pl-1">
+                    Not shared with anyone yet.
+                  </span>
+                ) : (
+                  <div className="border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden divide-y divide-slate-100 dark:divide-slate-800 bg-white dark:bg-slate-950">
+                    {sharedUsers.map((item) => (
+                      <div key={item.id} className="flex items-center justify-between p-3 text-xs">
+                        <div className="flex items-center gap-2">
+                          <span className="flex h-7 w-7 items-center justify-center rounded-full bg-slate-100 text-slate-650 dark:bg-slate-900 dark:text-slate-400 font-bold uppercase text-[10px]">
+                            {item.username.slice(0, 2)}
+                          </span>
+                          <div>
+                            <p className="font-bold text-slate-700 dark:text-slate-305">
+                              {item.username}
+                            </p>
+                            <p className="text-[9px] text-slate-405">{item.email}</p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-3">
+                          <select
+                            value={item.permission}
+                            onChange={(e) => {
+                              setSharedUsers(
+                                sharedUsers.map((su) =>
+                                  su.id === item.id
+                                    ? { ...su, permission: e.target.value as any }
+                                    : su
+                                )
+                              );
+                            }}
+                            className="bg-transparent border-none text-[11px] font-bold text-blue-600 hover:text-blue-700 dark:text-blue-450 focus:outline-none cursor-pointer"
+                          >
+                            <option value="READ" className="bg-white dark:bg-slate-900">
+                              Read Only
+                            </option>
+                            <option value="WRITE" className="bg-white dark:bg-slate-900">
+                              Read & Write
+                            </option>
+                          </select>
+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSharedUsers(sharedUsers.filter((su) => su.id !== item.id));
+                            }}
+                            className="text-rose-500 hover:text-rose-700 font-bold p-1 transition-colors"
+                            title="Remove Access"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex justify-end gap-2 items-center">
+              {shareSuccess && (
+                <span className="text-[11px] text-emerald-500 font-bold mr-auto">
+                  ✓ Configured shared users successfully
+                </span>
+              )}
+              <button
+                type="button"
+                onClick={() => {
+                  setShareSuccess('✓ Sharing success');
+                  setTimeout(() => {
+                    setShareSuccess(null);
+                    setShowAdvanced(false);
+                  }, 800);
+                }}
+                disabled={sharedUsers.length === 0}
+                className="h-9 px-4 rounded-lg bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-bold text-xs transition-colors"
+              >
+                Apply Sharing Rules
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Title Header */}
       <div className="flex items-center gap-4">
         <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-50 text-blue-600 dark:bg-blue-955/40 dark:text-blue-450 shadow-sm shrink-0">
@@ -251,18 +478,7 @@ console.log(2 + 2);`);
                         </option>
                       ))}
                     </select>
-                    <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-450 pointer-events-none" />
-                  </div>
-
-                  {/* Auto detect label */}
-                  <div className="relative">
-                    <select
-                      disabled
-                      className="appearance-none h-8 rounded-lg border border-slate-200 bg-white/50 pl-3 pr-8 text-xs font-medium text-slate-400 cursor-not-allowed dark:border-slate-800 dark:bg-slate-950/50"
-                    >
-                      <option>Auto-detect</option>
-                    </select>
-                    <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400 pointer-events-none" />
+                    <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-455 pointer-events-none" />
                   </div>
                 </div>
 
@@ -344,7 +560,7 @@ console.log(2 + 2);`);
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mt-6 select-none">
             {/* Private card */}
             <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 rounded-xl shadow-xs space-y-1.5">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-50 text-blue-600 dark:bg-blue-950/40 dark:text-blue-400">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-50 text-blue-600 dark:bg-blue-955/40 dark:text-blue-400">
                 <Shield size={16} />
               </div>
               <h3 className="text-sm font-semibold text-slate-800 dark:text-white">
@@ -445,7 +661,7 @@ console.log(2 + 2);`);
                     </option>
                   ))}
                 </select>
-                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-450 pointer-events-none" />
+                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-455 pointer-events-none" />
               </div>
               <span className="text-[10px] text-slate-400 dark:text-slate-500 leading-normal pl-0.5 select-none">
                 {getExpirationDescription(expiration)}
@@ -464,7 +680,7 @@ console.log(2 + 2);`);
                 {[
                   { id: 'PUBLIC', label: '🌍 Public' },
                   { id: 'PRIVATE', label: '🔒 Private' },
-                  { id: 'ONLY_ME', label: '👤 Only Me' },
+                  { id: 'SECRET', label: '👻 Secret' },
                 ].map((opt) => (
                   <button
                     key={opt.id}
@@ -537,7 +753,7 @@ console.log(2 + 2);`);
                           setCustomPin(e.target.value.replace(/\D/g, '').slice(0, 8))
                         }
                         placeholder="4 to 8 digits PIN"
-                        className="h-9 w-full rounded-lg border border-slate-200 bg-white px-3 pr-10 text-xs focus:outline-none dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200"
+                        className="h-9 w-full rounded-lg border border-slate-200 bg-white px-3 pr-10 text-xs focus:outline-none dark:border-slate-800 dark:bg-slate-955 dark:text-slate-200"
                       />
                       <button
                         type="button"
@@ -559,24 +775,16 @@ console.log(2 + 2);`);
               )}
             </div>
 
-            {/* Collapsible Advanced Settings */}
+            {/* Collapsible Advanced Settings (now opens modal dialog!) */}
             <div className="border-t border-slate-100 dark:border-slate-800 pt-4">
               <button
                 type="button"
-                onClick={() => setShowAdvanced(!showAdvanced)}
+                onClick={() => setShowAdvanced(true)}
                 className="w-full flex items-center justify-between text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider"
               >
                 <span>Advanced Settings</span>
-                <ChevronDown
-                  size={14}
-                  className={`transform transition-transform ${showAdvanced ? 'rotate-180' : ''}`}
-                />
+                <ChevronDown size={14} />
               </button>
-              {showAdvanced && (
-                <div className="mt-3 space-y-2 text-[10px] text-slate-450 dark:text-slate-500 animate-in fade-in duration-200">
-                  <p>🔧 More configurations will be available in future releases.</p>
-                </div>
-              )}
             </div>
 
             {/* Error Message Box */}

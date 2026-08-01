@@ -22,13 +22,15 @@ Our platform leverages a modern, cohesive tech stack across all layers:
 
 ## ✨ Key Features
 
-- **Monaco Code Editor**: Fully integrated code-sharing panel supporting dynamic languages syntax highlighting and dark/light theme Swapping.
+- **Monaco Code Editor**: Fully integrated code-sharing panel supporting dynamic language syntax highlighting, dark/light theme switching, and Esc-triggered fullscreen overlays.
 - **Developer CLI Client (`pastebin`)**: Upload local files, retrieve snippets with syntax highlighting, list public entries, and login directly from your terminal. Includes automated OS clipboard copying.
-- **JWT Stateless Authentication**: User registration, login, and secure user dashboards displaying past pastes history.
+- **JWT Stateless Authentication**: User registration, login, and secure user dashboards displaying past paste history.
 - **Personal Workspace Dashboard**: Structured workspace sections (My Pastes, Shared With Me, Saved bookmarks, and Recently Viewed logs) containing in-memory filtering, sort orders, and card action modals.
-- **Dynamic Paste Expirations**: Set lifespan durations (10m, 1h, 1d, 1w, 1m) with background database sweep cleaners.
+- **Collaborative Sharing & Permissions**: Centered Sharing modal dialog allowing owners to manage read-only or read-and-write permissions. Guests with write access can edit Monaco content inline.
+- **Segmented Visibility Levels**: Select between Public (searchable), Private (PIN code protection), and Secret (visible strictly to logged-in owner).
+- **Dynamic Paste Expirations**: Set lifespan durations (1h, 24h, 7d, 30d, or Custom Date) with automatic cleanup.
 - **BCrypt Password Protection**: Lock sensitive paste entries with custom passwords checked via secure hashes (`bcrypt`) and handshake verify routes.
-- **Public Directory & Search**: Browse public snippets with real-time text searches, programming languages filtering, and page pagination.
+- **Public Directory & Search**: Browse public snippets with real-time text searches, programming language filtering, and page pagination.
 - **Layered Rate Limiting**: Ingress limits (100 req/15m global, 10 req/15m sensitive auth/posts, 5 req/1m delete) blocking brute-force attacks.
 - **Input Sanitization**: Backend cleaning of script tags from titles (`sanitize-html`) and custom regex script stripping on code content.
 - **Performance Optimizations**: SPA route code-splitting, lazy route skeletons, CDN Monaco worker loading, and client-side TTL query caches.

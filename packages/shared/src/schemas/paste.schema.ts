@@ -7,9 +7,17 @@ export const CreatePasteSchema = z
     content: z.string().min(1, 'Content is required'),
     language: z.string().default('plaintext'),
     isPublic: z.boolean().default(true),
-    visibility: z.enum(['PUBLIC', 'PRIVATE', 'ONLY_ME']).default('PUBLIC'),
+    visibility: z.enum(['PUBLIC', 'PRIVATE', 'SECRET']).default('PUBLIC'),
     password: z.string().optional().or(z.literal('')),
     expiresInSeconds: z.number().int().positive().optional(),
+    shares: z
+      .array(
+        z.object({
+          userId: z.string(),
+          permission: z.enum(['READ', 'WRITE']),
+        })
+      )
+      .optional(),
   })
   .refine(
     (data) => {

@@ -466,3 +466,37 @@ Database foreign keys are configured with `onDelete: Cascade` rules to ensure st
 
 1. **Paste Deletion**: When a user deletes a paste, the database engine cascadingly deletes all related shares (`Share`), bookmarks (`SavedPaste`), and history logs (`RecentView`), keeping the schema completely clean without orphans.
 2. **Access Control Filtering**: When listing saved pastes or recent history for a user, the backend queries verify that the requesting user is the owner, or is public, or is explicitly shared with. Unauthorized references return an empty/unavailable state to protect secret data.
+
+---
+
+## 12. Paste Ownership, Sharing & Permissions Model
+
+To govern file edits, viewing credentials, and user permissions, PasteBin utilizes a robust access control model:
+
+### Paste Ownership
+
+Every paste is associated with a `userId` pointing to the user who created it (the Owner).
+
+- Only the Owner holds administrative control over a paste.
+- Only the Owner can delete a paste, change its visibility level, or manage its shared users.
+
+### Sharing Flow
+
+Paste sharing is configured by the Owner using the Advanced Sharing Settings modal.
+
+- The Owner searches for users by username or email.
+- Matched users can be added to the paste's share list with a specific permission level (`READ` or `WRITE`).
+- The system persists these permissions in the `Share` database model, establishing a compound primary key index on `[pasteId, userId]`.
+
+### Permissions Model
+
+When a shared user accesses a paste, the system retrieves their specific access role:
+
+- **`READ` (Read Only)**: Allows users to view the code, copy it to their clipboard, and save (bookmark) it to their personal Browse workspace.
+- **`WRITE` (Read & Write)**: In addition to read actions, shared editors can edit the title, description, and Monaco code content inline. However, they cannot delete the paste, modify its visibility settings, change expiration rules, or share it with other users.
+
+### Visibility Access Levels
+
+1. **Public**: Indexed globally, searchable by everyone, and visible on public profile pages.
+2. **Private**: Prompts for a 4-8 digit numeric PIN. If a shared guest user accesses the private paste, the PIN check is bypassed for the Owner but enforced for guests unless they are explicitly shared with a `READ`/`WRITE` role.
+3. **Secret**: Visible strictly to the Owner's logged-in session. It will never appear in global search dropdowns, workspaces, profiles, or query results.

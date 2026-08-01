@@ -43,12 +43,13 @@ model Paste {
 }
 
 model Share {
-  id        String   @id @default(uuid())
-  pasteId   String
-  paste     Paste    @relation(fields: [pasteId], references: [id], onDelete: Cascade)
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  createdAt DateTime @default(now())
+  id         String   @id @default(uuid())
+  pasteId    String
+  paste      Paste    @relation(fields: [pasteId], references: [id], onDelete: Cascade)
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  permission String   @default("READ")
+  createdAt  DateTime @default(now())
 
   @@unique([pasteId, userId])
 }

@@ -104,7 +104,7 @@ export class PasteController {
   static async sharePaste(req: Request, res: Response, next: NextFunction) {
     try {
       const { id } = req.params;
-      const { usernameOrEmail } = req.body;
+      const { usernameOrEmail, permission } = req.body;
       const userId = (req as any).user?.userId;
       if (!userId) {
         return res.status(401).json({
@@ -118,8 +118,47 @@ export class PasteController {
           message: 'Username or email is required to share',
         });
       }
-      const shared = await PasteService.sharePaste(id, userId, usernameOrEmail);
+      const shared = await PasteService.sharePaste(
+        id,
+        userId,
+        usernameOrEmail,
+        permission || 'READ'
+      );
       res.json(shared);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async getPasteShares(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { id } = req.params;
+      const userId = (req as any).user?.userId;
+      if (!userId) {
+        return res.status(401).json({
+          error: 'UnauthorizedError',
+          message: 'Access token required',
+        });
+      }
+      const shares = await PasteService.getPasteShares(id, userId);
+      res.json(shares);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async removePasteShare(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { id, userId: targetUserId } = req.params;
+      const userId = (req as any).user?.userId;
+      if (!userId) {
+        return res.status(401).json({
+          error: 'UnauthorizedError',
+          message: 'Access token required',
+        });
+      }
+      const result = await PasteService.removePasteShare(id, userId, targetUserId);
+      res.json(result);
     } catch (error) {
       next(error);
     }

@@ -11,14 +11,21 @@ import {
   Copy,
   Check,
   Trash2,
+  Edit,
+  Save,
+  Share2,
+  Users,
 } from 'lucide-react';
 import Editor from '@monaco-editor/react';
 import { useTheme } from '../components/theme-provider.js';
+import { useAuth } from '../components/auth-provider.js';
 
 export function ViewPaste() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { theme } = useTheme();
+  const { user, token } = useAuth();
+
   const [paste, setPaste] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -31,6 +38,23 @@ export function ViewPaste() {
   const [deleting, setDeleting] = useState(false);
   const [unlocking, setUnlocking] = useState(false);
 
+  // Editing States
+  const [isEditing, setIsEditing] = useState(false);
+  const [editTitle, setEditTitle] = useState('');
+  const [editDescription, setEditDescription] = useState('');
+  const [editContent, setEditContent] = useState('');
+  const [updating, setUpdating] = useState(false);
+  const [updateError, setUpdateError] = useState<string | null>(null);
+
+  // Sharing Modal States
+  const [showAdvanced, setShowAdvanced] = useState(false);
+  const [sharedUsers, setSharedUsers] = useState<any[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [searching, setSearching] = useState(false);
+  const [shareSuccess, setShareSuccess] = useState<string | null>(null);
+  const [shareError, setShareError] = useState<string | null>(null);
+
   const fetchPaste = async (pw = '') => {
     setLoading(true);
     setError(null);
@@ -40,6 +64,9 @@ export function ViewPaste() {
       const headers: any = {};
       if (pw) {
         headers['x-paste-password'] = pw;
+      }
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
       }
       const response = await axios.get(`http://localhost:5000/api/pastes/${id}`, { headers });
       setPaste(response.data);
@@ -72,7 +99,71 @@ export function ViewPaste() {
 
   useEffect(() => {
     fetchPaste();
-  }, [id]);
+  }, [id, token]);
+
+  // Fetch paste shares on modal open
+  const fetchShares = async () => {
+    if (!token) return;
+    try {
+      const headers = { Authorization: `Bearer ${token}` };
+      const response = await axios.get(`http://localhost:5000/api/pastes/${id}/shares`, {
+        headers,
+      });
+      setSharedUsers(response.data || []);
+    } catch (err) {
+      console.error('Failed to fetch shares:', err);
+    }
+  };
+
+  useEffect(() => {
+    if (showAdvanced) {
+      fetchShares();
+    }
+  }, [showAdvanced]);
+
+  // Debounced User Search
+  useEffect(() => {
+    if (!searchQuery.trim()) {
+      setSearchResults([]);
+      return;
+    }
+    const timer = setTimeout(async () => {
+      setSearching(true);
+      try {
+        const headers: any = {};
+        if (token) headers['Authorization'] = `Bearer ${token}`;
+        const res = await axios.get(
+          `http://localhost:5000/api/search?q=${encodeURIComponent(searchQuery)}`,
+          { headers }
+        );
+        // Exclude users already added
+        const matched = (res.data.users || []).filter((u: any) => {
+          return !sharedUsers.some((su) => su.userId === u.id);
+        });
+        setSearchResults(matched);
+      } catch (err) {
+        console.error('Search users error:', err);
+      } finally {
+        setSearching(false);
+      }
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery, sharedUsers, token]);
+
+  // KeydownESC listener
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        if (showAdvanced) {
+          setShowAdvanced(false);
+        } else if (showDeleteConfirm) {
+          setShowDeleteConfirm(false);
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [showAdvanced, showDeleteConfirm]);
 
   const handlePasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -82,9 +173,10 @@ export function ViewPaste() {
   };
 
   const handleCopy = async () => {
-    if (paste?.content) {
+    const codeToCopy = isEditing ? editContent : paste?.content;
+    if (codeToCopy) {
       try {
-        await navigator.clipboard.writeText(paste.content);
+        await navigator.clipboard.writeText(codeToCopy);
         setCopied(true);
         setTimeout(() => setCopied(false), 2000);
       } catch (err) {
@@ -100,6 +192,9 @@ export function ViewPaste() {
       if (password) {
         headers['x-paste-password'] = password;
       }
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
       await axios.delete(`http://localhost:5000/api/pastes/${id}`, { headers });
       navigate('/browse');
     } catch (err: any) {
@@ -107,6 +202,97 @@ export function ViewPaste() {
       alert(err.response?.data?.message || 'Failed to delete paste');
       setDeleting(false);
       setShowDeleteConfirm(false);
+    }
+  };
+
+  const handleStartEdit = () => {
+    setEditTitle(paste?.title || '');
+    setEditDescription(paste?.description || '');
+    setEditContent(paste?.content || '');
+    setIsEditing(true);
+  };
+
+  const handleUpdate = async () => {
+    setUpdating(true);
+    setUpdateError(null);
+    try {
+      const headers: any = {};
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+      const response = await axios.put(
+        `http://localhost:5000/api/pastes/${id}`,
+        {
+          title: editTitle.trim(),
+          description: editDescription.trim(),
+          content: editContent,
+          language: paste.language,
+        },
+        { headers }
+      );
+      setPaste(response.data);
+      setIsEditing(false);
+    } catch (err: any) {
+      console.error('Update paste failed:', err);
+      setUpdateError(err.response?.data?.message || 'Failed to save changes');
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  // Real-time sharing modifications
+  const handleAddShare = async (selectedUser: any) => {
+    if (!token) return;
+    setShareError(null);
+    try {
+      const headers = { Authorization: `Bearer ${token}` };
+      await axios.post(
+        `http://localhost:5000/api/pastes/${id}/share`,
+        {
+          usernameOrEmail: selectedUser.username,
+          permission: 'READ',
+        },
+        { headers }
+      );
+      setSearchQuery('');
+      setSearchResults([]);
+      setShareSuccess('✓ Paste Shared Successfully');
+      setTimeout(() => setShareSuccess(null), 2000);
+      await fetchShares();
+    } catch (err: any) {
+      console.error('Add share failed:', err);
+      setShareError(err.response?.data?.message || 'Failed to share paste');
+    }
+  };
+
+  const handleUpdateSharePermission = async (targetUser: any, permission: 'READ' | 'WRITE') => {
+    if (!token) return;
+    try {
+      const headers = { Authorization: `Bearer ${token}` };
+      await axios.post(
+        `http://localhost:5000/api/pastes/${id}/share`,
+        {
+          usernameOrEmail: targetUser.username,
+          permission,
+        },
+        { headers }
+      );
+      await fetchShares();
+    } catch (err) {
+      console.error('Update permission failed:', err);
+    }
+  };
+
+  const handleRemoveShare = async (targetUserId: string) => {
+    if (!token) return;
+    try {
+      const headers = { Authorization: `Bearer ${token}` };
+      await axios.delete(`http://localhost:5000/api/pastes/${id}/share/${targetUserId}`, {
+        headers,
+      });
+      await fetchShares();
+    } catch (err) {
+      console.error('Remove share failed:', err);
     }
   };
 
@@ -161,7 +347,7 @@ export function ViewPaste() {
             placeholder="Enter paste password..."
             autoFocus
             required
-            className="h-10 w-full rounded-lg border border-slate-200 bg-slate-50/50 px-3.5 text-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-400/40 dark:border-slate-800 dark:bg-slate-950 dark:placeholder-slate-500 transition-all"
+            className="h-10 w-full rounded-lg border border-slate-200 bg-slate-50/50 px-3.5 text-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-400/40 dark:border-slate-800 dark:bg-slate-955 dark:placeholder-slate-500 transition-all"
           />
           {passwordError && (
             <div className="text-xs text-rose-500 font-semibold flex items-center gap-1.5">
@@ -240,8 +426,181 @@ export function ViewPaste() {
     );
   }
 
+  const isOwner = user && paste && paste.userId === user.id;
+  const isWriter = paste && paste.sharePermission === 'WRITE';
+  const canEdit = isOwner || isWriter;
+
   return (
     <div className="w-full max-w-5xl mx-auto space-y-6 relative">
+      {/* Centered Sharing Advanced Settings Dialog Modal */}
+      {showAdvanced && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 backdrop-blur-sm p-4"
+          role="dialog"
+          aria-modal="true"
+        >
+          <div className="w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-2xl flex flex-col max-h-[90vh] animate-in fade-in zoom-in-95 duration-155 relative text-left">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800 select-none">
+              <div className="flex items-center gap-2">
+                <Users className="text-blue-500 h-5 w-5" />
+                <h2 className="text-sm font-bold text-slate-800 dark:text-white">
+                  Advanced Sharing Settings
+                </h2>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowAdvanced(false)}
+                className="text-slate-400 hover:text-slate-650 dark:hover:text-slate-200 font-bold p-1 transition-colors"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Scrollable Content */}
+            <div className="flex-1 overflow-y-auto py-4 space-y-5 pr-1 select-none">
+              {/* User search input */}
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">
+                  Search Username or Email
+                </label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Type name or email address..."
+                    className="h-10 w-full rounded-lg border border-slate-200 bg-slate-50/50 px-3.5 text-xs focus:outline-none dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100"
+                  />
+
+                  {/* Suggestions dropdown */}
+                  {searchQuery && (searchResults.length > 0 || searching) && (
+                    <div className="absolute left-0 right-0 mt-1.5 z-55 max-h-48 overflow-y-auto bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-855 rounded-lg shadow-lg">
+                      {searching ? (
+                        <div className="p-3 text-xs text-slate-450 dark:text-slate-500 text-center">
+                          Searching...
+                        </div>
+                      ) : (
+                        searchResults.map((u) => (
+                          <button
+                            key={u.id}
+                            type="button"
+                            onClick={() => handleAddShare(u)}
+                            className="w-full flex items-center justify-between p-2.5 hover:bg-slate-50 dark:hover:bg-slate-900 border-b border-slate-100 dark:border-slate-800 last:border-b-0 text-left text-xs text-slate-700 dark:text-slate-300"
+                          >
+                            <div className="flex items-center gap-2">
+                              <span className="flex h-6 w-6 items-center justify-center rounded-full bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400 font-bold uppercase text-[9px]">
+                                {u.username.slice(0, 2)}
+                              </span>
+                              <div>
+                                <p className="font-bold">{u.username}</p>
+                                <p className="text-[9px] text-slate-400">{u.email}</p>
+                              </div>
+                            </div>
+                            <span className="text-[10px] text-blue-600 dark:text-blue-450 font-bold">
+                              Share
+                            </span>
+                          </button>
+                        ))
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Followers List Placeholder */}
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">
+                  Quick Share (Followers)
+                </label>
+                <span className="text-[11px] text-slate-455 dark:text-slate-500 italic block pl-1">
+                  No followers yet.
+                </span>
+              </div>
+
+              {/* Shared list table */}
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">
+                  Shared With
+                </label>
+
+                {sharedUsers.length === 0 ? (
+                  <span className="text-[11px] text-slate-400 dark:text-slate-600 italic block pl-1">
+                    Not shared with anyone yet.
+                  </span>
+                ) : (
+                  <div className="border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden divide-y divide-slate-100 dark:divide-slate-800 bg-white dark:bg-slate-950">
+                    {sharedUsers.map((item) => (
+                      <div
+                        key={item.userId}
+                        className="flex items-center justify-between p-3 text-xs"
+                      >
+                        <div className="flex items-center gap-2">
+                          <span className="flex h-7 w-7 items-center justify-center rounded-full bg-slate-100 text-slate-650 dark:bg-slate-900 dark:text-slate-400 font-bold uppercase text-[10px]">
+                            {(item.user?.username || '').slice(0, 2)}
+                          </span>
+                          <div>
+                            <p className="font-bold text-slate-700 dark:text-slate-300">
+                              {item.user?.username}
+                            </p>
+                            <p className="text-[9px] text-slate-400">{item.user?.email}</p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-3">
+                          <select
+                            value={item.permission}
+                            onChange={(e) =>
+                              handleUpdateSharePermission(item.user, e.target.value as any)
+                            }
+                            className="bg-transparent border-none text-[11px] font-bold text-blue-600 hover:text-blue-700 dark:text-blue-450 focus:outline-none cursor-pointer"
+                          >
+                            <option value="READ" className="bg-white dark:bg-slate-900">
+                              Read Only
+                            </option>
+                            <option value="WRITE" className="bg-white dark:bg-slate-900">
+                              Read & Write
+                            </option>
+                          </select>
+
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveShare(item.userId)}
+                            className="text-rose-500 hover:text-rose-700 font-bold p-1 transition-colors"
+                            title="Remove Access"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex justify-end items-center">
+              {shareSuccess && (
+                <span className="text-[11px] text-emerald-500 font-bold mr-auto">
+                  {shareSuccess}
+                </span>
+              )}
+              {shareError && (
+                <span className="text-[11px] text-rose-500 font-bold mr-auto">{shareError}</span>
+              )}
+              <button
+                type="button"
+                onClick={() => setShowAdvanced(false)}
+                className="h-9 px-4 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold text-xs transition-colors"
+              >
+                Close Dialog
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Delete Confirmation Modal (AlertDialog Mock) */}
       {showDeleteConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 backdrop-blur-sm p-4">
@@ -280,25 +639,70 @@ export function ViewPaste() {
         </div>
       )}
 
+      {/* Main Header / Edit Header details */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-slate-200 dark:border-slate-800 pb-5">
-        <div className="space-y-1">
-          <h1 className="text-xl font-bold tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
-            <Terminal className="text-indigo-500 h-5 w-5" /> {paste.title || 'Untitled Paste'}
-          </h1>
-          <div className="flex flex-wrap items-center gap-3 text-xs text-slate-500">
-            <span className="px-2 py-0.5 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700/60 rounded-md font-semibold text-slate-600 dark:text-slate-300">
-              {paste.language}
-            </span>
-            <span className="flex items-center gap-1">
-              <Clock size={12} /> Expiration:{' '}
-              {paste.expiresAt ? new Date(paste.expiresAt).toLocaleString() : 'Never'}
-            </span>
-            <span className="flex items-center gap-1">
-              <Eye size={12} /> {paste.isPublic ? 'Public' : 'Private link'}
-            </span>
-          </div>
+        <div className="space-y-2.5 flex-1">
+          {isEditing ? (
+            <div className="space-y-3 max-w-2xl">
+              <input
+                type="text"
+                value={editTitle}
+                onChange={(e) => setEditTitle(e.target.value)}
+                placeholder="Enter paste title..."
+                className="h-10 w-full rounded-lg border border-slate-200 bg-slate-50/50 px-3.5 text-sm font-bold focus:outline-none dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200"
+              />
+              <textarea
+                rows={2}
+                maxLength={300}
+                value={editDescription}
+                onChange={(e) => setEditDescription(e.target.value.slice(0, 300))}
+                placeholder="Update paste description..."
+                className="w-full rounded-lg border border-slate-200 bg-slate-50/50 p-2.5 text-xs focus:outline-none dark:border-slate-800 dark:bg-slate-955 resize-none dark:text-slate-300"
+              />
+              <span className="text-[9px] text-slate-400 block -mt-1 select-none text-right">
+                {editDescription.length} / 300
+              </span>
+            </div>
+          ) : (
+            <div className="space-y-1">
+              <h1 className="text-xl font-bold tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
+                <Terminal className="text-indigo-500 h-5 w-5" /> {paste.title || 'Untitled Paste'}
+              </h1>
+              {paste.description && (
+                <p className="text-xs text-slate-550 dark:text-slate-400 pl-7 leading-relaxed whitespace-pre-wrap">
+                  {paste.description}
+                </p>
+              )}
+              <div className="flex flex-wrap items-center gap-3 text-xs text-slate-500 pl-7">
+                <span className="px-2 py-0.5 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700/60 rounded-md font-semibold text-slate-600 dark:text-slate-300">
+                  {paste.language}
+                </span>
+                <span className="flex items-center gap-1">
+                  <Clock size={12} /> Expiration:{' '}
+                  {paste.expiresAt ? new Date(paste.expiresAt).toLocaleString() : 'Never'}
+                </span>
+                <span className="flex items-center gap-1">
+                  <Eye size={12} /> Visibility:{' '}
+                  <span className="capitalize">{paste.visibility.toLowerCase()}</span>
+                </span>
+              </div>
+            </div>
+          )}
         </div>
-        <div className="flex items-center gap-3">
+
+        <div className="flex flex-wrap items-center gap-3 select-none">
+          {/* Share/Advanced settings button (Owner only) */}
+          {isOwner && !isEditing && (
+            <button
+              onClick={() => setShowAdvanced(true)}
+              className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-slate-200 bg-white px-4 text-xs font-bold text-slate-600 shadow-sm hover:bg-slate-50 focus:outline-none dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800 transition-colors"
+            >
+              <Share2 size={12} />
+              <span>Share</span>
+            </button>
+          )}
+
+          {/* Copy Button */}
           <button
             onClick={handleCopy}
             className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-slate-200 bg-white px-4 text-xs font-bold text-slate-600 shadow-sm hover:bg-slate-50 focus:outline-none dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800 transition-colors"
@@ -307,32 +711,65 @@ export function ViewPaste() {
             <span>{copied ? 'Copied!' : 'Copy Code'}</span>
           </button>
 
-          <button
-            onClick={() => setShowDeleteConfirm(true)}
-            className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-rose-200 bg-white px-4 text-xs font-bold text-rose-600 shadow-sm hover:bg-rose-50/50 focus:outline-none dark:border-rose-900/40 dark:bg-slate-900 dark:text-rose-450 dark:hover:bg-rose-950/20 transition-colors"
-          >
-            <Trash2 size={12} />
-            <span>Delete</span>
-          </button>
+          {/* Edit / Update Controls */}
+          {canEdit &&
+            (isEditing ? (
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setIsEditing(false)}
+                  disabled={updating}
+                  className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-slate-200 bg-white px-4 text-xs font-bold text-slate-700 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-350 dark:hover:bg-slate-805 transition-colors disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleUpdate}
+                  disabled={updating}
+                  className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg bg-emerald-650 hover:bg-emerald-600 px-4 text-xs font-bold text-white shadow-md transition-colors disabled:opacity-50"
+                >
+                  <Save size={12} />
+                  <span>{updating ? 'Saving...' : 'Save Changes'}</span>
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={handleStartEdit}
+                className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-slate-200 bg-white px-4 text-xs font-bold text-slate-600 shadow-sm hover:bg-slate-50 focus:outline-none dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800 transition-colors"
+              >
+                <Edit size={12} />
+                <span>Edit Paste</span>
+              </button>
+            ))}
 
-          <Link
-            to="/"
-            className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg bg-indigo-600 px-4 text-xs font-bold text-white shadow-md hover:bg-indigo-500 focus:outline-none dark:bg-indigo-500 dark:hover:bg-indigo-400 transition-colors"
-          >
-            <ArrowLeft size={12} />
-            <span>New Paste</span>
-          </Link>
+          {/* Delete Button (Owner only) */}
+          {isOwner && !isEditing && (
+            <button
+              onClick={() => setShowDeleteConfirm(true)}
+              className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-rose-200 bg-white px-4 text-xs font-bold text-rose-600 shadow-sm hover:bg-rose-50/50 focus:outline-none dark:border-rose-900/40 dark:bg-slate-900 dark:text-rose-450 dark:hover:bg-rose-950/20 transition-colors"
+            >
+              <Trash2 size={12} />
+              <span>Delete</span>
+            </button>
+          )}
         </div>
       </div>
 
-      <div className="w-full border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-sm bg-slate-50 dark:bg-slate-950">
+      {updateError && (
+        <div className="p-3.5 bg-rose-50 dark:bg-rose-500/5 border border-rose-100 dark:border-rose-500/10 rounded-xl text-rose-650 dark:text-rose-400 text-xs font-bold animate-in shake duration-300">
+          ⚠ {updateError}
+        </div>
+      )}
+
+      {/* Editor container area */}
+      <div className="w-full border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-sm bg-slate-50 dark:bg-slate-950 flex flex-col">
         <Editor
           height="450px"
           language={paste.language}
-          value={paste.content}
+          value={isEditing ? editContent : paste.content}
+          onChange={(val) => isEditing && setEditContent(val || '')}
           theme={theme === 'dark' ? 'vs-dark' : 'light'}
           options={{
-            readOnly: true,
+            readOnly: !isEditing,
             minimap: { enabled: false },
             fontSize: 13,
             lineNumbers: 'on',
