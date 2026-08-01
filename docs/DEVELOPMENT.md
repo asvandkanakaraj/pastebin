@@ -390,3 +390,21 @@
   - Implemented actions (My Pastes: Open, Edit, Delete, Share, Duplicate, Copy Link, Change Visibility; Shared With Me: Open, Copy, Bookmark; Saved: Open, Remove Bookmark, Copy, Share Link; Recently Viewed: Open).
   - Integrated local search inputs, sort criteria (Newest, Oldest, Updated, Alphabetical), view modes (remembering Grid or List in `localStorage`), loading skeletons, and friendly empty states.
   - Documented workspace API endpoints, ER model diagrams, and cascade deletes.
+
+## Session 29: Editor Refinements (Phase 1)
+
+- **Date**: 2026-08-01
+- **Status**: Completed ✅
+- **Objective**: Refine the paste creation editor options, layout parameters, preferences, and permissions visibility constraints according to specifications.
+- **Outcomes**:
+  - Added `description` and `visibility` database fields to the PostgreSQL schema.
+  - Extended shared `CreatePasteSchema` with description character limits and Private visibility password PIN checks.
+  - Refactored `CreatePaste.tsx` sidebar options, deleting duplicate Language controls and removing Tab Size selection completely.
+  - Added optional multiline `description` field with maximum 300 characters count validation.
+  - Integrated persistent storage preferences for editor themes (`pb_editor_theme`) and line numbers (`pb_editor_line_numbers`).
+  - Added full keyboard-interactive Fullscreen support (using ESC keydown event listeners) and dynamic automatic resizing of Monaco editor workspace height.
+  - Verified copy functionality preserving formatting, line breaks, and indentation, displaying success status banners.
+  - Mapped expiration options to Never, 1 Hour, 24 Hours, 7 Days, and 30 Days.
+  - Implemented Segmented Visibility Selectors (Public, Private, Only Me), setting up PIN configurations (Auto PIN generation and custom 4-8 digit inputs) for Private visibility.
+  - Handled owner bypass for private password inputs and restricted Only Me items strictly to owner sessions.
+  - Added collapsible Advanced Settings placeholder.

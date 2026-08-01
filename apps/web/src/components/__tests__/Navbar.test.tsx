@@ -49,7 +49,7 @@ describe('Navbar Component Tests', () => {
     );
 
     expect(screen.getByText('PasteBin')).toBeInTheDocument();
-    expect(screen.getByText('Dashboard')).toBeInTheDocument();
+    expect(screen.getByText('Manage Workspace')).toBeInTheDocument();
     expect(screen.getByText('Logout')).toBeInTheDocument();
   });
 });

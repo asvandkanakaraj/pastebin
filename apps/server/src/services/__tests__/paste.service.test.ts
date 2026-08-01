@@ -27,9 +27,11 @@ describe('PasteService Unit Tests', () => {
       const mockPaste = {
         id: 'paste-id-123',
         title: 'Mocked Paste',
+        description: null,
         content: 'console.log("hello test");',
         language: 'javascript',
         isPublic: true,
+        visibility: 'PUBLIC',
         passwordHash: null,
         expiresAt: null,
         userId: null,
@@ -65,9 +67,11 @@ describe('PasteService Unit Tests', () => {
       const mockPaste = {
         id: 'paste-id-123',
         title: 'Mocked Paste',
+        description: null,
         content: 'content here',
         language: 'plaintext',
         isPublic: true,
+        visibility: 'PUBLIC',
         passwordHash: null,
         expiresAt: null,
         userId: null,
@@ -93,9 +97,11 @@ describe('PasteService Unit Tests', () => {
       const mockExpiredPaste = {
         id: 'expired-id',
         title: 'Expired Paste',
+        description: null,
         content: 'expired content',
         language: 'plaintext',
         isPublic: true,
+        visibility: 'PUBLIC',
         passwordHash: null,
         expiresAt: new Date(Date.now() - 10000), // expired 10s ago
         userId: null,

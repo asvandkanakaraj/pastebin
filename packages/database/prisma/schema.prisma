@@ -23,9 +23,11 @@ model User {
 model Paste {
   id           String       @id @default(cuid())
   title        String?
+  description  String?
   content      String
   language     String       @default("plaintext")
   isPublic     Boolean      @default(true)
+  visibility   String       @default("PUBLIC")
   passwordHash String?
   expiresAt    DateTime?
   userId       String?

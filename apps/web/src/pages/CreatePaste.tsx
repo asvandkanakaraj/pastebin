@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import {
@@ -10,14 +10,11 @@ import {
   Minimize2,
   Copy,
   Check,
-  Lock,
-  Unlock,
   Settings,
   Shield,
   Zap,
   Code as CodeIcon,
   Link2,
-  Lightbulb,
   Eye,
   EyeOff,
   Save,
@@ -42,11 +39,10 @@ const LANGUAGES = [
 
 const EXPIRATION_OPTIONS = [
   { value: 'never', label: 'Never' },
-  { value: '600', label: '10 Minutes' },
   { value: '3600', label: '1 Hour' },
-  { value: '86400', label: '1 Day' },
-  { value: '604800', label: '1 Week' },
-  { value: '2592000', label: '1 Month' },
+  { value: '86400', label: '24 Hours' },
+  { value: '604800', label: '7 Days' },
+  { value: '2592000', label: '30 Days' },
 ];
 
 export function CreatePaste() {
@@ -55,10 +51,13 @@ export function CreatePaste() {
 
   // Paste Form Data
   const [title, setTitle] = useState('');
+  const [description, setDescription] = useState('');
   const [language, setLanguage] = useState('javascript');
   const [expiration, setExpiration] = useState('never');
-  const [isPublic, setIsPublic] = useState(true);
-  const [password, setPassword] = useState('');
+  const [visibility, setVisibility] = useState<'PUBLIC' | 'PRIVATE' | 'ONLY_ME'>('PUBLIC');
+  const [pinOption, setPinOption] = useState<'auto' | 'custom'>('auto');
+  const [customPin, setCustomPin] = useState('');
+  const [showPin, setShowPin] = useState(false);
   const [content, setContent] = useState(`// // PasteBin is awesome! 🚀
 function greetUser(name) {
   const greeting = \`Hello, \${name}!\`;
@@ -73,19 +72,50 @@ const user = 'Developer';
 console.log(greetUser(user));
 console.log(2 + 2);`);
 
-  // Editor Preferences & UI States
-  const [editorTheme, setEditorTheme] = useState<'vs-dark' | 'light'>('vs-dark');
-  const [showLineNumbers, setShowLineNumbers] = useState<'on' | 'off'>('on');
-  const [tabSize, setTabSize] = useState<number>(2);
+  // Editor Preferences & UI States (persisted)
+  const [editorTheme, _setEditorTheme] = useState<'vs-dark' | 'light'>(
+    (localStorage.getItem('pb_editor_theme') as 'vs-dark' | 'light') || 'vs-dark'
+  );
+  const [showLineNumbers, _setShowLineNumbers] = useState<'on' | 'off'>(
+    (localStorage.getItem('pb_editor_line_numbers') as 'on' | 'off') || 'on'
+  );
   const [cursorPos, setCursorPos] = useState({ line: 1, col: 1 });
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [showAdvanced, setShowAdvanced] = useState(false);
 
-  // Settings UI controls
-  const [hasPassword, setHasPassword] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Auto-generate PIN if PRIVATE and auto-generate selected
+  useEffect(() => {
+    if (visibility === 'PRIVATE' && pinOption === 'auto' && !customPin) {
+      const generated = Math.floor(100000 + Math.random() * 900000).toString();
+      setCustomPin(generated);
+    }
+  }, [visibility, pinOption, customPin]);
+
+  // Persist preferences functions
+  const setEditorTheme = (theme: 'vs-dark' | 'light') => {
+    _setEditorTheme(theme);
+    localStorage.setItem('pb_editor_theme', theme);
+  };
+
+  const setShowLineNumbers = (val: 'on' | 'off') => {
+    _setShowLineNumbers(val);
+    localStorage.setItem('pb_editor_line_numbers', val);
+  };
+
+  // Fullscreen ESC listener
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isFullscreen) {
+        setIsFullscreen(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isFullscreen]);
 
   const handleEditorMount = (editor: any) => {
     editor.onDidChangeCursorPosition((e: any) => {
@@ -106,25 +136,17 @@ console.log(2 + 2);`);
     switch (val) {
       case 'never':
         return 'The paste will never expire.';
-      case '600':
-        return 'The paste will expire in 10 minutes.';
       case '3600':
         return 'The paste will expire in 1 hour.';
       case '86400':
-        return 'The paste will expire in 1 day.';
+        return 'The paste will expire in 24 hours.';
       case '604800':
-        return 'The paste will expire in 1 week.';
+        return 'The paste will expire in 7 days.';
       case '2592000':
-        return 'The paste will expire in 1 month.';
+        return 'The paste will expire in 30 days.';
       default:
         return '';
     }
-  };
-
-  const getVisibilityDescription = (val: boolean) => {
-    return val
-      ? 'Anyone with the link can view this paste.'
-      : 'Only people with the direct URL can view this paste.';
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -134,10 +156,12 @@ console.log(2 + 2);`);
 
     const payload = {
       title: title.trim() || undefined,
+      description: description.trim() || undefined,
       content,
       language,
-      isPublic,
-      password: hasPassword && password.trim() ? password.trim() : undefined,
+      visibility,
+      isPublic: visibility === 'PUBLIC',
+      password: visibility === 'PRIVATE' ? customPin.trim() : undefined,
       expiresInSeconds: expiration === 'never' ? undefined : parseInt(expiration),
     };
 
@@ -201,7 +225,7 @@ console.log(2 + 2);`);
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder="Name of this paste..."
-                className="h-11 w-full rounded-lg border border-slate-200 bg-slate-50/50 px-4 text-sm placeholder-slate-400 focus:border-blue-550 focus:outline-none dark:border-slate-800 dark:bg-slate-950 dark:placeholder-slate-650 dark:focus:border-blue-500"
+                className="h-11 w-full rounded-lg border border-slate-200 bg-slate-50/50 px-4 text-sm placeholder-slate-400 focus:border-blue-550 focus:outline-none dark:border-slate-800 dark:bg-slate-950 dark:placeholder-slate-655 dark:focus:border-blue-500"
               />
             </div>
 
@@ -219,7 +243,7 @@ console.log(2 + 2);`);
                     <select
                       value={language}
                       onChange={(e) => setLanguage(e.target.value)}
-                      className="appearance-none h-8 rounded-lg border border-slate-200 bg-white pl-3 pr-8 text-xs font-medium text-slate-700 focus:outline-none dark:border-slate-800 dark:bg-slate-950 dark:text-slate-300"
+                      className="appearance-none h-8 rounded-lg border border-slate-200 bg-white pl-3 pr-8 text-xs font-medium text-slate-700 focus:outline-none dark:border-slate-800 dark:bg-slate-955 dark:text-slate-300"
                     >
                       {LANGUAGES.map((lang) => (
                         <option key={lang.value} value={lang.value}>
@@ -240,20 +264,6 @@ console.log(2 + 2);`);
                     </select>
                     <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400 pointer-events-none" />
                   </div>
-
-                  {/* Tab Size Dropdown */}
-                  <div className="relative">
-                    <select
-                      value={tabSize}
-                      onChange={(e) => setTabSize(parseInt(e.target.value))}
-                      className="appearance-none h-8 rounded-lg border border-slate-200 bg-white pl-3 pr-8 text-xs font-medium text-slate-700 focus:outline-none dark:border-slate-800 dark:bg-slate-950 dark:text-slate-300"
-                    >
-                      <option value="2">Tab size: 2</option>
-                      <option value="4">Tab size: 4</option>
-                      <option value="8">Tab size: 8</option>
-                    </select>
-                    <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-450 pointer-events-none" />
-                  </div>
                 </div>
 
                 {/* Toolbar Buttons */}
@@ -262,7 +272,7 @@ console.log(2 + 2);`);
                   <button
                     type="button"
                     onClick={() => setEditorTheme(editorTheme === 'vs-dark' ? 'light' : 'vs-dark')}
-                    className="h-8 w-8 inline-flex items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-400 dark:hover:bg-slate-800 transition-colors"
+                    className="h-8 w-8 inline-flex items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-660 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-400 dark:hover:bg-slate-800 transition-colors"
                     title="Toggle Editor Theme"
                   >
                     {editorTheme === 'vs-dark' ? <Sun size={14} /> : <Moon size={14} />}
@@ -272,7 +282,7 @@ console.log(2 + 2);`);
                   <button
                     type="button"
                     onClick={() => setShowLineNumbers(showLineNumbers === 'on' ? 'off' : 'on')}
-                    className={`h-8 w-8 inline-flex items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-400 dark:hover:bg-slate-800 transition-colors ${
+                    className={`h-8 w-8 inline-flex items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-955 dark:text-slate-400 dark:hover:bg-slate-800 transition-colors ${
                       showLineNumbers === 'on' ? 'ring-1 ring-blue-500' : ''
                     }`}
                     title="Toggle Line Numbers"
@@ -294,10 +304,10 @@ console.log(2 + 2);`);
                   <button
                     type="button"
                     onClick={handleCopy}
-                    className="h-8 w-8 inline-flex items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-650 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-400 dark:hover:bg-slate-850 transition-colors"
+                    className="h-8 w-8 inline-flex items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-650 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-955 dark:text-slate-400 dark:hover:bg-slate-850 transition-colors"
                     title="Copy Editor Code"
                   >
-                    {copied ? <Check size={14} className="text-green-500" /> : <Copy size={14} />}
+                    {copied ? <Check size={14} className="text-green-550" /> : <Copy size={14} />}
                   </button>
                 </div>
               </div>
@@ -309,7 +319,8 @@ console.log(2 + 2);`);
                 language={language}
                 editorTheme={editorTheme}
                 lineNumbers={showLineNumbers}
-                tabSize={tabSize}
+                tabSize={2}
+                height={isFullscreen ? 'calc(100vh - 120px)' : '400px'}
                 onMount={handleEditorMount}
               />
 
@@ -346,7 +357,7 @@ console.log(2 + 2);`);
 
             {/* Fast card */}
             <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 rounded-xl shadow-xs space-y-1.5">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-50 text-amber-600 dark:bg-amber-950/40 dark:text-amber-400">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-50 text-amber-600 dark:bg-amber-955/40 dark:text-amber-400">
                 <Zap size={16} />
               </div>
               <h3 className="text-sm font-semibold text-slate-800 dark:text-white">
@@ -391,33 +402,30 @@ console.log(2 + 2);`);
               <h2 className="text-sm font-bold text-slate-800 dark:text-white">Settings</h2>
             </div>
 
-            {/* Language Selection */}
+            {/* Description Textarea */}
             <div className="flex flex-col gap-1.5">
               <label
-                htmlFor="lang-select"
+                htmlFor="desc-input"
                 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider"
               >
-                Language
+                Description
               </label>
-              <div className="relative">
-                <select
-                  id="lang-select"
-                  value={language}
-                  onChange={(e) => setLanguage(e.target.value)}
-                  className="appearance-none h-10 w-full rounded-lg border border-slate-200 bg-slate-50/50 px-3 pr-10 text-sm focus:outline-none dark:border-slate-800 dark:bg-slate-950"
-                >
-                  {LANGUAGES.map((lang) => (
-                    <option key={lang.value} value={lang.value}>
-                      {lang.label}
-                    </option>
-                  ))}
-                </select>
-                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
-              </div>
+              <textarea
+                id="desc-input"
+                rows={3}
+                maxLength={300}
+                value={description}
+                onChange={(e) => setDescription(e.target.value.slice(0, 300))}
+                placeholder="Describe what this paste contains..."
+                className="w-full rounded-lg border border-slate-200 bg-slate-50/50 p-2.5 text-xs focus:outline-none dark:border-slate-800 dark:bg-slate-950 resize-none dark:placeholder-slate-600 leading-normal"
+              />
+              <span className="text-[9px] text-slate-400 dark:text-slate-500 text-right select-none pr-0.5">
+                {description.length} / 300
+              </span>
             </div>
 
             {/* Expiration Selection */}
-            <div className="flex flex-col gap-1.5">
+            <div className="flex flex-col gap-1.5 border-t border-slate-100 dark:border-slate-805 pt-4">
               <label
                 htmlFor="exp-select"
                 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider"
@@ -429,7 +437,7 @@ console.log(2 + 2);`);
                   id="exp-select"
                   value={expiration}
                   onChange={(e) => setExpiration(e.target.value)}
-                  className="appearance-none h-10 w-full rounded-lg border border-slate-200 bg-slate-50/50 px-3 pr-10 text-sm focus:outline-none dark:border-slate-800 dark:bg-slate-950"
+                  className="appearance-none h-10 w-full rounded-lg border border-slate-200 bg-slate-50/50 px-3 pr-10 text-xs font-medium focus:outline-none dark:border-slate-800 dark:bg-slate-950 dark:text-slate-300"
                 >
                   {EXPIRATION_OPTIONS.map((opt) => (
                     <option key={opt.value} value={opt.value}>
@@ -437,85 +445,136 @@ console.log(2 + 2);`);
                     </option>
                   ))}
                 </select>
-                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
+                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-450 pointer-events-none" />
               </div>
               <span className="text-[10px] text-slate-400 dark:text-slate-500 leading-normal pl-0.5 select-none">
                 {getExpirationDescription(expiration)}
               </span>
+              <p className="text-[9px] text-slate-400 dark:text-slate-550 leading-relaxed mt-0.5 select-none italic pl-0.5">
+                This paste will automatically become inaccessible after the selected expiration.
+              </p>
             </div>
 
-            {/* Visibility Toggle */}
+            {/* Visibility Selector */}
             <div className="flex flex-col gap-1.5 border-t border-slate-100 dark:border-slate-800 pt-4">
-              <div className="flex items-center justify-between">
-                <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider select-none">
-                  Visibility
-                </label>
-                <button
-                  type="button"
-                  onClick={() => setIsPublic(!isPublic)}
-                  className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors focus:outline-none ${
-                    isPublic ? 'bg-blue-600' : 'bg-slate-200 dark:bg-slate-800'
-                  }`}
-                >
-                  <span
-                    className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${
-                      isPublic ? 'translate-x-4.5' : 'translate-x-1'
-                    }`}
-                  />
-                </button>
-              </div>
-              <span className="text-[10px] text-slate-400 dark:text-slate-500 leading-normal pl-0.5 select-none">
-                {getVisibilityDescription(isPublic)}
-              </span>
-            </div>
-
-            {/* Password Protection Toggle */}
-            <div className="flex flex-col gap-1.5 border-t border-slate-100 dark:border-slate-800 pt-4">
-              <div className="flex items-center justify-between">
-                <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center gap-1 select-none">
-                  {hasPassword ? (
-                    <Lock size={12} className="text-blue-500" />
-                  ) : (
-                    <Unlock size={12} className="text-slate-400" />
-                  )}
-                  Password Protection{' '}
-                  <span className="text-[9px] text-slate-400 lowercase">(optional)</span>
-                </label>
-                <button
-                  type="button"
-                  onClick={() => setHasPassword(!hasPassword)}
-                  className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors focus:outline-none ${
-                    hasPassword ? 'bg-blue-600' : 'bg-slate-200 dark:bg-slate-800'
-                  }`}
-                >
-                  <span
-                    className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${
-                      hasPassword ? 'translate-x-4.5' : 'translate-x-1'
-                    }`}
-                  />
-                </button>
-              </div>
-              <span className="text-[10px] text-slate-400 dark:text-slate-500 leading-normal pl-0.5 select-none">
-                Add a password to protect this paste.
-              </span>
-
-              {/* Dynamic Password Input Field */}
-              {hasPassword && (
-                <div className="relative mt-2 animate-in fade-in slide-in-from-top-1 duration-200">
-                  <input
-                    type={showPassword ? 'text' : 'password'}
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="Enter password"
-                    className="h-9 w-full rounded-lg border border-slate-200 bg-slate-50/50 pl-3.5 pr-10 text-xs placeholder-slate-400 focus:outline-none dark:border-slate-800 dark:bg-slate-950 dark:placeholder-slate-600"
-                  />
+              <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider select-none">
+                Visibility
+              </label>
+              <div className="grid grid-cols-3 gap-1.5">
+                {[
+                  { id: 'PUBLIC', label: '🌍 Public' },
+                  { id: 'PRIVATE', label: '🔒 Private' },
+                  { id: 'ONLY_ME', label: '👤 Only Me' },
+                ].map((opt) => (
                   <button
+                    key={opt.id}
                     type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                    onClick={() => setVisibility(opt.id as any)}
+                    className={`py-2 px-1 text-center rounded-lg border text-[10px] font-bold transition-all ${
+                      visibility === opt.id
+                        ? 'bg-blue-600 border-blue-600 text-white shadow-sm'
+                        : 'border-slate-200 bg-slate-50/50 text-slate-600 hover:bg-slate-100 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300'
+                    }`}
                   >
-                    {showPassword ? <EyeOff size={13} /> : <Eye size={13} />}
+                    {opt.label}
                   </button>
+                ))}
+              </div>
+
+              {/* Private PIN configs */}
+              {visibility === 'PRIVATE' && (
+                <div className="space-y-3 mt-3 p-3 bg-slate-50 dark:bg-slate-950/20 border border-slate-200 dark:border-slate-800 rounded-xl animate-in fade-in duration-200">
+                  <label className="text-[9px] font-bold text-slate-450 dark:text-slate-400 uppercase tracking-wider">
+                    PIN Protection
+                  </label>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setPinOption('auto');
+                        const generated = Math.floor(100000 + Math.random() * 900000).toString();
+                        setCustomPin(generated);
+                      }}
+                      className={`flex-1 py-1.5 px-2 rounded-lg border text-[10px] font-bold transition-colors ${
+                        pinOption === 'auto'
+                          ? 'bg-blue-50 border-blue-200 text-blue-650 dark:bg-blue-950/20 dark:border-blue-900/30'
+                          : 'border-slate-200 bg-white text-slate-600 dark:border-slate-800 dark:bg-slate-900'
+                      }`}
+                    >
+                      Auto PIN
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setPinOption('custom');
+                        setCustomPin('');
+                      }}
+                      className={`flex-1 py-1.5 px-2 rounded-lg border text-[10px] font-bold transition-colors ${
+                        pinOption === 'custom'
+                          ? 'bg-blue-50 border-blue-200 text-blue-650 dark:bg-blue-950/20 dark:border-blue-900/30'
+                          : 'border-slate-200 bg-white text-slate-600 dark:border-slate-800 dark:bg-slate-900'
+                      }`}
+                    >
+                      Custom PIN
+                    </button>
+                  </div>
+
+                  {pinOption === 'auto' && (
+                    <div className="flex items-center justify-between bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-850 p-2.5 rounded-lg text-xs font-bold text-slate-700 dark:text-slate-300">
+                      <span className="font-mono text-blue-600 dark:text-blue-400 tracking-widest">
+                        {customPin || 'Generating...'}
+                      </span>
+                      <span className="text-[9px] text-slate-400 font-normal">Generated PIN</span>
+                    </div>
+                  )}
+
+                  {pinOption === 'custom' && (
+                    <div className="relative">
+                      <input
+                        type={showPin ? 'text' : 'password'}
+                        value={customPin}
+                        onChange={(e) =>
+                          setCustomPin(e.target.value.replace(/\D/g, '').slice(0, 8))
+                        }
+                        placeholder="4 to 8 digits PIN"
+                        className="h-9 w-full rounded-lg border border-slate-200 bg-white px-3 pr-10 text-xs focus:outline-none dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPin(!showPin)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                      >
+                        {showPin ? <EyeOff size={13} /> : <Eye size={13} />}
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Inline PIN Validation warning */}
+                  {visibility === 'PRIVATE' && (customPin.length < 4 || customPin.length > 8) && (
+                    <span className="text-[9px] text-rose-500 font-medium leading-none block pt-0.5">
+                      ⚠ PIN must be 4 to 8 digits
+                    </span>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Collapsible Advanced Settings */}
+            <div className="border-t border-slate-100 dark:border-slate-800 pt-4">
+              <button
+                type="button"
+                onClick={() => setShowAdvanced(!showAdvanced)}
+                className="w-full flex items-center justify-between text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider"
+              >
+                <span>Advanced Settings</span>
+                <ChevronDown
+                  size={14}
+                  className={`transform transition-transform ${showAdvanced ? 'rotate-180' : ''}`}
+                />
+              </button>
+              {showAdvanced && (
+                <div className="mt-3 space-y-2 text-[10px] text-slate-450 dark:text-slate-500 animate-in fade-in duration-200">
+                  <p>🔧 More configurations will be available in future releases.</p>
                 </div>
               )}
             </div>
@@ -537,25 +596,6 @@ console.log(2 + 2);`);
                 <Save size={14} />
                 <span>{loading ? 'Creating...' : 'Create Paste'}</span>
               </button>
-
-              <button
-                type="button"
-                className="w-full h-11 inline-flex items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 text-xs font-bold text-slate-700 shadow-sm hover:bg-slate-50 focus:outline-none dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800 transition-colors"
-              >
-                <Eye size={14} />
-                <span>Preview Paste</span>
-              </button>
-            </div>
-          </div>
-
-          {/* Tip Box */}
-          <div className="bg-blue-50/40 dark:bg-blue-950/20 border border-blue-100/50 dark:border-blue-900/30 rounded-xl p-4 flex gap-3 text-xs text-slate-600 dark:text-slate-400 shadow-xs">
-            <Lightbulb className="text-amber-500 h-5 w-5 shrink-0" />
-            <div className="space-y-1">
-              <span className="font-bold text-slate-700 dark:text-slate-300">Tip:</span>
-              <p className="leading-relaxed">
-                You can always edit or delete your paste from the link page.
-              </p>
             </div>
           </div>
         </div>

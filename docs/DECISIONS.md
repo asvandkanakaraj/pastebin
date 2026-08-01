@@ -121,3 +121,39 @@ We update the navigation menu layout to only include core elements: Logo, Search
 - Navigation layout is simplified, clean, and contains zero dead or broken links.
 - Password input forms are modernized and highly secure.
 - Full keyboard accessibility and screen reader support is guaranteed for password toggling.
+
+---
+
+## Decision #012: Editor Refinements (Phase 1)
+
+### Status
+
+Accepted ✅
+
+### Context
+
+To deliver a professional, developer-centric code editor experience, several controls inside the paste creation dashboard must be streamlined. Options that are redundant, unused, or visually confusing need to be replaced with high-value settings.
+
+### Decision
+
+We implement a series of refinements to the paste editor panel, including removing duplicate settings, adding a description field, persisting editor preferences, implementing fullscreen mode, and redesigning the visibility selection system.
+
+### Details
+
+1. **Remove Language Selector from Sidebar**: Removed the duplicate language selector from the settings sidebar. The language setting is already located inside the editor toolbar, making the sidebar input redundant.
+2. **Add Optional Description**: Introduced a multiline `description` textarea inside the settings panel. Users can add context (up to 300 characters, validated inline with a live counter).
+3. **Remove Tab Size Selection**: Removed the tab size setting. The majority of developers prefer a standard spacing size (defaulting to 2 spaces), and removing it simplifies the configuration panel.
+4. **Persist User Preferences**: Persistent storage (`localStorage`) is integrated for both the line numbers toggle (`pb_editor_line_numbers`) and the dark/light editor theme mode (`pb_editor_theme`), ensuring settings survive tab closure or reload.
+5. **Fullscreen Support**: Configured keydown event listeners to listen for the `Escape` key, permitting instant exit from fullscreen. Monaco editor dimensions dynamically adapt to viewport boundaries (`automaticLayout`).
+6. **Visibility Selector Redesign**: Replaced the toggle switch with a segmented card button selector supporting three levels of access:
+   - **Public**: Searchable, shareable, and listed on profile.
+   - **Private**: Hidden from public feeds; prompts for PIN configuration (Auto-generated 6-digit PIN or custom 4-8 digit numeric PIN).
+   - **Only Me**: Restricted strictly to the creator's logged-in session, bypasses all password/PIN requirements.
+7. **Inline Validations**: Applied inline warnings preventing submissions of invalid titles, description lengths, or non-numeric/short Private PINs.
+
+### Consequences
+
+- Interface visual clutter is significantly reduced.
+- Paste access visibility levels are secure, granular, and easy to configure.
+- User configurations are preserved seamlessly across visits.
+- Custom description fields provide helpful documentation for shared snippets.

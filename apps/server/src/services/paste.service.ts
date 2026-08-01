@@ -4,14 +4,16 @@ import bcrypt from 'bcrypt';
 export class PasteService {
   static async createPaste(data: {
     title?: string;
+    description?: string;
     content: string;
     language?: string;
+    visibility?: string;
     isPublic?: boolean;
     password?: string;
     expiresInSeconds?: number;
     userId?: string;
   }) {
-    let passwordHash: string | undefined = undefined;
+    let passwordHash: string | null = null;
     if (data.password) {
       passwordHash = await bcrypt.hash(data.password, 10);
     }
@@ -21,12 +23,17 @@ export class PasteService {
       expiresAt = new Date(Date.now() + data.expiresInSeconds * 1000);
     }
 
+    const visibility = data.visibility || (data.isPublic === false ? 'PRIVATE' : 'PUBLIC');
+    const isPublic = visibility === 'PUBLIC';
+
     return await db.paste.create({
       data: {
         title: data.title,
+        description: data.description,
         content: data.content,
         language: data.language || 'plaintext',
-        isPublic: data.isPublic !== false,
+        visibility,
+        isPublic,
         passwordHash,
         expiresAt,
         userId: data.userId || null,
@@ -54,16 +61,40 @@ export class PasteService {
       throw error;
     }
 
-    // Privacy check: if isPublic is false and requester is not the owner
-    if (!paste.isPublic && paste.userId !== requestingUserId) {
-      const error = new Error('Access denied to private paste');
-      (error as any).status = 403;
-      (error as any).name = 'ForbiddenError';
-      throw error;
+    // Privacy checks
+    if (paste.visibility === 'ONLY_ME') {
+      if (!requestingUserId || paste.userId !== requestingUserId) {
+        const error = new Error('Access denied. Only the owner can view this paste.');
+        (error as any).status = 403;
+        (error as any).name = 'ForbiddenError';
+        throw error;
+      }
+    } else if (!paste.isPublic && paste.userId !== requestingUserId) {
+      // If it is private, require password verification for non-owners
+      if (paste.passwordHash) {
+        if (!passwordInput) {
+          const error = new Error('Password required to view this paste');
+          (error as any).status = 401;
+          (error as any).name = 'UnauthorizedError';
+          throw error;
+        }
+        const isMatch = await bcrypt.compare(passwordInput, paste.passwordHash);
+        if (!isMatch) {
+          const error = new Error('Incorrect password');
+          (error as any).status = 403;
+          (error as any).name = 'ForbiddenError';
+          throw error;
+        }
+      } else {
+        const error = new Error('Access denied to private paste');
+        (error as any).status = 403;
+        (error as any).name = 'ForbiddenError';
+        throw error;
+      }
     }
 
-    // Password check
-    if (paste.passwordHash) {
+    // Password check bypass for owner (if they are logged in, they don't need to verify PIN)
+    if (paste.passwordHash && paste.userId !== requestingUserId) {
       if (!passwordInput) {
         const error = new Error('Password required to view this paste');
         (error as any).status = 401;

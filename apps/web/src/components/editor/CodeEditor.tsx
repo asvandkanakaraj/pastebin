@@ -7,6 +7,7 @@ interface CodeEditorProps {
   editorTheme?: 'vs-dark' | 'light';
   lineNumbers?: 'on' | 'off';
   tabSize?: number;
+  height?: string;
   onMount?: (editor: any, monaco: any) => void;
 }
 
@@ -17,6 +18,7 @@ export function CodeEditor({
   editorTheme,
   lineNumbers = 'on',
   tabSize = 2,
+  height,
   onMount,
 }: CodeEditorProps) {
   // Resolve base theme mapping
@@ -73,9 +75,11 @@ export function CodeEditor({
       : 'bg-[#0f172a] border-slate-800';
 
   return (
-    <div className={`w-full border overflow-hidden shadow-inner ${wrapperClass}`}>
+    <div
+      className={`w-full border overflow-hidden shadow-inner flex-1 flex flex-col ${wrapperClass}`}
+    >
       <Editor
-        height="400px"
+        height={height || '400px'}
         language={language}
         value={value}
         onChange={onChange}
@@ -83,7 +87,10 @@ export function CodeEditor({
         beforeMount={handleEditorWillMount}
         onMount={onMount}
         loading={
-          <div className="flex h-[400px] w-full items-center justify-center font-mono text-xs text-slate-400">
+          <div
+            style={{ height: height || '400px' }}
+            className="flex w-full items-center justify-center font-mono text-xs text-slate-400"
+          >
             Loading Monaco Editor...
           </div>
         }
