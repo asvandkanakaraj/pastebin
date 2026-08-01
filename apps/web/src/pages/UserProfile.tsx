@@ -331,7 +331,7 @@ export function UserProfile() {
   const filteredPrivate = pastes.filter((p) => p.visibility === 'PRIVATE');
   const filteredSecret = pastes.filter((p) => p.visibility === 'SECRET');
 
-  const showPrivateTab = isOwner || filteredPrivate.length > 0;
+  const showPrivateTab = true; // Everyone can see the private tab; content is PIN-gated
 
   return (
     <div className="w-full max-w-4xl mx-auto space-y-6 select-none relative">
@@ -836,7 +836,9 @@ export function UserProfile() {
                   <Lock size={28} className="text-slate-300 dark:text-slate-650" />
                   <span className="text-xs font-semibold">No private pastes.</span>
                   <p className="text-[10px] text-slate-400 max-w-xs leading-normal">
-                    There are no private pastes visible to you.
+                    {isOwner
+                      ? 'Your private pastes appear here. Create one to get started.'
+                      : 'This user has no private pastes yet.'}
                   </p>
                 </div>
               ) : (
@@ -873,7 +875,7 @@ export function UserProfile() {
                           onClick={() => handlePasteClick(p)}
                           className="inline-flex h-8 items-center justify-center rounded-lg bg-slate-50 hover:bg-slate-100 border border-slate-200 dark:border-slate-800 dark:bg-slate-950 dark:hover:bg-slate-900 text-slate-700 dark:text-slate-350 px-4 text-xs font-bold transition-colors"
                         >
-                          Unlock / View
+                          {isOwner ? 'View' : 'Unlock & View'}
                         </button>
                       </div>
                     </div>

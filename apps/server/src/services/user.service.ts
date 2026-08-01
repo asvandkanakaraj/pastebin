@@ -113,10 +113,11 @@ export class UserService {
 
     if (isOwner) {
       // Owner sees all their pastes (Public, Private, Secret)
-      pastes = await db.paste.findMany({
+      const rawPastes = await db.paste.findMany({
         where: { userId: user.id },
         orderBy: { createdAt: 'desc' },
       });
+      pastes = rawPastes.map(({ passwordHash, ...p }) => ({ ...p, hasPassword: passwordHash !== null }));
 
       // Owner sees their saved pastes (bookmarks)
       const savedPastes = await db.savedPaste.findMany({
@@ -180,48 +181,28 @@ export class UserService {
         savedPastes: savedPastesCount,
       };
     } else {
-      // Visitor: public pastes AND private pastes shared with visitor
-      let condition: any;
+      // Everyone (guests and logged-in visitors) sees PUBLIC + PRIVATE pastes.
+      // SECRET pastes are always owner-only.
+      // Private paste CONTENT is PIN-gated at the view route.
+      const condition = {
+        userId: user.id,
+        visibility: { in: ['PUBLIC', 'PRIVATE'] },
+        OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
+      };
 
-      if (requestingUserId) {
-        condition = {
-          userId: user.id,
-          AND: [
-            {
-              OR: [
-                { visibility: 'PUBLIC' },
-                {
-                  visibility: 'PRIVATE',
-                  shares: { some: { userId: requestingUserId } },
-                },
-              ],
-            },
-            {
-              OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
-            },
-          ],
-        };
-      } else {
-        condition = {
-          userId: user.id,
-          visibility: 'PUBLIC',
-          OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
-        };
-      }
-
-      pastes = await db.paste.findMany({
+      const rawVisitorPastes = await db.paste.findMany({
         where: condition,
         orderBy: { createdAt: 'desc' },
       });
+      pastes = rawVisitorPastes.map(({ passwordHash, ...p }) => ({ ...p, hasPassword: passwordHash !== null }));
 
-      // Filter statistics for visitors (never expose private counts or secret counts)
-      const totalPastes = pastes.length;
+      // Visitor stats: total visible pastes + public count only
       const publicPastes = await db.paste.count({
         where: { userId: user.id, visibility: 'PUBLIC' },
       });
 
       stats = {
-        totalPastes,
+        totalPastes: pastes.length,
         publicPastes,
       };
     }
