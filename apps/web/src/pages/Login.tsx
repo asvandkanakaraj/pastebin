@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { KeyRound, Mail, LogIn, AlertCircle, Eye, EyeOff } from 'lucide-react';
+import { KeyRound, Mail, LogIn, AlertCircle, Eye, EyeOff, Loader2 } from 'lucide-react';
 import { useAuth } from '../components/auth-provider.js';
 import { API_BASE_URL } from '../lib/utils.js';
 
@@ -29,7 +29,6 @@ export function Login() {
       login(user, token);
       navigate('/');
     } catch (err: any) {
-      console.error('Login failed:', err);
       setError(err.response?.data?.message || 'Invalid email or password. Please try again.');
     } finally {
       setLoading(false);
@@ -114,6 +113,7 @@ export function Login() {
           disabled={loading}
           className="w-full h-10 inline-flex items-center justify-center gap-2 rounded-lg bg-indigo-600 px-4 text-xs font-bold text-white shadow-md hover:bg-indigo-500 focus:outline-none dark:bg-indigo-500 dark:hover:bg-indigo-400 transition-colors disabled:opacity-50"
         >
+          {loading ? <Loader2 size={14} className="animate-spin" /> : <LogIn size={14} />}
           <span>{loading ? 'Signing In...' : 'Sign In'}</span>
         </button>
       </form>

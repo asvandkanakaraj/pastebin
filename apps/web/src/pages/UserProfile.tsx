@@ -94,7 +94,6 @@ export function UserProfile() {
       });
       setProfile(res.data);
     } catch (err: any) {
-      console.error('Fetch user profile error:', err);
       const status = err.response?.status;
       if (status === 404) {
         setError('404 — User profile not found');
@@ -233,8 +232,7 @@ export function UserProfile() {
         fetchProfile();
       }
     } catch (err: any) {
-      console.error('Update profile error:', err);
-      setSaveError(err.response?.data?.message || 'Failed to update profile changes');
+      setSaveError(err.response?.data?.message || 'Unable to update profile. Please try again.');
     } finally {
       setSavingProfile(false);
     }
@@ -246,8 +244,8 @@ export function UserProfile() {
       await navigator.clipboard.writeText(link);
       setCopiedLink(true);
       setTimeout(() => setCopiedLink(false), 2000);
-    } catch (err) {
-      console.error('Failed to copy link:', err);
+    } catch {
+      // Clipboard not available — ignore silently
     }
   };
 
@@ -268,8 +266,11 @@ export function UserProfile() {
       setUnlockPin('');
       navigate(`/v/${showPinUnlockModal.id}`, { state: { unlockPassword: unlockPin } });
     } catch (err: any) {
-      console.error('Verify PIN error:', err);
-      setUnlockError('Incorrect PIN code. Access denied.');
+      if (err.response?.status === 401 || err.response?.status === 403) {
+        setUnlockError('Incorrect PIN code. Access denied.');
+      } else {
+        setUnlockError('Unable to verify PIN. Please try again.');
+      }
     } finally {
       setUnlocking(false);
     }

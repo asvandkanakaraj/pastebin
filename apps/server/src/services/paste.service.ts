@@ -183,7 +183,7 @@ export class PasteService {
             });
           }
         })
-        .catch((err) => console.error('Failed to log recent view:', err));
+        .catch(() => { /* ignore recent view logging failures */ });
     }
 
     let isSaved = false;

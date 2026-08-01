@@ -57,7 +57,6 @@ export function useGlobalSearch() {
         if (axios.isCancel(err) || err.name === 'CanceledError') {
           return;
         }
-        console.error('Search failed:', err);
         setError('Unable to load search results.');
         setLoading(false);
         setResults(null);

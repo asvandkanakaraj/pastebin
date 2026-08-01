@@ -14,6 +14,7 @@ import {
   EyeOff,
   ChevronDown,
   Lock,
+  Loader2,
 } from 'lucide-react';
 import { CreatePasteSchema } from '@pastebin/shared';
 import { CodeEditor } from '../components/editor/CodeEditor.js';
@@ -55,10 +56,7 @@ export function CreatePaste() {
   const [pinOption, setPinOption] = useState<'auto' | 'custom'>('auto');
   const [customPin, setCustomPin] = useState(() => Math.floor(100000 + Math.random() * 900000).toString());
   const [showPin, setShowPin] = useState(false);
-  const [content, setContent] = useState(`// Paste editor
-function main() {
-  console.log("Welcome to PasteBin");
-}`);
+  const [content, setContent] = useState('');
 
   // Editor Preferences & UI States
   const [editorTheme, _setEditorTheme] = useState<'vs-dark' | 'light'>(
@@ -154,8 +152,8 @@ function main() {
           return !sharedUsers.some((su) => su.id === u.id);
         });
         setSearchResults(matched);
-      } catch (err) {
-        console.error('Failed to search users:', err);
+      } catch {
+        // Silently ignore user search failures
       } finally {
         setSearching(false);
       }
@@ -168,8 +166,8 @@ function main() {
       await navigator.clipboard.writeText(content);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
-    } catch (err) {
-      console.error('Failed to copy paste:', err);
+    } catch {
+      // Clipboard not available — ignore silently
     }
   };
 
@@ -242,12 +240,11 @@ function main() {
         navigate(`/v/${response.data.id}`);
       }
     } catch (err: any) {
-      console.error('Create paste failed:', err);
       if (err.response?.status === 401 && token) {
         logout();
         setError('Session expired. Please log in again.');
       } else {
-        setError(err.response?.data?.message || 'Failed to save paste to server');
+        setError(err.response?.data?.message || 'Unable to create paste. Please try again.');
       }
     } finally {
       setLoading(false);
@@ -879,8 +876,8 @@ function main() {
                 disabled={loading}
                 className="w-full h-11 inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 text-xs font-bold text-white shadow-md hover:bg-blue-700 focus:outline-none transition-colors disabled:opacity-50"
               >
-                <FilePlus2 size={14} />
-                <span>{loading ? 'Creating...' : 'Create'}</span>
+                {loading ? <Loader2 size={14} className="animate-spin" /> : <FilePlus2 size={14} />}
+                <span>{loading ? 'Creating...' : 'Create Paste'}</span>
               </button>
             </div>
           </div>

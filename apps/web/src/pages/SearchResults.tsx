@@ -38,7 +38,6 @@ export function SearchResults() {
         if (axios.isCancel(err) || err.name === 'CanceledError') {
           return;
         }
-        console.error('Search results page error:', err);
         setError('Unable to load search results.');
         setLoading(false);
       });

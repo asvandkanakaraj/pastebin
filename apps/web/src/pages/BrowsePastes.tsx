@@ -86,6 +86,8 @@ export function BrowsePastes() {
   const [editError, setEditError] = useState<string | null>(null);
 
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [deleteConfirmPaste, setDeleteConfirmPaste] = useState<Paste | null>(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   const isGuest = !user;
 
@@ -115,11 +117,10 @@ export function BrowsePastes() {
       });
       setWorkspace(response.data);
     } catch (err: any) {
-      console.error('Fetch workspace failed:', err);
       if (err.response?.status === 401) {
         logout();
       } else {
-        setError(err.response?.data?.message || 'Failed to retrieve workspace data.');
+        setError(err.response?.data?.message || 'Unable to load workspace. Please try again.');
       }
     } finally {
       setLoading(false);
@@ -153,22 +154,29 @@ export function BrowsePastes() {
         { headers: { Authorization: `Bearer ${token}` } }
       );
       fetchWorkspace();
-    } catch (err) {
-      console.error('Toggle visibility error:', err);
+    } catch {
+      // Silently ignore visibility toggle failures
     }
   };
 
   const handleDeletePaste = async (paste: Paste) => {
-    if (!window.confirm(`Are you sure you want to delete "${paste.title || 'this paste'}"?`))
-      return;
+    setDeleteConfirmPaste(paste);
+  };
+
+  const confirmDeletePaste = async () => {
+    if (!deleteConfirmPaste) return;
+    setDeleteLoading(true);
     try {
       const token = localStorage.getItem('pb_token');
-      await axios.delete(`${API_BASE_URL}/api/pastes/${paste.id}`, {
+      await axios.delete(`${API_BASE_URL}/api/pastes/${deleteConfirmPaste.id}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
+      setDeleteConfirmPaste(null);
       fetchWorkspace();
     } catch (err) {
-      console.error('Delete paste error:', err);
+      setDeleteConfirmPaste(null);
+    } finally {
+      setDeleteLoading(false);
     }
   };
 
@@ -186,8 +194,8 @@ export function BrowsePastes() {
         { headers: { Authorization: `Bearer ${token}` } }
       );
       fetchWorkspace();
-    } catch (err) {
-      console.error('Duplicate paste error:', err);
+    } catch {
+      // Silently ignore duplicate paste failures
     }
   };
 
@@ -283,8 +291,8 @@ export function BrowsePastes() {
         }
       );
       fetchWorkspace();
-    } catch (err) {
-      console.error('Bookmark error:', err);
+    } catch {
+      // Ignore bookmark failures silently
     }
   };
 
@@ -303,8 +311,8 @@ export function BrowsePastes() {
         headers: { Authorization: `Bearer ${token}` },
       });
       fetchWorkspace();
-    } catch (err) {
-      console.error('Remove bookmark error:', err);
+    } catch {
+      // Ignore bookmark removal failures silently
     }
   };
 
@@ -1127,6 +1135,40 @@ export function BrowsePastes() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+      {/* DELETE CONFIRM MODAL */}
+      {deleteConfirmPaste && (
+        <div className="fixed inset-0 bg-slate-900/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 w-full max-w-sm rounded-xl p-6 shadow-2xl space-y-5 text-center animate-in fade-in zoom-in-95 duration-150">
+            <div className="mx-auto p-3 bg-rose-500/10 border border-rose-500/20 rounded-2xl text-rose-500 dark:text-rose-400 w-fit">
+              <Trash2 size={22} />
+            </div>
+            <div>
+              <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200">Delete Paste?</h3>
+              <p className="text-xs text-slate-500 mt-1.5 leading-relaxed">
+                Permanently delete <span className="font-semibold text-slate-700 dark:text-slate-300">"{deleteConfirmPaste.title || 'Untitled Paste'}"</span>? This cannot be undone.
+              </p>
+            </div>
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => setDeleteConfirmPaste(null)}
+                disabled={deleteLoading}
+                className="flex-1 h-9 rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-50 dark:border-slate-800 dark:text-slate-350 dark:hover:bg-slate-900 text-xs font-bold transition-colors disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={confirmDeletePaste}
+                disabled={deleteLoading}
+                className="flex-1 h-9 bg-rose-600 hover:bg-rose-500 text-white rounded-lg text-xs font-bold transition-colors disabled:opacity-50"
+              >
+                {deleteLoading ? 'Deleting...' : 'Delete'}
+              </button>
+            </div>
           </div>
         </div>
       )}

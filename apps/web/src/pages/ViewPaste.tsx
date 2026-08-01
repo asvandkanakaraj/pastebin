@@ -43,6 +43,7 @@ export function ViewPaste() {
   const [copied, setCopied] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const [unlocking, setUnlocking] = useState(false);
   const [isBookmarked, setIsBookmarked] = useState(false);
 
@@ -97,7 +98,6 @@ export function ViewPaste() {
         setIsBookmarked(response.data.isSaved || false);
       }
     } catch (err: any) {
-      console.error('Fetch paste error:', err);
       const status = err.response?.status;
       const errorName = err.response?.data?.error;
       if (status === 401) {
@@ -150,8 +150,8 @@ export function ViewPaste() {
         await axios.post(`${API_BASE_URL}/api/pastes/${paste.id}/save`, {}, { headers });
         setIsBookmarked(true);
       }
-    } catch (err) {
-      console.error('Failed to toggle bookmark:', err);
+    } catch {
+      // Ignore bookmark toggle failures silently
     }
   };
 
@@ -168,8 +168,8 @@ export function ViewPaste() {
         headers,
       });
       setSharedUsers(response.data || []);
-    } catch (err) {
-      console.error('Failed to fetch shares:', err);
+    } catch {
+      // Ignore share fetch failures — modal will be empty
     }
   };
 
@@ -199,8 +199,8 @@ export function ViewPaste() {
           return !sharedUsers.some((su) => su.userId === u.id);
         });
         setSearchResults(matched);
-      } catch (err) {
-        console.error('Search users error:', err);
+      } catch {
+        // Silently ignore user search failures in share dropdown
       } finally {
         setSearching(false);
       }
@@ -237,8 +237,8 @@ export function ViewPaste() {
         await navigator.clipboard.writeText(codeToCopy);
         setCopied(true);
         setTimeout(() => setCopied(false), 2000);
-      } catch (err) {
-        console.error('Failed to copy code:', err);
+      } catch {
+        // Clipboard not available — ignore silently
       }
     }
   };
@@ -256,8 +256,7 @@ export function ViewPaste() {
       await axios.delete(`${API_BASE_URL}/api/pastes/${id}`, { headers });
       navigate('/browse');
     } catch (err: any) {
-      console.error('Delete paste failed:', err);
-      alert(err.response?.data?.message || 'Failed to delete paste');
+      setDeleteError(err.response?.data?.message || 'Failed to delete paste. Please try again.');
       setDeleting(false);
       setShowDeleteConfirm(false);
     }
@@ -291,8 +290,7 @@ export function ViewPaste() {
       setPaste(response.data);
       setIsEditing(false);
     } catch (err: any) {
-      console.error('Update paste failed:', err);
-      setUpdateError(err.response?.data?.message || 'Failed to save changes');
+      setUpdateError(err.response?.data?.message || 'Unable to save changes. Please try again.');
     } finally {
       setUpdating(false);
     }
@@ -318,8 +316,7 @@ export function ViewPaste() {
       setTimeout(() => setShareSuccess(null), 2000);
       await fetchShares();
     } catch (err: any) {
-      console.error('Add share failed:', err);
-      setShareError(err.response?.data?.message || 'Failed to share paste');
+      setShareError(err.response?.data?.message || 'Unable to share paste. Please try again.');
     }
   };
 
@@ -336,8 +333,8 @@ export function ViewPaste() {
         { headers }
       );
       await fetchShares();
-    } catch (err) {
-      console.error('Update permission failed:', err);
+    } catch {
+      // Silently ignore permission update failures
     }
   };
 
@@ -349,8 +346,8 @@ export function ViewPaste() {
         headers,
       });
       await fetchShares();
-    } catch (err) {
-      console.error('Remove share failed:', err);
+    } catch {
+      // Silently ignore share removal failures
     }
   };
 
@@ -701,10 +698,15 @@ export function ViewPaste() {
                 from the cloud database. This action is irreversible.
               </p>
             </div>
+            {deleteError && (
+              <div className="text-xs text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-500/5 border border-rose-100 dark:border-rose-500/10 rounded-lg px-3 py-2 font-medium text-left">
+                {deleteError}
+              </div>
+            )}
             <div className="flex items-center gap-3">
               <button
                 type="button"
-                onClick={() => setShowDeleteConfirm(false)}
+                onClick={() => { setShowDeleteConfirm(false); setDeleteError(null); }}
                 disabled={deleting}
                 className="flex-1 h-9.5 inline-flex items-center justify-center rounded-lg border border-slate-200 bg-white px-4 text-xs font-semibold text-slate-700 hover:bg-slate-50 focus:outline-none dark:border-slate-800 dark:bg-slate-900 dark:text-slate-350 dark:hover:bg-slate-800 transition-colors disabled:opacity-50"
               >

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { KeyRound, Mail, UserPlus, AlertCircle, Eye, EyeOff } from 'lucide-react';
+import { KeyRound, Mail, UserPlus, AlertCircle, Eye, EyeOff, Loader2 } from 'lucide-react';
 import { API_BASE_URL } from '../lib/utils.js';
 
 export function Register() {
@@ -34,7 +34,6 @@ export function Register() {
       // Redirect to login on success
       navigate('/login');
     } catch (err: any) {
-      console.error('Registration failed:', err);
       setError(err.response?.data?.message || 'Failed to create account. Please try again.');
     } finally {
       setLoading(false);
@@ -152,6 +151,7 @@ export function Register() {
           disabled={loading}
           className="w-full h-10 inline-flex items-center justify-center gap-2 rounded-lg bg-indigo-600 px-4 text-xs font-bold text-white shadow-md hover:bg-indigo-500 focus:outline-none dark:bg-indigo-500 dark:hover:bg-indigo-400 transition-colors disabled:opacity-50"
         >
+          {loading ? <Loader2 size={14} className="animate-spin" /> : <UserPlus size={14} />}
           <span>{loading ? 'Creating Account...' : 'Create Account'}</span>
         </button>
       </form>
