@@ -16,9 +16,6 @@ const BrowsePastes = lazy(() =>
 );
 const Login = lazy(() => import('./pages/Login.js').then((m) => ({ default: m.Login })));
 const Register = lazy(() => import('./pages/Register.js').then((m) => ({ default: m.Register })));
-const Dashboard = lazy(() =>
-  import('./pages/Dashboard.js').then((m) => ({ default: m.Dashboard }))
-);
 const SearchResults = lazy(() =>
   import('./pages/SearchResults.js').then((m) => ({ default: m.SearchResults }))
 );
@@ -55,7 +52,6 @@ function App() {
                 <Route path="/browse" element={<BrowsePastes />} />
                 <Route path="/login" element={<Login />} />
                 <Route path="/register" element={<Register />} />
-                <Route path="/dashboard" element={<Dashboard />} />
                 <Route path="/search" element={<SearchResults />} />
                 <Route path="/profile/:username" element={<UserProfile />} />
               </Routes>

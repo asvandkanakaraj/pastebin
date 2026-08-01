@@ -190,3 +190,33 @@ We implement database, route, and UI enhancements supporting segmented visibilit
 - Sharing setups are intuitive, isolated, and visually distinct.
 - Collaborative workspaces are enabled safely with strict permission validation layers.
 - Admin dashboard layouts remain uncluttered.
+
+---
+
+## Decision #014: User Profile System (Deprecation of Dashboard)
+
+### Status
+
+Accepted ✅
+
+### Context
+
+Traditional administrative dashboards focus heavily on layout management, account configurations, and statistics. To build a product experience closer to modern developer portals (like GitHub or Notion), the platform needs to transition towards a profile-centric design. Additionally, anonymous users must remain first-class citizens in terms of simple paste creation and reading, while registered users receive dedicated profiles to showcase public work and manage collaborative permissions.
+
+### Decision
+
+We deprecate the obsolete vertical dashboard sidebar page and navigation items, replacing them with dynamic public-profile paths (`/profile/:username`).
+
+### Details
+
+1. **Anonymous Navigation Isolation**: Guests do not see any workspace, dashboard, or user dropdown items. They can create snippets, view public pastes, and use search bars safely.
+2. **Avatar Navigation Header**: Logged-in users see a circular profile picture and `@username` in the navbar, linking directly to their public profile.
+3. **Private Count Protection**: Visitors can view public paste lists and private pastes shared with them on profiles, but counts for private/secret/saved pastes are blocked at the API layer for non-owners.
+4. **Modals over Multi-page Editing**: Edit profile capabilities are entirely contained in a keyboard-accessible modal, eliminating separate configuration screens.
+5. **Username Validation**: Regulated alphanumeric username restrictions prevent formatting collusions.
+
+### Consequences
+
+- Navigating user content is consolidated, presenting a single, unified view.
+- User data visibility constraints are securely protected at the database query level.
+- Code complexity is reduced by deprecating the generic dashboard modules.

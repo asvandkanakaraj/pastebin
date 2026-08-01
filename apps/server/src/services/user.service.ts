@@ -85,7 +85,7 @@ export class UserService {
     };
   }
 
-  static async getUserProfileByUsername(username: string) {
+  static async getUserProfileByUsername(username: string, requestingUserId?: string) {
     const user = await db.user.findUnique({
       where: { username },
     });
@@ -97,27 +97,230 @@ export class UserService {
       throw error;
     }
 
-    const pastes = await db.paste.findMany({
-      where: {
-        userId: user.id,
-        isPublic: true,
-        OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
-      },
-      orderBy: { createdAt: 'desc' },
-      select: {
-        id: true,
-        title: true,
-        language: true,
-        createdAt: true,
-        expiresAt: true,
-        isPublic: true,
-      },
-    });
+    const isOwner = requestingUserId && user.id === requestingUserId;
+
+    let pastes: any[] = [];
+    let saved: any[] = [];
+    let recent: any[] = [];
+    let stats: any = {};
+
+    if (isOwner) {
+      // Owner sees all their pastes (Public, Private, Secret)
+      pastes = await db.paste.findMany({
+        where: { userId: user.id },
+        orderBy: { createdAt: 'desc' },
+      });
+
+      // Owner sees their saved pastes (bookmarks)
+      const savedPastes = await db.savedPaste.findMany({
+        where: { userId: user.id },
+        include: {
+          paste: {
+            include: {
+              user: {
+                select: {
+                  username: true,
+                  displayName: true,
+                  avatarUrl: true,
+                },
+              },
+            },
+          },
+        },
+        orderBy: { id: 'desc' },
+      });
+      saved = savedPastes.map((s) => s.paste).filter((p) => p !== null);
+
+      // Owner sees their recently viewed pastes (last 5)
+      const recentViews = await db.recentView.findMany({
+        where: { userId: user.id },
+        include: {
+          paste: {
+            include: {
+              user: {
+                select: {
+                  username: true,
+                  displayName: true,
+                  avatarUrl: true,
+                },
+              },
+            },
+          },
+        },
+        orderBy: { viewedAt: 'desc' },
+        take: 5,
+      });
+      recent = recentViews.map((r) => r.paste).filter((p) => p !== null);
+
+      // Complete statistics for owner
+      const totalPastes = await db.paste.count({ where: { userId: user.id } });
+      const publicPastes = await db.paste.count({
+        where: { userId: user.id, visibility: 'PUBLIC' },
+      });
+      const privatePastes = await db.paste.count({
+        where: { userId: user.id, visibility: 'PRIVATE' },
+      });
+      const secretPastes = await db.paste.count({
+        where: { userId: user.id, visibility: 'SECRET' },
+      });
+      const savedPastesCount = await db.savedPaste.count({ where: { userId: user.id } });
+
+      stats = {
+        totalPastes,
+        publicPastes,
+        privatePastes,
+        secretPastes,
+        savedPastes: savedPastesCount,
+      };
+    } else {
+      // Visitor: public pastes AND private pastes shared with visitor
+      let condition: any;
+
+      if (requestingUserId) {
+        condition = {
+          userId: user.id,
+          AND: [
+            {
+              OR: [
+                { visibility: 'PUBLIC' },
+                {
+                  visibility: 'PRIVATE',
+                  shares: { some: { userId: requestingUserId } },
+                },
+              ],
+            },
+            {
+              OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
+            },
+          ],
+        };
+      } else {
+        condition = {
+          userId: user.id,
+          visibility: 'PUBLIC',
+          OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
+        };
+      }
+
+      pastes = await db.paste.findMany({
+        where: condition,
+        orderBy: { createdAt: 'desc' },
+      });
+
+      // Filter statistics for visitors (never expose private counts or secret counts)
+      const totalPastes = pastes.length;
+      const publicPastes = await db.paste.count({
+        where: { userId: user.id, visibility: 'PUBLIC' },
+      });
+
+      stats = {
+        totalPastes,
+        publicPastes,
+      };
+    }
 
     const { passwordHash: _, ...safeUser } = user;
     return {
       user: safeUser,
       pastes,
+      saved,
+      recent,
+      stats,
     };
+  }
+
+  static async checkUsernameAvailability(username: string) {
+    const trimmed = username.trim().toLowerCase();
+    const regex = /^[a-z0-9_]{3,20}$/;
+    if (!regex.test(trimmed)) {
+      return {
+        available: false,
+        error: 'Username must be 3-20 characters, lowercase alphanumeric or underscores',
+      };
+    }
+
+    const user = await db.user.findUnique({
+      where: { username: trimmed },
+    });
+
+    return { available: !user };
+  }
+
+  static async updateUserProfile(
+    userId: string,
+    data: {
+      displayName?: string;
+      username?: string;
+      email?: string;
+      bio?: string;
+      avatarUrl?: string | null;
+    }
+  ) {
+    const updateData: any = {};
+
+    if (data.displayName !== undefined) {
+      if (data.displayName && data.displayName.length > 50) {
+        const error = new Error('Display Name must be under 50 characters');
+        (error as any).status = 400;
+        throw error;
+      }
+      updateData.displayName = data.displayName || null;
+    }
+
+    if (data.username !== undefined) {
+      const trimmedUsername = data.username.trim().toLowerCase();
+      const regex = /^[a-z0-9_]{3,20}$/;
+      if (!regex.test(trimmedUsername)) {
+        const error = new Error(
+          'Username must be 3-20 characters, lowercase alphanumeric or underscores'
+        );
+        (error as any).status = 400;
+        throw error;
+      }
+
+      const existing = await db.user.findFirst({
+        where: { username: trimmedUsername, NOT: { id: userId } },
+      });
+      if (existing) {
+        const error = new Error('Username already taken');
+        (error as any).status = 400;
+        throw error;
+      }
+      updateData.username = trimmedUsername;
+    }
+
+    if (data.email !== undefined) {
+      const trimmedEmail = data.email.trim();
+      const existing = await db.user.findFirst({
+        where: { email: trimmedEmail, NOT: { id: userId } },
+      });
+      if (existing) {
+        const error = new Error('Email is already registered');
+        (error as any).status = 400;
+        throw error;
+      }
+      updateData.email = trimmedEmail;
+    }
+
+    if (data.bio !== undefined) {
+      if (data.bio && data.bio.length > 150) {
+        const error = new Error('Bio must be under 150 characters');
+        (error as any).status = 400;
+        throw error;
+      }
+      updateData.bio = data.bio || null;
+    }
+
+    if (data.avatarUrl !== undefined) {
+      updateData.avatarUrl = data.avatarUrl;
+    }
+
+    const updatedUser = await db.user.update({
+      where: { id: userId },
+      data: updateData,
+    });
+
+    const { passwordHash: _, ...safeUser } = updatedUser;
+    return safeUser;
   }
 }

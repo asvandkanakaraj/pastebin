@@ -1,8 +1,12 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 
-interface AuthUser {
+export interface AuthUser {
   id: string;
   email: string;
+  username?: string;
+  displayName?: string | null;
+  avatarUrl?: string | null;
+  bio?: string | null;
 }
 
 interface AuthContextType {
@@ -10,6 +14,7 @@ interface AuthContextType {
   token: string | null;
   login: (user: AuthUser, token: string) => void;
   logout: () => void;
+  updateUserInfo: (updatedUser: AuthUser) => void;
   loading: boolean;
 }
 
@@ -45,8 +50,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     localStorage.removeItem('pb_token');
   };
 
+  const updateUserInfo = (updatedUser: AuthUser) => {
+    setUser(updatedUser);
+    localStorage.setItem('pb_user', JSON.stringify(updatedUser));
+  };
+
   return (
-    <AuthContext.Provider value={{ user, token, login, logout, loading }}>
+    <AuthContext.Provider value={{ user, token, login, logout, updateUserInfo, loading }}>
       {children}
     </AuthContext.Provider>
   );

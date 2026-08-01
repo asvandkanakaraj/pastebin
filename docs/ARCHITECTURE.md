@@ -495,8 +495,46 @@ When a shared user accesses a paste, the system retrieves their specific access 
 - **`READ` (Read Only)**: Allows users to view the code, copy it to their clipboard, and save (bookmark) it to their personal Browse workspace.
 - **`WRITE` (Read & Write)**: In addition to read actions, shared editors can edit the title, description, and Monaco code content inline. However, they cannot delete the paste, modify its visibility settings, change expiration rules, or share it with other users.
 
-### Visibility Access Levels
-
 1. **Public**: Indexed globally, searchable by everyone, and visible on public profile pages.
 2. **Private**: Prompts for a 4-8 digit numeric PIN. If a shared guest user accesses the private paste, the PIN check is bypassed for the Owner but enforced for guests unless they are explicitly shared with a `READ`/`WRITE` role.
 3. **Secret**: Visible strictly to the Owner's logged-in session. It will never appear in global search dropdowns, workspaces, profiles, or query results.
+
+---
+
+## 13. User Profile System & Session Flows
+
+The platform divides user sessions into two distinct navigation flows (Anonymous vs. Authenticated) and structures profile visibility with strict statistics filtering:
+
+### Anonymous User Flow
+
+Anonymous (non-logged-in) users represent guests on the platform:
+
+- **Scope**: Can create transient public or private pastes, read pastes (performing PIN validation for private inputs), and use the global navbar search or browse public feeds.
+- **Restrictions**: Ineligible for persistent profile workspaces, edit operations, or administrative settings. They do not see any workspace navigation, dashboard shortcuts, or profile avatars.
+
+### Authenticated User Flow
+
+Logged-in users hold persistent system identities:
+
+- **Scope**: Receive an automatically generated profile link (`/profile/:username`), customizable display names, and base64 avatar uploads.
+- **UI Elements**: The login button is replaced by a Circular Avatar + `@username` combination which links to the profile. A dedicated, inline logout action is rendered next to the credentials.
+
+### Profile Architecture & Permission Rules
+
+Public profiles are queried at `GET /api/users/:username`. The controller employs optional authentication middleware to parse the request context, enforcing the following rules:
+
+```
+[Request Context] ──> optionalAuthMiddleware ──> UserController ──> UserService
+                                                                      │
+           ┌─────────────────────── Owner? ───────────────────────────┤
+           ▼ (Yes)                                                    ▼ (No)
+[Complete Response]                                        [Filtered Response]
+- All visibility stats                                     - Total & Public stats only
+- Public + Private + Secret pastes                          - Public + Explicitly shared pastes
+- Saved Bookmarked pastes                                  - Omit Secret, Saved, Recent
+- Last 5 Recently Viewed logs                              - Require PIN on direct view
+```
+
+1. **Owner Mode**: Returns complete statistics (Public, Private, Secret, and Saved paste counts) and mounts five navigation tabs: Public, Private, Secret, Saved, and Recently Viewed.
+2. **Visitor Mode**: Blocks access to Secret, Saved, and Recently Viewed views. Statistics are filtered to display only Public and Total (Public + Shared Private) counts. Private pastes created by the user are visible ONLY if the visitor is an authorized guest with shared access.
+3. **Inline Modals**: Account configuration edits (avatar replacement, display names, and bio text limits) are processed in place using modal containers rather than external routes.

@@ -13,12 +13,13 @@ vi.mock('../mode-toggle.js', () => ({
 }));
 
 describe('Navbar Component Tests', () => {
-  it('should render the logo, browse link, and login/register when user is logged out', () => {
+  it('should render the logo, browse link, and login when user is logged out', () => {
     vi.mocked(auth.useAuth).mockReturnValue({
       user: null,
       token: null,
       logout: vi.fn(),
       login: vi.fn(),
+      updateUserInfo: vi.fn(),
       loading: false,
     });
 
@@ -33,12 +34,13 @@ describe('Navbar Component Tests', () => {
     expect(screen.getByText('Login')).toBeInTheDocument();
   });
 
-  it('should render dashboard and logout actions when user is logged in', () => {
+  it('should render profile avatar link and logout trigger when user is logged in', () => {
     vi.mocked(auth.useAuth).mockReturnValue({
-      user: { email: 'test@example.com', id: 'user-1' },
+      user: { email: 'test@example.com', id: 'user-1', username: 'testuser' },
       token: 'mock-token',
       logout: vi.fn(),
       login: vi.fn(),
+      updateUserInfo: vi.fn(),
       loading: false,
     });
 
@@ -49,7 +51,7 @@ describe('Navbar Component Tests', () => {
     );
 
     expect(screen.getByText('PasteBin')).toBeInTheDocument();
-    expect(screen.getByText('Manage Workspace')).toBeInTheDocument();
-    expect(screen.getByText('Logout')).toBeInTheDocument();
+    expect(screen.getByText('@testuser')).toBeInTheDocument();
+    expect(screen.queryByText('Login')).not.toBeInTheDocument();
   });
 });

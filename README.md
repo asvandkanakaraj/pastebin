@@ -24,8 +24,8 @@ Our platform leverages a modern, cohesive tech stack across all layers:
 
 - **Monaco Code Editor**: Fully integrated code-sharing panel supporting dynamic language syntax highlighting, dark/light theme switching, and Esc-triggered fullscreen overlays.
 - **Developer CLI Client (`pastebin`)**: Upload local files, retrieve snippets with syntax highlighting, list public entries, and login directly from your terminal. Includes automated OS clipboard copying.
-- **JWT Stateless Authentication**: User registration, login, and secure user dashboards displaying past paste history.
-- **Personal Workspace Dashboard**: Structured workspace sections (My Pastes, Shared With Me, Saved bookmarks, and Recently Viewed logs) containing in-memory filtering, sort orders, and card action modals.
+- **JWT Stateless Authentication**: User registration, login, and secure user profile linkages.
+- **User Profile System**: Modern profile page displaying customizable avatar images, display names, bios, statistics, and tabs (Public, Private, Secret, Saved bookmarks, and Recently Viewed history logs). Visitors see only public or explicitly shared items, keeping secret assets isolated.
 - **Collaborative Sharing & Permissions**: Centered Sharing modal dialog allowing owners to manage read-only or read-and-write permissions. Guests with write access can edit Monaco content inline.
 - **Segmented Visibility Levels**: Select between Public (searchable), Private (PIN code protection), and Secret (visible strictly to logged-in owner).
 - **Dynamic Paste Expirations**: Set lifespan durations (1h, 24h, 7d, 30d, or Custom Date) with automatic cleanup.

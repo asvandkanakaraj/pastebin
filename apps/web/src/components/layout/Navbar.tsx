@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { Code, Search, LogOut, LogIn, User, LayoutDashboard, ArrowLeft } from 'lucide-react';
+import { Code, Search, LogOut, LogIn, ArrowLeft } from 'lucide-react';
 import { ModeToggle } from '../mode-toggle.js';
 import { useAuth } from '../auth-provider.js';
 import { SearchInput } from '../../features/search/components/SearchInput.js';
@@ -39,8 +39,11 @@ export function Navbar() {
     );
   }
 
+  // Display name is username (prefixed with @) if available, otherwise email
+  const displayIdentifier = user ? (user.username ? `@${user.username}` : user.email) : '';
+
   return (
-    <header className="sticky top-0 z-40 w-full border-b border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-950">
+    <header className="sticky top-0 z-40 w-full border-b border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-950 select-none">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
         {/* Logo */}
         <Link to="/" className="flex items-center gap-2 hover:opacity-90">
@@ -78,36 +81,45 @@ export function Navbar() {
               <Search size={14} />
             </button>
 
-            {user && (
-              <Link
-                to="/dashboard"
-                className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white transition-colors"
-                title="Manage Workspace"
-              >
-                <LayoutDashboard className="h-4 w-4" />
-                <span className="hidden lg:inline">Manage Workspace</span>
-              </Link>
-            )}
-
             {/* Authentication States */}
             {user ? (
-              <div className="flex items-center gap-2">
-                <div className="hidden lg:flex items-center gap-1 text-xs text-slate-500 font-medium max-w-[120px]">
-                  <User size={12} className="text-slate-400 shrink-0" />
-                  <span className="truncate">{user.email}</span>
-                </div>
+              <div className="flex items-center gap-3.5">
+                {/* Clickable Profile Element */}
+                <Link
+                  to={`/profile/${user.username || user.email}`}
+                  className="flex items-center gap-2 hover:opacity-80 transition-opacity"
+                  aria-label="View user profile"
+                >
+                  {user.avatarUrl ? (
+                    <img
+                      src={user.avatarUrl}
+                      alt={user.username || 'user avatar'}
+                      className="h-7 w-7 rounded-full object-cover border border-slate-200 dark:border-slate-700"
+                    />
+                  ) : (
+                    <span className="flex h-7 w-7 items-center justify-center rounded-full bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400 font-bold uppercase text-[10px]">
+                      {(user.username || user.email).slice(0, 2)}
+                    </span>
+                  )}
+                  <span className="hidden sm:inline text-xs font-bold text-slate-700 dark:text-slate-200 max-w-[140px] truncate">
+                    {displayIdentifier}
+                  </span>
+                </Link>
+
+                {/* Inline Logout Trigger */}
                 <button
                   onClick={handleLogout}
-                  className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 shadow-sm hover:bg-slate-50 focus:outline-none dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800 transition-colors"
+                  className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-500 hover:text-rose-500 dark:border-slate-800 dark:text-slate-400 dark:hover:text-rose-400 transition-colors"
+                  title="Logout"
+                  aria-label="Logout"
                 >
-                  <LogOut size={12} />
-                  <span>Logout</span>
+                  <LogOut size={13} />
                 </button>
               </div>
             ) : (
               <Link
                 to="/login"
-                className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-slate-200 bg-white px-4 text-xs font-semibold text-slate-700 shadow-sm hover:bg-slate-50 focus:outline-none dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800 transition-colors"
+                className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-slate-200 bg-white px-4 text-xs font-bold text-slate-700 shadow-sm hover:bg-slate-50 focus:outline-none dark:border-slate-800 dark:bg-slate-900 dark:text-slate-350 dark:hover:bg-slate-800 transition-colors"
               >
                 <LogIn size={12} />
                 <span>Login</span>

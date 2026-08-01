@@ -424,3 +424,16 @@
   - Implemented interactive Write Permission toggles and Remove Sharing Access buttons.
   - Enabled inline editing on `ViewPaste.tsx` for paste owners and guests with WRITE permissions.
   - Documented updated sharing endpoints, ownership model, and design decisions.
+
+## Session 31: User Profile System
+
+- **Date**: 2026-08-01
+- **Status**: Completed ✅
+- **Objective**: Replace dashboard/account experience with a modern profile-centric system, establishing anonymous navigation checks, owner-only statistics, dynamic visibility filtering, and inline profile editing.
+- **Outcomes**:
+  - Rebuilt Navbar navigation paths: before-login includes Logo, Search, Browse, and Login. After-login replaces Login button with Circular Avatar + `@username`.
+  - Removed obsolete `Dashboard.tsx` component and references.
+  - Added user endpoints: `GET /api/users/check-username` for typing checks and `PUT /api/users/profile` for profile updates.
+  - Refactored `getUserProfileByUsername` service to isolate statistics and tabs for owners vs visitors.
+  - Built centered Edit Profile modal in `UserProfile.tsx` supporting base64 avatar uploads, displayName overrides, and bio counters.
+  - Integrated keyboard accessibility (ESC modal dismiss) and tab selection constraints.
