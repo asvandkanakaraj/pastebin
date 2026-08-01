@@ -474,7 +474,7 @@ export function UserProfile() {
                   value={editDisplayName}
                   onChange={(e) => setEditDisplayName(e.target.value)}
                   placeholder="e.g. John Doe"
-                  className="h-10 w-full rounded-lg border border-slate-200 bg-slate-50/50 px-3.5 text-xs focus:outline-none dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100"
+                  className="h-10 w-full rounded-lg border border-slate-200 bg-slate-50/50 px-3.5 text-xs focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100 transition-colors"
                 />
               </div>
 
@@ -491,7 +491,7 @@ export function UserProfile() {
                     setEditUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ''))
                   }
                   placeholder="letters, numbers or underscores..."
-                  className="h-10 w-full rounded-lg border border-slate-200 bg-slate-50/50 px-3.5 text-xs focus:outline-none dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100"
+                  className="h-10 w-full rounded-lg border border-slate-200 bg-slate-50/50 px-3.5 text-xs focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100 transition-colors"
                 />
                 <div className="h-4">
                   {usernameStatus.checking && (
@@ -525,7 +525,7 @@ export function UserProfile() {
                   required
                   value={editEmail}
                   onChange={(e) => setEditEmail(e.target.value)}
-                  className="h-10 w-full rounded-lg border border-slate-200 bg-slate-50/50 px-3.5 text-xs focus:outline-none dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100"
+                  className="h-10 w-full rounded-lg border border-slate-200 bg-slate-50/50 px-3.5 text-xs focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100 transition-colors"
                 />
               </div>
 
@@ -543,7 +543,7 @@ export function UserProfile() {
                   value={editBio}
                   onChange={(e) => setEditBio(e.target.value.slice(0, 150))}
                   placeholder="Tell us about yourself..."
-                  className="w-full rounded-lg border border-slate-200 bg-slate-50/50 p-2.5 text-xs focus:outline-none dark:border-slate-800 dark:bg-slate-955 resize-none dark:text-slate-200"
+                  className="w-full rounded-lg border border-slate-200 bg-slate-50/50 p-2.5 text-xs focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-slate-800 dark:bg-slate-955 resize-none dark:text-slate-200 transition-colors"
                 />
               </div>
 

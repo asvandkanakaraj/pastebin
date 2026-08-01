@@ -404,7 +404,7 @@ export function BrowsePastes() {
                 placeholder="Search my pastes..."
                 value={myPastesSearch}
                 onChange={(e) => setMyPastesSearch(e.target.value)}
-                className="h-8 rounded-lg border border-slate-200 bg-white pl-9 pr-3 text-xs placeholder-slate-400 focus:outline-none dark:border-slate-800 dark:bg-slate-950"
+                className="h-8 rounded-lg border border-slate-200 bg-white pl-9 pr-3 text-xs placeholder-slate-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-slate-800 dark:bg-slate-950 transition-colors"
               />
             </div>
 
@@ -412,7 +412,7 @@ export function BrowsePastes() {
             <select
               value={myPastesSort}
               onChange={(e: any) => setMyPastesSort(e.target.value)}
-              className="h-8 rounded-lg border border-slate-200 bg-white px-2.5 text-xs focus:outline-none dark:border-slate-800 dark:bg-slate-955"
+              className="h-8 rounded-lg border border-slate-200 bg-white px-2.5 text-xs focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-slate-800 dark:bg-slate-955 transition-colors"
             >
               <option value="newest">Newest First</option>
               <option value="oldest">Oldest First</option>
@@ -968,7 +968,7 @@ export function BrowsePastes() {
                     placeholder="collaborator_username"
                     value={shareInput}
                     onChange={(e) => setShareInput(e.target.value)}
-                    className="h-9 w-full rounded-lg border border-slate-200 bg-slate-50/50 px-3 text-xs focus:outline-none dark:border-slate-800 dark:bg-slate-900"
+                    className="h-9 w-full rounded-lg border border-slate-200 bg-slate-50/50 px-3 text-xs focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-slate-800 dark:bg-slate-900 transition-colors"
                   />
                 </div>
                 {shareError && (
@@ -1020,7 +1020,7 @@ export function BrowsePastes() {
                   placeholder="Untitled Paste"
                   value={editTitle}
                   onChange={(e) => setEditTitle(e.target.value)}
-                  className="h-9 w-full rounded-lg border border-slate-200 bg-slate-50/50 px-3 text-xs focus:outline-none dark:border-slate-800 dark:bg-slate-900"
+                  className="h-9 w-full rounded-lg border border-slate-200 bg-slate-50/50 px-3 text-xs focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-slate-800 dark:bg-slate-900 transition-colors"
                 />
               </div>
 
@@ -1036,7 +1036,7 @@ export function BrowsePastes() {
                     id="editLang"
                     value={editLanguage}
                     onChange={(e) => setEditLanguage(e.target.value)}
-                    className="h-9 w-full rounded-lg border border-slate-200 bg-slate-50/50 px-2 text-xs focus:outline-none dark:border-slate-800 dark:bg-slate-900"
+                    className="h-9 w-full rounded-lg border border-slate-200 bg-slate-50/50 px-2 text-xs focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-slate-800 dark:bg-slate-900 transition-colors"
                   >
                     <option value="plaintext">Plain Text</option>
                     <option value="javascript">JavaScript</option>
@@ -1058,7 +1058,7 @@ export function BrowsePastes() {
                     id="editVis"
                     value={editVisibility}
                     onChange={(e) => setEditVisibility(e.target.value)}
-                    className="h-9 w-full rounded-lg border border-slate-200 bg-slate-50/50 px-2 text-xs focus:outline-none dark:border-slate-800 dark:bg-slate-900"
+                    className="h-9 w-full rounded-lg border border-slate-200 bg-slate-50/50 px-2 text-xs focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-slate-800 dark:bg-slate-900 transition-colors"
                   >
                     <option value="PUBLIC">Public</option>
                     <option value="PRIVATE">Private</option>
@@ -1084,7 +1084,7 @@ export function BrowsePastes() {
                     placeholder="••••••••"
                     value={editPassword}
                     onChange={(e) => setEditPassword(e.target.value)}
-                    className="h-9 w-full rounded-lg border border-slate-200 bg-slate-50/50 px-3 text-xs focus:outline-none dark:border-slate-800 dark:bg-slate-900"
+                    className="h-9 w-full rounded-lg border border-slate-200 bg-slate-50/50 px-3 text-xs focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-slate-800 dark:bg-slate-900 transition-colors"
                   />
                 </div>
               )}
@@ -1102,7 +1102,7 @@ export function BrowsePastes() {
                   rows={4}
                   value={editContent}
                   onChange={(e) => setEditContent(e.target.value)}
-                  className="w-full rounded-lg border border-slate-200 bg-slate-50/50 p-3 text-xs font-mono focus:outline-none dark:border-slate-800 dark:bg-slate-900"
+                  className="w-full rounded-lg border border-slate-200 bg-slate-50/50 p-3 text-xs font-mono focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-slate-800 dark:bg-slate-900 transition-colors"
                 />
               </div>
 

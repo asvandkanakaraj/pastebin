@@ -63,7 +63,7 @@ export function Login() {
             onChange={(e) => setEmail(e.target.value)}
             required
             placeholder="name@example.com"
-            className="h-10 w-full rounded-lg border border-slate-200 bg-slate-50/50 px-3.5 text-sm placeholder-slate-400 focus:outline-none dark:border-slate-800 dark:bg-slate-950 dark:placeholder-slate-500"
+            className="h-10 w-full rounded-lg border border-slate-200 bg-slate-50/50 px-3.5 text-sm placeholder-slate-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-slate-800 dark:bg-slate-950 dark:placeholder-slate-500 transition-colors"
           />
         </div>
 
@@ -84,7 +84,7 @@ export function Login() {
               required
               placeholder="••••••••"
               disabled={loading}
-              className="h-10 w-full rounded-lg border border-slate-200 bg-slate-50/50 pl-3.5 pr-10 text-sm placeholder-slate-400 focus:outline-none dark:border-slate-800 dark:bg-slate-950 dark:placeholder-slate-500 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="h-10 w-full rounded-lg border border-slate-200 bg-slate-50/50 pl-3.5 pr-10 text-sm placeholder-slate-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-slate-800 dark:bg-slate-950 dark:placeholder-slate-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             />
             <button
               type="button"

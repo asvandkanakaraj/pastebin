@@ -554,7 +554,7 @@ export function ViewPaste() {
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     placeholder="Type name or email address..."
-                    className="h-10 w-full rounded-lg border border-slate-200 bg-slate-50/50 px-3.5 text-xs focus:outline-none dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100"
+                    className="h-10 w-full rounded-lg border border-slate-200 bg-slate-50/50 px-3.5 text-xs focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100 transition-colors"
                   />
 
                   {/* Suggestions dropdown */}
@@ -733,7 +733,7 @@ export function ViewPaste() {
                 value={editTitle}
                 onChange={(e) => setEditTitle(e.target.value)}
                 placeholder="Enter paste title..."
-                className="h-10 w-full rounded-lg border border-slate-200 bg-slate-50/50 px-3.5 text-sm font-bold focus:outline-none dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200"
+                className="h-10 w-full rounded-lg border border-slate-200 bg-slate-50/50 px-3.5 text-sm font-bold focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 transition-colors"
               />
               <textarea
                 rows={2}
@@ -741,7 +741,7 @@ export function ViewPaste() {
                 value={editDescription}
                 onChange={(e) => setEditDescription(e.target.value.slice(0, 300))}
                 placeholder="Update paste description..."
-                className="w-full rounded-lg border border-slate-200 bg-slate-50/50 p-2.5 text-xs focus:outline-none dark:border-slate-800 dark:bg-slate-955 resize-none dark:text-slate-300"
+                className="w-full rounded-lg border border-slate-200 bg-slate-50/50 p-2.5 text-xs focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-slate-800 dark:bg-slate-955 resize-none dark:text-slate-300 transition-colors"
               />
               <span className="text-[9px] text-slate-400 block -mt-1 select-none text-right">
                 {editDescription.length} / 300

@@ -564,7 +564,7 @@ function main() {
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder="Untitled"
-                className="h-11 w-full rounded-lg border border-slate-200 bg-slate-50/50 px-4 text-sm placeholder-slate-400 focus:border-blue-550 focus:outline-none dark:border-slate-800 dark:bg-slate-950 dark:placeholder-slate-655"
+                className="h-11 w-full rounded-lg border border-slate-200 bg-slate-50/50 px-4 text-sm placeholder-slate-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-slate-800 dark:bg-slate-950 dark:placeholder-slate-655 transition-colors"
               />
             </div>
 
@@ -685,7 +685,7 @@ function main() {
                 value={description}
                 onChange={(e) => setDescription(e.target.value.slice(0, 300))}
                 placeholder="Describe what this paste contains..."
-                className="w-full rounded-lg border border-slate-200 bg-slate-50/50 p-2.5 text-xs focus:outline-none dark:border-slate-800 dark:bg-slate-950 resize-none dark:placeholder-slate-600 leading-normal"
+                className="w-full rounded-lg border border-slate-200 bg-slate-50/50 p-2.5 text-xs focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-slate-800 dark:bg-slate-950 resize-none dark:placeholder-slate-600 leading-normal transition-colors"
               />
               <span className="text-[9px] text-slate-405 text-right pr-0.5">
                 {description.length} / 300
@@ -828,7 +828,7 @@ function main() {
                         value={customPin}
                         onChange={(e) => setCustomPin(e.target.value.replace(/\D/g, '').slice(0, 8))}
                         placeholder="4 to 8 digits PIN"
-                        className="h-9 w-full rounded-lg border border-slate-200 bg-white px-3 pr-10 text-xs focus:outline-none dark:border-slate-800 dark:bg-slate-955 dark:text-slate-200"
+                        className="h-9 w-full rounded-lg border border-slate-200 bg-white px-3 pr-10 text-xs focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-slate-800 dark:bg-slate-955 dark:text-slate-200 transition-colors"
                       />
                       <button
                         type="button"

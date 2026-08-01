@@ -82,7 +82,7 @@ export function SearchInput() {
         setQuery('');
         setSelectedIndex(-1);
         inputRef.current?.blur();
-        navigate(`/v/${trimmed}`);
+        navigate(`/v/${trimmed.toUpperCase()}`);
         return;
       }
 
