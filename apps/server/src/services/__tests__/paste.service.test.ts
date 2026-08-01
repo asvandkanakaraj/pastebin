@@ -52,6 +52,7 @@ describe('PasteService Unit Tests', () => {
         content: 'console.log("hello test");',
         language: 'javascript',
         isPublic: true,
+        userId: 'user-id-123',
       });
 
       expect(db.paste.create).toHaveBeenCalledWith(
@@ -61,6 +62,7 @@ describe('PasteService Unit Tests', () => {
             content: 'console.log("hello test");',
             language: 'javascript',
             isPublic: true,
+            userId: 'user-id-123',
           }),
         })
       );

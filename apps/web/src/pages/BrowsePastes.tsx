@@ -49,7 +49,7 @@ interface WorkspaceData {
 }
 
 export function BrowsePastes() {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
 
   const [workspace, setWorkspace] = useState<WorkspaceData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -116,7 +116,11 @@ export function BrowsePastes() {
       setWorkspace(response.data);
     } catch (err: any) {
       console.error('Fetch workspace failed:', err);
-      setError(err.response?.data?.message || 'Failed to retrieve workspace data.');
+      if (err.response?.status === 401) {
+        logout();
+      } else {
+        setError(err.response?.data?.message || 'Failed to retrieve workspace data.');
+      }
     } finally {
       setLoading(false);
     }
@@ -316,38 +320,7 @@ export function BrowsePastes() {
     copyToClipboard(link, pasteId);
   };
 
-  // Redirect to login if user is not authenticated
-  if (!user) {
-    return (
-      <div className="w-full max-w-md mx-auto bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-8 shadow-xl text-center space-y-6">
-        <div className="mx-auto p-4 bg-indigo-50 dark:bg-indigo-950/30 text-indigo-600 dark:text-indigo-400 rounded-2xl w-fit">
-          <Terminal size={32} />
-        </div>
-        <div className="space-y-2">
-          <h2 className="text-lg font-bold text-slate-800 dark:text-slate-200">
-            Personal Workspace
-          </h2>
-          <p className="text-xs text-slate-500 max-w-sm mx-auto leading-relaxed dark:text-slate-400">
-            Please sign in to view your private pastes library, shared snippets, and bookmarks.
-          </p>
-        </div>
-        <div className="flex gap-3 justify-center">
-          <Link
-            to="/login"
-            className="h-10 inline-flex items-center justify-center rounded-lg bg-indigo-600 px-6 text-xs font-bold text-white shadow-md hover:bg-indigo-500 transition-colors"
-          >
-            Sign In
-          </Link>
-          <Link
-            to="/register"
-            className="h-10 inline-flex items-center justify-center rounded-lg border border-slate-200 bg-white px-6 text-xs font-bold text-slate-700 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-300 dark:hover:bg-slate-850 transition-colors"
-          >
-            Create Account
-          </Link>
-        </div>
-      </div>
-    );
-  }
+
 
   // Loading skeleton state
   if (loading && !workspace) {

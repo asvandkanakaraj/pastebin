@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
+import { db } from '@pastebin/database';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'pastebin-super-secret-key-development';
 
@@ -10,7 +11,7 @@ export interface AuthenticatedRequest extends Request {
   };
 }
 
-export function authMiddleware(req: AuthenticatedRequest, res: Response, next: NextFunction) {
+export async function authMiddleware(req: AuthenticatedRequest, res: Response, next: NextFunction) {
   const authHeader = req.headers.authorization;
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     return res.status(401).json({
@@ -22,6 +23,16 @@ export function authMiddleware(req: AuthenticatedRequest, res: Response, next: N
   const token = authHeader.split(' ')[1];
   try {
     const decoded = jwt.verify(token, JWT_SECRET) as { userId: string; email: string };
+    
+    // Verify user actually exists in the database
+    const userExists = await db.user.findUnique({ where: { id: decoded.userId } });
+    if (!userExists) {
+      return res.status(401).json({
+        error: 'UnauthorizedError',
+        message: 'Invalid or expired access token',
+      });
+    }
+
     req.user = decoded;
     next();
   } catch (err) {
@@ -32,7 +43,7 @@ export function authMiddleware(req: AuthenticatedRequest, res: Response, next: N
   }
 }
 
-export function optionalAuthMiddleware(
+export async function optionalAuthMiddleware(
   req: AuthenticatedRequest,
   res: Response,
   next: NextFunction
@@ -45,7 +56,12 @@ export function optionalAuthMiddleware(
   const token = authHeader.split(' ')[1];
   try {
     const decoded = jwt.verify(token, JWT_SECRET) as { userId: string; email: string };
-    req.user = decoded;
+    
+    // Verify user actually exists in the database
+    const userExists = await db.user.findUnique({ where: { id: decoded.userId } });
+    if (userExists) {
+      req.user = decoded;
+    }
   } catch (err) {
     // Proceed as anonymous if token is invalid
   }

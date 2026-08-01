@@ -508,8 +508,8 @@ export function UserProfile() {
                         }`}
                       >
                         {usernameStatus.available
-                          ? '✓ Username Available'
-                          : `✗ ${usernameStatus.error}`}
+                          ? 'Username available'
+                          : usernameStatus.error}
                       </span>
                     )}
                 </div>

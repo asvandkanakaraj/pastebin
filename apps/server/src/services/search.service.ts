@@ -2,9 +2,13 @@ import { db } from '@pastebin/database';
 
 export class SearchService {
   static async globalSearch(q: string) {
-    const query = q.trim();
+    let query = q.trim();
     if (!query) {
       return { users: [], pastes: [] };
+    }
+
+    if (query.startsWith('@')) {
+      query = query.substring(1);
     }
 
     const lowerQuery = query.toLowerCase();
@@ -16,6 +20,7 @@ export class SearchService {
         OR: [
           { username: { contains: query, mode: 'insensitive' } },
           { email: { contains: query, mode: 'insensitive' } },
+          { displayName: { contains: query, mode: 'insensitive' } },
         ],
       },
       take: 50,
@@ -40,7 +45,7 @@ export class SearchService {
           {
             OR: [
               { title: { contains: query, mode: 'insensitive' } },
-              { id: { equals: query, mode: 'insensitive' } },
+              { id: { contains: query, mode: 'insensitive' } },
             ],
           },
         ],

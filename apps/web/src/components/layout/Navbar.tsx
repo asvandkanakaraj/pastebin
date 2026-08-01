@@ -64,10 +64,22 @@ export function Navbar() {
         <div className="flex items-center gap-6">
           <nav className="flex items-center gap-6 text-sm font-medium text-slate-600 dark:text-slate-300">
             <Link
+              to="/"
+              className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+            >
+              Home
+            </Link>
+            <Link
               to="/browse"
               className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
             >
               Browse
+            </Link>
+            <Link
+              to="/about"
+              className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+            >
+              About
             </Link>
           </nav>
 

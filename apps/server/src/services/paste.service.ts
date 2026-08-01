@@ -17,7 +17,7 @@ export class PasteService {
     const isGuest = !data.userId;
 
     let passwordHash: string | null = null;
-    if (data.password && !isGuest) {
+    if (data.password) {
       passwordHash = await bcrypt.hash(data.password, 10);
     }
 
@@ -29,7 +29,7 @@ export class PasteService {
       expiresAt = new Date(Date.now() + data.expiresInSeconds * 1000);
     }
 
-    const visibility = isGuest ? 'PUBLIC' : (data.visibility || (data.isPublic === false ? 'PRIVATE' : 'PUBLIC'));
+    const visibility = isGuest ? 'PRIVATE' : (data.visibility || (data.isPublic === false ? 'PRIVATE' : 'PUBLIC'));
     const isPublic = visibility === 'PUBLIC';
 
     return await db.$transaction(async (tx) => {
@@ -98,7 +98,9 @@ export class PasteService {
     }
 
     // Privacy checks
-    if (paste.visibility === 'ONLY_ME' || paste.visibility === 'SECRET') {
+    if (paste.visibility === 'SECRET') {
+      // Secret pastes open directly via exact CUID link
+    } else if (paste.visibility === 'ONLY_ME') {
       if (!requestingUserId || paste.userId !== requestingUserId) {
         const error = new Error('Access denied. Only the owner can view this paste.');
         (error as any).status = 403;
@@ -122,10 +124,12 @@ export class PasteService {
           throw error;
         }
       } else {
-        const error = new Error('Access denied to private paste');
-        (error as any).status = 403;
-        (error as any).name = 'ForbiddenError';
-        throw error;
+        if (paste.userId !== null) {
+          const error = new Error('Access denied to private paste');
+          (error as any).status = 403;
+          (error as any).name = 'ForbiddenError';
+          throw error;
+        }
       }
     }
 

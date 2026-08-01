@@ -22,6 +22,9 @@ const SearchResults = lazy(() =>
 const UserProfile = lazy(() =>
   import('./pages/UserProfile.js').then((m) => ({ default: m.UserProfile }))
 );
+const About = lazy(() =>
+  import('./pages/About.js').then((m) => ({ default: m.About }))
+);
 const NotFound = lazy(() =>
   import('./pages/NotFound.js').then((m) => ({ default: m.NotFound }))
 );
@@ -52,6 +55,7 @@ function App() {
               <Routes>
                 <Route path="/" element={<CreatePaste />} />
                 <Route path="/v/:id" element={<ViewPaste />} />
+                <Route path="/about" element={<About />} />
                 <Route path="/browse" element={<BrowsePastes />} />
                 <Route path="/login" element={<Login />} />
                 <Route path="/register" element={<Register />} />

@@ -14,6 +14,19 @@ export default {
     },
     extend: {
       colors: {
+        slate: {
+          50: '#F0F6FC',
+          100: '#E6EDF0',
+          200: '#D0D7DE',
+          300: '#AFB8C1',
+          400: '#8C959F',
+          500: '#6E7781',
+          600: '#57606A',
+          700: '#30363D',
+          800: '#21262D',
+          900: '#161B22',
+          950: '#0D1117',
+        },
         border: 'hsl(var(--border))',
         input: 'hsl(var(--input))',
         ring: 'hsl(var(--ring))',

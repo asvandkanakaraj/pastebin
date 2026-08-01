@@ -10,14 +10,10 @@ import {
   Copy,
   Check,
   Settings,
-  Shield,
-  Zap,
-  Code as CodeIcon,
-  Link2,
   Eye,
   EyeOff,
-  Save,
   ChevronDown,
+  Lock,
 } from 'lucide-react';
 import { CreatePasteSchema } from '@pastebin/shared';
 import { CodeEditor } from '../components/editor/CodeEditor.js';
@@ -46,7 +42,7 @@ const EXPIRATION_OPTIONS = [
 ];
 
 export function CreatePaste() {
-  const { token } = useAuth();
+  const { token, logout } = useAuth();
   const navigate = useNavigate();
   const isGuest = !token;
 
@@ -55,23 +51,14 @@ export function CreatePaste() {
   const [description, setDescription] = useState('');
   const [language, setLanguage] = useState('javascript');
   const [expiration, setExpiration] = useState(isGuest ? '3600' : 'never');
-  const [visibility, setVisibility] = useState<'PUBLIC' | 'PRIVATE' | 'SECRET'>('PUBLIC');
+  const [visibility, setVisibility] = useState<'PUBLIC' | 'PRIVATE' | 'SECRET'>(isGuest ? 'PRIVATE' : 'PUBLIC');
   const [pinOption, setPinOption] = useState<'auto' | 'custom'>('auto');
-  const [customPin, setCustomPin] = useState('');
+  const [customPin, setCustomPin] = useState(() => Math.floor(100000 + Math.random() * 900000).toString());
   const [showPin, setShowPin] = useState(false);
-  const [content, setContent] = useState(`// // PasteBin is awesome! 🚀
-function greetUser(name) {
-  const greeting = \`Hello, \${name}!\`;
-  return greeting;
-}
-
-function calculateSum(a, b) {
-  return a + b;
-}
-
-const user = 'Developer';
-console.log(greetUser(user));
-console.log(2 + 2);`);
+  const [content, setContent] = useState(`// Paste editor
+function main() {
+  console.log("Welcome to PasteBin");
+}`);
 
   // Editor Preferences & UI States
   const [editorTheme, _setEditorTheme] = useState<'vs-dark' | 'light'>(
@@ -104,11 +91,15 @@ console.log(2 + 2);`);
   const [createdPasteData, setCreatedPasteData] = useState<any | null>(null);
   const [copiedUrl, setCopiedUrl] = useState(false);
   const [copiedCode, setCopiedCode] = useState(false);
+  const [copiedPin, setCopiedPin] = useState(false);
 
   useEffect(() => {
     if (isGuest) {
       setExpiration('3600');
-      setVisibility('PUBLIC');
+      setVisibility('PRIVATE');
+      setPinOption('auto');
+      const generated = Math.floor(100000 + Math.random() * 900000).toString();
+      setCustomPin(generated);
     }
   }, [isGuest]);
 
@@ -205,14 +196,20 @@ console.log(2 + 2);`);
     setLoading(true);
     setError(null);
 
+    let finalPin = customPin.trim();
+    if ((isGuest || visibility === 'PRIVATE') && !finalPin) {
+      finalPin = Math.floor(100000 + Math.random() * 900000).toString();
+      setCustomPin(finalPin);
+    }
+
     const payload: any = {
       title: title.trim() || undefined,
       description: description.trim() || undefined,
       content,
       language,
-      visibility: isGuest ? 'PUBLIC' : visibility,
-      isPublic: isGuest ? true : visibility === 'PUBLIC',
-      password: !isGuest && visibility === 'PRIVATE' ? customPin.trim() : undefined,
+      visibility: isGuest ? 'PRIVATE' : visibility,
+      isPublic: isGuest ? false : visibility === 'PUBLIC',
+      password: (isGuest || visibility === 'PRIVATE') ? finalPin : undefined,
       expiresInSeconds: isGuest ? 3600 : expiration === 'never' ? undefined : parseInt(expiration),
       shares: isGuest ? undefined : sharedUsers.map((su) => ({ userId: su.id, permission: su.permission })),
     };
@@ -246,7 +243,12 @@ console.log(2 + 2);`);
       }
     } catch (err: any) {
       console.error('Create paste failed:', err);
-      setError(err.response?.data?.message || 'Failed to save paste to server');
+      if (err.response?.status === 401 && token) {
+        logout();
+        setError('Session expired. Please log in again.');
+      } else {
+        setError(err.response?.data?.message || 'Failed to save paste to server');
+      }
     } finally {
       setLoading(false);
     }
@@ -254,57 +256,28 @@ console.log(2 + 2);`);
 
   return (
     <div className="w-full max-w-7xl mx-auto py-2 md:py-6 space-y-6">
-      {/* Guest Success Dialog Modal Overlay */}
+      {/* Success Dialog Modal Overlay */}
       {createdPasteData && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 backdrop-blur-sm p-4 animate-in fade-in duration-200"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-955/40 backdrop-blur-xs p-4 animate-in fade-in duration-200"
           role="dialog"
           aria-modal="true"
         >
-          <div className="w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-2xl text-center space-y-5 animate-in zoom-in-95 duration-200 relative text-left">
-            <div className="mx-auto p-3.5 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl text-emerald-500 dark:text-emerald-450 w-fit flex items-center justify-center">
-              <Check size={28} className="animate-bounce" />
-            </div>
-            <div className="text-center">
-              <h2 className="text-lg font-bold text-slate-850 dark:text-white">
-                Guest Paste Created!
+          <div className="w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-2xl space-y-6 animate-in zoom-in-95 duration-200 relative text-left">
+            <div className="text-center space-y-2">
+              <h2 className="text-lg font-bold text-slate-900 dark:text-white">
+                Paste Created
               </h2>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
-                Your transient paste has been successfully published. Note that guest pastes expire automatically in exactly 1 hour.
+              <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                Publishing complete. Record these credentials to access this private paste.
               </p>
             </div>
 
-            <div className="space-y-4 py-2">
-              {/* Paste URL */}
-              <div className="space-y-1">
-                <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">
-                  Paste URL
-                </label>
-                <div className="relative">
-                  <input
-                    type="text"
-                    readOnly
-                    value={`${window.location.origin}/v/${createdPasteData.id}`}
-                    className="h-10 w-full rounded-lg border border-slate-200 bg-slate-50/50 px-3 pr-10 text-xs focus:outline-none dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 select-all"
-                  />
-                  <button
-                    type="button"
-                    onClick={async () => {
-                      await navigator.clipboard.writeText(`${window.location.origin}/v/${createdPasteData.id}`);
-                      setCopiedUrl(true);
-                      setTimeout(() => setCopiedUrl(false), 2000);
-                    }}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-655"
-                  >
-                    {copiedUrl ? <Check size={14} className="text-emerald-500" /> : <Copy size={14} />}
-                  </button>
-                </div>
-              </div>
-
+            <div className="space-y-4 py-2 border-y border-slate-100 dark:border-slate-800">
               {/* Paste Code */}
               <div className="space-y-1">
                 <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">
-                  8-Character Paste Code
+                  Paste Code
                 </label>
                 <div className="relative">
                   <input
@@ -320,12 +293,58 @@ console.log(2 + 2);`);
                       setCopiedCode(true);
                       setTimeout(() => setCopiedCode(false), 2000);
                     }}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-655"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1"
+                    title="Copy Paste Code"
                   >
                     {copiedCode ? <Check size={14} className="text-emerald-500" /> : <Copy size={14} />}
                   </button>
                 </div>
               </div>
+
+              {/* PIN code (Private pastes) */}
+              {(isGuest || visibility === 'PRIVATE') && (
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">
+                    Access PIN
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      readOnly
+                      value={customPin}
+                      className="h-10 w-full rounded-lg border border-slate-200 bg-slate-50/50 px-3 pr-10 text-xs font-mono font-bold tracking-widest text-amber-600 dark:text-amber-400 dark:border-slate-800 dark:bg-slate-955 select-all"
+                    />
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        await navigator.clipboard.writeText(customPin);
+                        setCopiedPin(true);
+                        setTimeout(() => setCopiedPin(false), 2000);
+                      }}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1"
+                      title="Copy PIN"
+                    >
+                      {copiedPin ? <Check size={14} className="text-emerald-500" /> : <Copy size={14} />}
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Small Action to Copy URL Link */}
+            <div className="text-center">
+              <button
+                type="button"
+                onClick={async () => {
+                  await navigator.clipboard.writeText(`${window.location.origin}/v/${createdPasteData.id}`);
+                  setCopiedUrl(true);
+                  setTimeout(() => setCopiedUrl(false), 2000);
+                }}
+                className="text-[11px] font-bold text-slate-500 hover:text-blue-500 dark:text-slate-450 dark:hover:text-blue-400 transition-colors inline-flex items-center justify-center gap-1.5"
+              >
+                {copiedUrl ? <Check size={12} className="text-emerald-500" /> : <Copy size={12} />}
+                <span>{copiedUrl ? 'Copied Link!' : 'Copy Share Link'}</span>
+              </button>
             </div>
 
             <div className="flex items-center gap-3 pt-2">
@@ -336,6 +355,8 @@ console.log(2 + 2);`);
                   setTitle('');
                   setDescription('');
                   setContent('');
+                  // Regene random pin
+                  setCustomPin(Math.floor(100000 + Math.random() * 900000).toString());
                 }}
                 className="flex-1 h-10 inline-flex items-center justify-center rounded-lg border border-slate-200 bg-white px-4 text-xs font-bold text-slate-700 hover:bg-slate-50 focus:outline-none dark:border-slate-800 dark:bg-slate-900 dark:text-slate-350 dark:hover:bg-slate-800 transition-colors"
               >
@@ -343,10 +364,10 @@ console.log(2 + 2);`);
               </button>
               <button
                 type="button"
-                onClick={() => navigate(`/v/${createdPasteData.id}`)}
+                onClick={() => navigate(`/v/${createdPasteData.id}`, { state: { justCreated: true, pin: customPin } })}
                 className="flex-1 h-10 inline-flex items-center justify-center rounded-lg bg-blue-600 px-4 text-xs font-bold text-white shadow-md hover:bg-blue-700 focus:outline-none transition-colors"
               >
-                View Paste
+                Open Paste
               </button>
             </div>
           </div>
@@ -496,7 +517,7 @@ console.log(2 + 2);`);
               <button
                 type="button"
                 onClick={() => {
-                  setShareSuccess('✓ Configuration Applied');
+                  setShareSuccess('Configuration applied');
                   setTimeout(() => {
                     setShareSuccess(null);
                     setShowAdvanced(false);
@@ -518,11 +539,11 @@ console.log(2 + 2);`);
           <FilePlus2 className="h-6 w-6" />
         </div>
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-800 dark:text-white">
-            Create New Paste
+          <h1 className="text-xl font-bold tracking-tight text-slate-800 dark:text-white">
+            New Paste
           </h1>
-          <p className="text-sm text-slate-500">
-            Share your code, notes, or any text securely with custom options.
+          <p className="text-xs text-slate-500">
+            Create a transient or persistent code snippet.
           </p>
         </div>
       </div>
@@ -535,14 +556,14 @@ console.log(2 + 2);`);
                 htmlFor="title-input"
                 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider"
               >
-                Title <span className="text-[10px] text-slate-400 lowercase">(optional)</span>
+                Title
               </label>
               <input
                 id="title-input"
                 type="text"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                placeholder="Name of this paste..."
+                placeholder="Untitled"
                 className="h-11 w-full rounded-lg border border-slate-200 bg-slate-50/50 px-4 text-sm placeholder-slate-400 focus:border-blue-550 focus:outline-none dark:border-slate-800 dark:bg-slate-950 dark:placeholder-slate-655"
               />
             </div>
@@ -639,53 +660,7 @@ console.log(2 + 2);`);
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mt-6">
-            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 rounded-xl shadow-xs space-y-1.5">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-50 text-blue-600 dark:bg-blue-955/40 dark:text-blue-400">
-                <Shield size={16} />
-              </div>
-              <h3 className="text-sm font-semibold text-slate-800 dark:text-white">
-                Private by Default
-              </h3>
-              <p className="text-xs text-slate-500 leading-relaxed">
-                Your pastes are private until you choose to share
-              </p>
-            </div>
 
-            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 rounded-xl shadow-xs space-y-1.5">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-50 text-amber-600 dark:bg-amber-955/40 dark:text-amber-400">
-                <Zap size={16} />
-              </div>
-              <h3 className="text-sm font-semibold text-slate-800 dark:text-white">
-                Fast & Reliable
-              </h3>
-              <p className="text-xs text-slate-500 leading-relaxed">
-                Instant creation and lightning-fast access
-              </p>
-            </div>
-
-            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 rounded-xl shadow-xs space-y-1.5">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-purple-50 text-purple-600 dark:bg-purple-950/40 dark:text-purple-400">
-                <CodeIcon size={16} />
-              </div>
-              <h3 className="text-sm font-semibold text-slate-800 dark:text-white">
-                Syntax Highlighting
-              </h3>
-              <p className="text-xs text-slate-500 leading-relaxed">
-                Supports 100+ programming languages
-              </p>
-            </div>
-
-            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 rounded-xl shadow-xs space-y-1.5">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400">
-                <Link2 size={16} />
-              </div>
-              <h3 className="text-sm font-semibold text-slate-800 dark:text-white">Easy Sharing</h3>
-              <p className="text-xs text-slate-500 leading-relaxed">
-                Share with anyone via unique link
-              </p>
-            </div>
-          </div>
         </div>
 
         <div className="space-y-6">
@@ -760,33 +735,43 @@ console.log(2 + 2);`);
               <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider select-none">
                 Visibility
               </label>
-              <div className="grid grid-cols-3 gap-1.5">
-                {[
-                  { id: 'PUBLIC', label: '🌍 Public', disabled: false },
-                  { id: 'PRIVATE', label: '🔒 Private', disabled: isGuest },
-                  { id: 'SECRET', label: '👻 Secret', disabled: isGuest },
-                ].map((opt) => (
-                  <button
-                    key={opt.id}
-                    type="button"
-                    disabled={opt.disabled}
-                    onClick={() => !opt.disabled && setVisibility(opt.id as any)}
-                    className={`py-2 px-1 text-center rounded-lg border text-[10px] font-bold transition-all ${
-                      visibility === opt.id
-                        ? 'bg-blue-600 border-blue-600 text-white shadow-sm'
-                        : opt.disabled
-                        ? 'border-slate-100 bg-slate-50/20 text-slate-400 cursor-not-allowed opacity-50 dark:border-slate-850 dark:bg-slate-900/40 dark:text-slate-600'
-                        : 'border-slate-200 bg-slate-50/50 text-slate-600 hover:bg-slate-100 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300'
-                    }`}
-                  >
-                    {opt.label}
-                  </button>
-                ))}
-              </div>
-              {isGuest && (
-                <span className="text-[9px] text-slate-450 dark:text-slate-500 leading-normal pl-0.5 select-none block mt-1">
-                  Private and Secret visibility require permanent ownership and access control roles.
-                </span>
+              {isGuest ? (
+                <>
+                  <div className="py-2.5 px-3 rounded-lg border border-slate-250 bg-slate-50 text-slate-700 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-350 text-xs font-bold flex items-center gap-2 select-none shadow-xs">
+                    <Lock size={12} className="text-slate-400" />
+                    <span>Private (Guest Mode)</span>
+                  </div>
+                  <span className="text-[9px] text-amber-500 font-semibold leading-normal pl-0.5 select-none block mt-1 italic animate-in fade-in duration-200">
+                    Guest pastes default to Private and can only be accessed using their generated URL or Paste Code.
+                  </span>
+                </>
+              ) : (
+                <>
+                  <div className="grid grid-cols-3 gap-1.5 animate-in fade-in duration-200">
+                    {[
+                      { id: 'PUBLIC', label: 'Public', icon: <Eye size={12} /> },
+                      { id: 'PRIVATE', label: 'Private', icon: <Lock size={12} /> },
+                      { id: 'SECRET', label: 'Secret', icon: <EyeOff size={12} /> },
+                    ].map((opt) => (
+                      <button
+                        key={opt.id}
+                        type="button"
+                        onClick={() => setVisibility(opt.id as any)}
+                        className={`py-2 px-1 text-center rounded-lg border text-[10px] font-bold transition-all flex items-center justify-center gap-1.5 ${
+                          visibility === opt.id
+                            ? 'bg-blue-600 border-blue-600 text-white shadow-sm'
+                            : 'border-slate-200 bg-slate-50/50 text-slate-600 hover:bg-slate-100 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300'
+                        }`}
+                      >
+                        {opt.icon}
+                        <span>{opt.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                  <span className="text-[9px] text-slate-450 dark:text-slate-500 leading-normal pl-0.5 select-none block mt-1">
+                    Select who can browse, search or access this code snippet.
+                  </span>
+                </>
               )}
 
               {/* Private PIN configs (Authenticated users only) */}
@@ -857,7 +842,7 @@ console.log(2 + 2);`);
 
                   {visibility === 'PRIVATE' && (customPin.length < 4 || customPin.length > 8) && (
                     <span className="text-[9px] text-rose-500 font-medium leading-none block pt-0.5">
-                      ⚠ PIN must be 4 to 8 digits
+                      PIN must be 4 to 8 digits
                     </span>
                   )}
                 </div>
@@ -894,8 +879,8 @@ console.log(2 + 2);`);
                 disabled={loading}
                 className="w-full h-11 inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 text-xs font-bold text-white shadow-md hover:bg-blue-700 focus:outline-none transition-colors disabled:opacity-50"
               >
-                <Save size={14} />
-                <span>{loading ? 'Creating...' : 'Create Paste'}</span>
+                <FilePlus2 size={14} />
+                <span>{loading ? 'Creating...' : 'Create'}</span>
               </button>
             </div>
           </div>

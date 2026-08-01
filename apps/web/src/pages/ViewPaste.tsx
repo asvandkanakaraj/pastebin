@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useParams, Link, useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import {
   Terminal,
@@ -12,7 +12,6 @@ import {
   Check,
   Trash2,
   Edit,
-  Save,
   Share2,
   Users,
   Bookmark,
@@ -25,8 +24,14 @@ import { API_BASE_URL } from '../lib/utils.js';
 export function ViewPaste() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const { theme } = useTheme();
   const { user, token } = useAuth();
+
+  const [showCredentialsBanner, setShowCredentialsBanner] = useState(() => {
+    return !!(location.state as any)?.justCreated;
+  });
+  const createdPin = (location.state as any)?.pin;
 
   const [paste, setPaste] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -309,7 +314,7 @@ export function ViewPaste() {
       );
       setSearchQuery('');
       setSearchResults([]);
-      setShareSuccess('✓ Paste Shared Successfully');
+      setShareSuccess('Paste shared successfully');
       setTimeout(() => setShareSuccess(null), 2000);
       await fetchShares();
     } catch (err: any) {
@@ -484,7 +489,33 @@ export function ViewPaste() {
   const canEdit = isOwner || isWriter;
 
   return (
-    <div className="w-full max-w-5xl mx-auto space-y-6 relative">
+    <div className="w-full max-w-5xl mx-auto space-y-6 relative animate-in fade-in duration-300">
+      {showCredentialsBanner && createdPin && (
+        <div className="bg-amber-50 dark:bg-amber-955/20 border border-amber-200 dark:border-amber-900/30 rounded-xl p-4 flex items-start gap-3 shadow-xs select-none">
+          <Lock className="text-amber-500 shrink-0 mt-0.5" size={16} />
+          <div className="flex-1 space-y-1">
+            <h4 className="text-xs font-bold text-amber-800 dark:text-amber-400">
+              Save Paste Credentials
+            </h4>
+            <p className="text-[11px] text-amber-600 dark:text-amber-500/80 leading-normal">
+              Make sure to save these details before leaving:
+            </p>
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 mt-2 font-mono text-xs font-bold">
+              <span className="text-slate-700 dark:text-slate-350">Code: <span className="text-blue-600 dark:text-blue-400 select-all">{id}</span></span>
+              <span className="text-slate-400">•</span>
+              <span className="text-slate-700 dark:text-slate-350">PIN: <span className="text-amber-600 dark:text-amber-400 select-all">{createdPin}</span></span>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => setShowCredentialsBanner(false)}
+            className="text-amber-500 hover:text-amber-700 font-bold px-1.5 py-0.5 rounded transition-colors"
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
       {/* Centered Sharing Advanced Settings Dialog Modal */}
       {showAdvanced && (
         <div
@@ -795,8 +826,8 @@ export function ViewPaste() {
                   disabled={updating}
                   className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg bg-emerald-650 hover:bg-emerald-600 px-4 text-xs font-bold text-white shadow-md transition-colors disabled:opacity-50"
                 >
-                  <Save size={12} />
-                  <span>{updating ? 'Saving...' : 'Save Changes'}</span>
+                  <Check size={12} />
+                  <span>{updating ? 'Saving...' : 'Save'}</span>
                 </button>
               </div>
             ) : (
@@ -823,8 +854,9 @@ export function ViewPaste() {
       </div>
 
       {updateError && (
-        <div className="p-3.5 bg-rose-50 dark:bg-rose-500/5 border border-rose-100 dark:border-rose-500/10 rounded-xl text-rose-650 dark:text-rose-400 text-xs font-bold animate-in shake duration-300">
-          ⚠ {updateError}
+        <div className="p-3.5 bg-rose-50 dark:bg-rose-500/5 border border-rose-100 dark:border-rose-500/10 rounded-xl text-rose-650 dark:text-rose-400 text-xs font-bold animate-in shake duration-300 flex items-center gap-1.5">
+          <AlertCircle size={12} />
+          <span>{updateError}</span>
         </div>
       )}
 

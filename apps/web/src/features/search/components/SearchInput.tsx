@@ -56,6 +56,47 @@ export function SearchInput() {
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      const trimmed = query.trim();
+      const usersList = results?.users.slice(0, 5) || [];
+      const pastesList = results?.pastes.slice(0, 5) || [];
+      const hasMore = (results?.users.length || 0) > 5 || (results?.pastes.length || 0) > 5;
+
+      const items: any[] = [];
+      usersList.forEach((u) => items.push({ type: 'user', ...u }));
+      pastesList.forEach((p) => items.push({ type: 'paste', ...p }));
+      if (hasMore) {
+        items.push({ type: 'view-all' });
+      }
+
+      if (selectedIndex >= 0 && selectedIndex < items.length) {
+        e.preventDefault();
+        const selected = items[selectedIndex];
+        handleItemClick(selected.type, selected);
+        return;
+      }
+
+      if (/^[a-zA-Z0-9]{8}$/.test(trimmed)) {
+        e.preventDefault();
+        setIsOpen(false);
+        setQuery('');
+        setSelectedIndex(-1);
+        inputRef.current?.blur();
+        navigate(`/v/${trimmed}`);
+        return;
+      }
+
+      if (trimmed) {
+        e.preventDefault();
+        setIsOpen(false);
+        setQuery('');
+        setSelectedIndex(-1);
+        inputRef.current?.blur();
+        navigate(`/search?q=${encodeURIComponent(trimmed)}`);
+      }
+      return;
+    }
+
     if (!isOpen || !results) return;
 
     const usersList = results.users.slice(0, 5);
@@ -81,12 +122,6 @@ export function SearchInput() {
       e.preventDefault();
       setIsOpen(false);
       inputRef.current?.blur();
-    } else if (e.key === 'Enter') {
-      if (selectedIndex >= 0 && selectedIndex < items.length) {
-        e.preventDefault();
-        const selected = items[selectedIndex];
-        handleItemClick(selected.type, selected);
-      }
     }
   };
 
