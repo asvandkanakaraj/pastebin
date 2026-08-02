@@ -46,38 +46,7 @@ app.use(
   })
 );
 
-// Apply Global Rate Limiting
-app.use(globalRateLimiter);
-
-// CORS configuration - only allow requests from specific frontend origins
-app.use(
-  cors({
-    origin: allowedOrigins,
-    credentials: true,
-  })
-);
-
-app.use(express.json());
-
-// Structured JSON request logging format via Morgan to Winston http level
-app.use(
-  morgan((tokens, req, res) => {
-    const logData = {
-      method: tokens.method(req, res),
-      url: tokens.url(req, res),
-      status: Number(tokens.status(req, res)),
-      responseTime: tokens['response-time'](req, res)
-        ? `${tokens['response-time'](req, res)} ms`
-        : undefined,
-      timestamp: new Date().toISOString(),
-      ip: req.ip || req.socket.remoteAddress,
-    };
-    logger.http(JSON.stringify(logData));
-    return null; // Suppress default morgan stdout printing since we redirect to Winston
-  })
-);
-
-// Advanced Health check endpoint with PostgreSQL connection check
+// Advanced Health check endpoint with PostgreSQL connection check (Exclude from global rate limiter)
 app.get('/health', async (req, res) => {
   const uptime = `${process.uptime().toFixed(2)}s`;
   try {
@@ -107,6 +76,37 @@ app.get('/health', async (req, res) => {
     });
   }
 });
+
+// CORS configuration - only allow requests from specific frontend origins
+app.use(
+  cors({
+    origin: allowedOrigins,
+    credentials: true,
+  })
+);
+
+app.use(express.json());
+
+// Structured JSON request logging format via Morgan to Winston http level
+app.use(
+  morgan((tokens, req, res) => {
+    const logData = {
+      method: tokens.method(req, res),
+      url: tokens.url(req, res),
+      status: Number(tokens.status(req, res)),
+      responseTime: tokens['response-time'](req, res)
+        ? `${tokens['response-time'](req, res)} ms`
+        : undefined,
+      timestamp: new Date().toISOString(),
+      ip: req.ip || req.socket.remoteAddress,
+    };
+    logger.http(JSON.stringify(logData));
+    return null; // Suppress default morgan stdout printing since we redirect to Winston
+  })
+);
+
+// Apply Global Rate Limiting
+app.use(globalRateLimiter);
 
 // Register API routes
 app.use('/api/pastes', pasteRoutes);
