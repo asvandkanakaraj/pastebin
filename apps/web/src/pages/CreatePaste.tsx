@@ -262,7 +262,7 @@ export function CreatePaste() {
       {/* Success Dialog Modal Overlay */}
       {createdPasteData && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-955/40 backdrop-blur-xs p-4 animate-in fade-in duration-200"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 backdrop-blur-xs p-4 animate-in fade-in duration-200"
           role="dialog"
           aria-modal="true"
         >
@@ -317,7 +317,7 @@ export function CreatePaste() {
                       type="text"
                       readOnly
                       value={customPin}
-                      className="h-10 w-full rounded-lg border border-slate-200 bg-slate-50/50 px-3 pr-10 text-xs font-mono font-bold tracking-widest text-amber-600 dark:text-amber-400 dark:border-slate-800 dark:bg-slate-955 select-all"
+                      className="h-10 w-full rounded-lg border border-slate-200 bg-slate-50/50 px-3 pr-10 text-xs font-mono font-bold tracking-widest text-amber-600 dark:text-amber-400 dark:border-slate-800 dark:bg-slate-900 select-all"
                     />
                     <button
                       type="button"
@@ -607,10 +607,14 @@ export function CreatePaste() {
                     <select
                       value={language}
                       onChange={(e) => setLanguage(e.target.value)}
-                      className="appearance-none h-8 rounded-lg border border-slate-200 bg-white pl-3 pr-8 text-xs font-medium text-slate-700 focus:outline-none dark:border-slate-800 dark:bg-slate-955 dark:text-slate-300"
+                      className="appearance-none h-8 rounded-lg border border-slate-200 bg-white pl-3 pr-8 text-xs font-medium text-slate-800 dark:text-slate-100 focus:outline-none dark:border-slate-800 dark:bg-slate-900 transition-colors"
                     >
                       {LANGUAGES.map((lang) => (
-                        <option key={lang.value} value={lang.value}>
+                        <option
+                          key={lang.value}
+                          value={lang.value}
+                          className="bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100"
+                        >
                           {lang.label}
                         </option>
                       ))}
@@ -732,13 +736,22 @@ export function CreatePaste() {
                   disabled={isGuest}
                   value={isGuest ? '3600' : expiration}
                   onChange={(e) => setExpiration(e.target.value)}
-                  className="appearance-none h-10 w-full rounded-lg border border-slate-200 bg-slate-50/50 px-3 pr-10 text-xs font-medium focus:outline-none dark:border-slate-800 dark:bg-slate-955 dark:text-slate-300 disabled:opacity-80"
+                  className="appearance-none h-10 w-full rounded-lg border border-slate-200 bg-slate-50/50 px-3 pr-10 text-xs font-medium focus:outline-none dark:border-slate-800 dark:bg-slate-900 dark:text-slate-100 text-slate-800 disabled:opacity-80 transition-colors"
                 >
                   {isGuest ? (
-                    <option value="3600">1 Hour (Guest Mode)</option>
+                    <option
+                      value="3600"
+                      className="bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100"
+                    >
+                      1 Hour (Guest Mode)
+                    </option>
                   ) : (
                     EXPIRATION_OPTIONS.map((opt) => (
-                      <option key={opt.value} value={opt.value}>
+                      <option
+                        key={opt.value}
+                        value={opt.value}
+                        className="bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100"
+                      >
                         {opt.label}
                       </option>
                     ))
@@ -859,7 +872,7 @@ export function CreatePaste() {
                           setCustomPin(e.target.value.replace(/\D/g, '').slice(0, 8))
                         }
                         placeholder="4 to 8 digits PIN"
-                        className="h-9 w-full rounded-lg border border-slate-200 bg-white px-3 pr-10 text-xs focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-slate-800 dark:bg-slate-955 dark:text-slate-200 transition-colors"
+                        className="h-9 w-full rounded-lg border border-slate-200 bg-white px-3 pr-10 text-xs focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200 transition-colors"
                       />
                       <button
                         type="button"

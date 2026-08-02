@@ -540,7 +540,7 @@ export function UserProfile() {
                   value={editBio}
                   onChange={(e) => setEditBio(e.target.value.slice(0, 150))}
                   placeholder="Tell us about yourself..."
-                  className="w-full rounded-lg border border-slate-200 bg-slate-50/50 p-2.5 text-xs focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-slate-800 dark:bg-slate-955 resize-none dark:text-slate-200 transition-colors"
+                  className="w-full rounded-lg border border-slate-200 bg-slate-50/50 p-2.5 text-xs focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-slate-800 dark:bg-slate-900 resize-none dark:text-slate-200 transition-colors"
                 />
               </div>
 

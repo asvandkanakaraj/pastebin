@@ -420,12 +420,32 @@ export function BrowsePastes() {
             <select
               value={myPastesSort}
               onChange={(e: any) => setMyPastesSort(e.target.value)}
-              className="h-8 rounded-lg border border-slate-200 bg-white px-2.5 text-xs focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-slate-800 dark:bg-slate-955 transition-colors"
+              className="h-8 rounded-lg border border-slate-200 bg-white px-2.5 text-xs text-slate-800 dark:text-slate-100 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-slate-800 dark:bg-slate-900 transition-colors"
             >
-              <option value="newest">Newest First</option>
-              <option value="oldest">Oldest First</option>
-              <option value="updated">Recently Updated</option>
-              <option value="alpha">Alphabetical</option>
+              <option
+                value="newest"
+                className="bg-white dark:bg-slate-900 text-slate-850 dark:text-slate-100"
+              >
+                Newest First
+              </option>
+              <option
+                value="oldest"
+                className="bg-white dark:bg-slate-900 text-slate-850 dark:text-slate-100"
+              >
+                Oldest First
+              </option>
+              <option
+                value="updated"
+                className="bg-white dark:bg-slate-900 text-slate-850 dark:text-slate-100"
+              >
+                Recently Updated
+              </option>
+              <option
+                value="alpha"
+                className="bg-white dark:bg-slate-900 text-slate-850 dark:text-slate-100"
+              >
+                Alphabetical
+              </option>
             </select>
 
             {/* Grid / List view toggle */}
@@ -941,7 +961,7 @@ export function BrowsePastes() {
       {/* SHARE MODAL */}
       {showShareModal && selectedPaste && (
         <div className="fixed inset-0 bg-slate-900/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
-          <div className="bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 w-full max-w-sm rounded-xl p-5 shadow-2xl relative space-y-4">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 w-full max-w-sm rounded-xl p-5 shadow-2xl relative space-y-4">
             <button
               onClick={() => setShowShareModal(false)}
               className="absolute right-4 top-4 text-slate-450 hover:text-slate-700 dark:hover:text-slate-300"
@@ -999,7 +1019,7 @@ export function BrowsePastes() {
       {/* EDIT MODAL */}
       {showEditModal && selectedPaste && (
         <div className="fixed inset-0 bg-slate-900/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
-          <div className="bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 w-full max-w-md rounded-xl p-5 shadow-2xl relative space-y-4">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 w-full max-w-md rounded-xl p-5 shadow-2xl relative space-y-4">
             <button
               onClick={() => setShowEditModal(false)}
               className="absolute right-4 top-4 text-slate-400 hover:text-slate-650"
@@ -1045,15 +1065,50 @@ export function BrowsePastes() {
                     id="editLang"
                     value={editLanguage}
                     onChange={(e) => setEditLanguage(e.target.value)}
-                    className="h-9 w-full rounded-lg border border-slate-200 bg-slate-50/50 px-2 text-xs focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-slate-800 dark:bg-slate-900 transition-colors"
+                    className="h-9 w-full rounded-lg border border-slate-200 bg-slate-50/50 px-2 text-xs text-slate-850 dark:text-slate-100 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-slate-800 dark:bg-slate-900 transition-colors"
                   >
-                    <option value="plaintext">Plain Text</option>
-                    <option value="javascript">JavaScript</option>
-                    <option value="typescript">TypeScript</option>
-                    <option value="python">Python</option>
-                    <option value="rust">Rust</option>
-                    <option value="go">Go</option>
-                    <option value="json">JSON</option>
+                    <option
+                      value="plaintext"
+                      className="bg-white dark:bg-slate-900 text-slate-850 dark:text-slate-100"
+                    >
+                      Plain Text
+                    </option>
+                    <option
+                      value="javascript"
+                      className="bg-white dark:bg-slate-900 text-slate-850 dark:text-slate-100"
+                    >
+                      JavaScript
+                    </option>
+                    <option
+                      value="typescript"
+                      className="bg-white dark:bg-slate-900 text-slate-850 dark:text-slate-100"
+                    >
+                      TypeScript
+                    </option>
+                    <option
+                      value="python"
+                      className="bg-white dark:bg-slate-900 text-slate-850 dark:text-slate-100"
+                    >
+                      Python
+                    </option>
+                    <option
+                      value="rust"
+                      className="bg-white dark:bg-slate-900 text-slate-850 dark:text-slate-100"
+                    >
+                      Rust
+                    </option>
+                    <option
+                      value="go"
+                      className="bg-white dark:bg-slate-900 text-slate-850 dark:text-slate-100"
+                    >
+                      Go
+                    </option>
+                    <option
+                      value="json"
+                      className="bg-white dark:bg-slate-900 text-slate-850 dark:text-slate-100"
+                    >
+                      JSON
+                    </option>
                   </select>
                 </div>
                 <div className="space-y-1.5">
@@ -1067,11 +1122,26 @@ export function BrowsePastes() {
                     id="editVis"
                     value={editVisibility}
                     onChange={(e) => setEditVisibility(e.target.value)}
-                    className="h-9 w-full rounded-lg border border-slate-200 bg-slate-50/50 px-2 text-xs focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-slate-800 dark:bg-slate-900 transition-colors"
+                    className="h-9 w-full rounded-lg border border-slate-200 bg-slate-50/50 px-2 text-xs text-slate-850 dark:text-slate-100 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-slate-800 dark:bg-slate-900 transition-colors"
                   >
-                    <option value="PUBLIC">Public</option>
-                    <option value="PRIVATE">Private</option>
-                    <option value="SECRET">Secret</option>
+                    <option
+                      value="PUBLIC"
+                      className="bg-white dark:bg-slate-900 text-slate-850 dark:text-slate-100"
+                    >
+                      Public
+                    </option>
+                    <option
+                      value="PRIVATE"
+                      className="bg-white dark:bg-slate-900 text-slate-850 dark:text-slate-100"
+                    >
+                      Private
+                    </option>
+                    <option
+                      value="SECRET"
+                      className="bg-white dark:bg-slate-900 text-slate-850 dark:text-slate-100"
+                    >
+                      Secret
+                    </option>
                   </select>
                 </div>
               </div>

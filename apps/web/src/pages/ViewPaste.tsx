@@ -410,7 +410,7 @@ export function ViewPaste() {
             placeholder="Enter paste password..."
             autoFocus
             required
-            className="h-10 w-full rounded-lg border border-slate-200 bg-slate-50/50 px-3.5 text-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-400/40 dark:border-slate-800 dark:bg-slate-955 dark:placeholder-slate-500 transition-all"
+            className="h-10 w-full rounded-lg border border-slate-200 bg-slate-50/50 px-3.5 text-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-400/40 dark:border-slate-800 dark:bg-slate-900 dark:placeholder-slate-500 transition-all"
           />
           {passwordError && (
             <div className="text-xs text-rose-500 font-semibold flex items-center gap-1.5">
@@ -759,7 +759,7 @@ export function ViewPaste() {
                 value={editDescription}
                 onChange={(e) => setEditDescription(e.target.value.slice(0, 300))}
                 placeholder="Update paste description..."
-                className="w-full rounded-lg border border-slate-200 bg-slate-50/50 p-2.5 text-xs focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-slate-800 dark:bg-slate-955 resize-none dark:text-slate-300 transition-colors"
+                className="w-full rounded-lg border border-slate-200 bg-slate-50/50 p-2.5 text-xs focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-slate-800 dark:bg-slate-900 resize-none dark:text-slate-300 transition-colors"
               />
               <span className="text-[9px] text-slate-400 block -mt-1 select-none text-right">
                 {editDescription.length} / 300
