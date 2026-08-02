@@ -9,7 +9,7 @@
   ],
   "scripts": {
     "dev": "npm run dev --workspaces --if-present",
-    "build": "npm run build --workspaces --if-present",
+    "build": "npm run build -w @pastebin/shared && npm run build -w @pastebin/database && npm run build -w @pastebin/server && npm run build -w web",
     "build:prod": "npm run build -w @pastebin/shared && npm run build -w @pastebin/database && npm run build -w @pastebin/server && npm run build -w web",
     "lint": "npm run lint --workspaces --if-present",
     "format": "prettier --write .",
