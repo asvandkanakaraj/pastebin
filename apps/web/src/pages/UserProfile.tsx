@@ -334,7 +334,7 @@ export function UserProfile() {
   const showPrivateTab = true; // Everyone can see the private tab; content is PIN-gated
 
   return (
-    <div className="w-full max-w-4xl mx-auto space-y-6 select-none relative">
+    <div className="w-full max-w-4xl mx-auto space-y-6 select-none relative page-fade-in">
       {/* Dynamic Private PIN Unlock Modal */}
       {showPinUnlockModal && (
         <div

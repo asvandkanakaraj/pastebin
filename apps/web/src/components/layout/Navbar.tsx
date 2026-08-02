@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { Code, Search, LogOut, LogIn, ArrowLeft } from 'lucide-react';
+import { Search, LogOut, LogIn, ArrowLeft } from 'lucide-react';
 import { ModeToggle } from '../mode-toggle.js';
 import { useAuth } from '../auth-provider.js';
 import { SearchInput } from '../../features/search/components/SearchInput.js';
+import { Logo } from './Logo.js';
 
 export function Navbar() {
   const { user, logout } = useAuth();
@@ -46,9 +47,9 @@ export function Navbar() {
     <header className="sticky top-0 z-40 w-full border-b border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-950 select-none">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
         {/* Logo */}
-        <Link to="/" className="flex items-center gap-2 hover:opacity-90">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-50 text-blue-600 dark:bg-blue-950/50 dark:text-blue-400">
-            <Code className="h-5 w-5" strokeWidth={2.5} />
+        <Link to="/" className="flex items-center gap-2.5 hover:opacity-90">
+          <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 text-slate-700 dark:bg-slate-900 dark:text-slate-200 transition-colors shadow-sm">
+            <Logo size={18} />
           </div>
           <span className="text-xl font-extrabold tracking-tight text-slate-900 dark:text-white">
             PasteBin

@@ -48,7 +48,7 @@ export function SearchResults() {
   }, [query]);
 
   return (
-    <div className="w-full max-w-5xl mx-auto space-y-6">
+    <div className="w-full max-w-5xl mx-auto space-y-6 page-fade-in">
       {/* Back button */}
       <div>
         <Link

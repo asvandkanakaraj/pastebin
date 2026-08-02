@@ -36,7 +36,7 @@ export function Login() {
   };
 
   return (
-    <div className="w-full max-w-md mx-auto bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-8 shadow-sm space-y-6">
+    <div className="w-full max-w-md mx-auto bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-8 shadow-sm space-y-6 page-fade-in">
       <div className="text-center space-y-1">
         <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white flex items-center justify-center gap-2">
           <LogIn className="text-indigo-500 h-6 w-6" /> Sign In

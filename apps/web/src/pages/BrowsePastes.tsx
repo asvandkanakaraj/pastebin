@@ -366,7 +366,7 @@ export function BrowsePastes() {
     });
 
   return (
-    <div className="w-full max-w-5xl mx-auto space-y-10">
+    <div className="w-full max-w-5xl mx-auto space-y-10 page-fade-in">
       {/* Title Header */}
       <div className="flex items-center justify-between">
         <div>

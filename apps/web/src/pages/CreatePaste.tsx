@@ -252,7 +252,7 @@ export function CreatePaste() {
   };
 
   return (
-    <div className="w-full max-w-7xl mx-auto py-2 md:py-6 space-y-6">
+    <div className="w-full max-w-7xl mx-auto py-2 md:py-6 space-y-6 page-fade-in">
       {/* Success Dialog Modal Overlay */}
       {createdPasteData && (
         <div

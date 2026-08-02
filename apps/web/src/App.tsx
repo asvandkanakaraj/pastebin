@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { ThemeProvider } from './components/theme-provider.js';
 import { AuthProvider } from './components/auth-provider.js';
 import { MainLayout } from './components/layout/MainLayout.js';
+import { Logo } from './components/layout/Logo.js';
 
 // React lazy loaded page components
 const CreatePaste = lazy(() =>
@@ -33,13 +34,15 @@ const NotFound = lazy(() =>
 function PageLoader() {
   return (
     <div
-      className="flex h-[60vh] w-full flex-col items-center justify-center space-y-4"
+      className="flex h-[60vh] w-full flex-col items-center justify-center space-y-5 animate-pulse"
       role="status"
       aria-label="Loading page content"
     >
-      <div className="h-12 w-12 animate-spin rounded-full border-4 border-indigo-500 border-t-transparent shadow-lg" />
-      <span className="text-sm font-medium text-slate-400 dark:text-slate-500 animate-pulse">
-        Loading secure snippet workspace...
+      <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-slate-850 dark:text-slate-100 shadow-lg">
+        <Logo size={32} />
+      </div>
+      <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500">
+        Initializing workspace...
       </span>
     </div>
   );
