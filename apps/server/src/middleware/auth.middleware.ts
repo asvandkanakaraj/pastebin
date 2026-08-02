@@ -23,7 +23,7 @@ export async function authMiddleware(req: AuthenticatedRequest, res: Response, n
   const token = authHeader.split(' ')[1];
   try {
     const decoded = jwt.verify(token, JWT_SECRET) as { userId: string; email: string };
-    
+
     // Verify user actually exists in the database
     const userExists = await db.user.findUnique({ where: { id: decoded.userId } });
     if (!userExists) {
@@ -56,7 +56,7 @@ export async function optionalAuthMiddleware(
   const token = authHeader.split(' ')[1];
   try {
     const decoded = jwt.verify(token, JWT_SECRET) as { userId: string; email: string };
-    
+
     // Verify user actually exists in the database
     const userExists = await db.user.findUnique({ where: { id: decoded.userId } });
     if (userExists) {

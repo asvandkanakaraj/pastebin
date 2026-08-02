@@ -154,9 +154,7 @@ export function UserProfile() {
         const headers: any = {};
         if (token) headers['Authorization'] = `Bearer ${token}`;
         const res = await axios.get(
-          `${API_BASE_URL}/api/users/check-username?username=${encodeURIComponent(
-            editUsername
-          )}`,
+          `${API_BASE_URL}/api/users/check-username?username=${encodeURIComponent(editUsername)}`,
           { headers }
         );
         if (res.data.available) {
@@ -508,9 +506,7 @@ export function UserProfile() {
                           usernameStatus.available ? 'text-emerald-500' : 'text-rose-500'
                         }`}
                       >
-                        {usernameStatus.available
-                          ? 'Username available'
-                          : usernameStatus.error}
+                        {usernameStatus.available ? 'Username available' : usernameStatus.error}
                       </span>
                     )}
                 </div>

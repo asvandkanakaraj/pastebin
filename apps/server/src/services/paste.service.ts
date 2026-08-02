@@ -29,7 +29,9 @@ export class PasteService {
       expiresAt = new Date(Date.now() + data.expiresInSeconds * 1000);
     }
 
-    const visibility = isGuest ? 'PRIVATE' : (data.visibility || (data.isPublic === false ? 'PRIVATE' : 'PUBLIC'));
+    const visibility = isGuest
+      ? 'PRIVATE'
+      : data.visibility || (data.isPublic === false ? 'PRIVATE' : 'PUBLIC');
     const isPublic = visibility === 'PUBLIC';
 
     return await db.$transaction(async (tx) => {
@@ -183,7 +185,9 @@ export class PasteService {
             });
           }
         })
-        .catch(() => { /* ignore recent view logging failures */ });
+        .catch(() => {
+          /* ignore recent view logging failures */
+        });
     }
 
     let isSaved = false;
@@ -321,7 +325,9 @@ export class PasteService {
 
     // Guest pastes cannot be deleted
     if (!paste.userId) {
-      const error = new Error('Access denied. Guest pastes cannot be deleted; they will expire automatically after 1 hour.');
+      const error = new Error(
+        'Access denied. Guest pastes cannot be deleted; they will expire automatically after 1 hour.'
+      );
       (error as any).status = 403;
       (error as any).name = 'ForbiddenError';
       throw error;
@@ -334,7 +340,6 @@ export class PasteService {
       (error as any).name = 'ForbiddenError';
       throw error;
     }
-
 
     await db.paste.delete({
       where: { id },

@@ -99,7 +99,9 @@ export function BrowsePastes() {
       // Guest Mode: load from local browser storage
       const localRecents = JSON.parse(localStorage.getItem('pb_guest_recent_pastes') || '[]');
       const localSaved = JSON.parse(localStorage.getItem('pb_guest_saved_pastes') || '[]');
-      const localViews = JSON.parse(localStorage.getItem('pb_guest_recently_viewed_pastes') || '[]');
+      const localViews = JSON.parse(
+        localStorage.getItem('pb_guest_recently_viewed_pastes') || '[]'
+      );
       setWorkspace({
         myPastes: localRecents,
         sharedWithMe: [],
@@ -327,8 +329,6 @@ export function BrowsePastes() {
     const link = `${window.location.origin}/v/${pasteId}`;
     copyToClipboard(link, pasteId);
   };
-
-
 
   // Loading skeleton state
   if (loading && !workspace) {
@@ -676,7 +676,8 @@ export function BrowsePastes() {
 
                   <div className="text-[10px] text-slate-400 space-y-0.5 font-mono">
                     <div>
-                      Shared: {paste.sharedAt ? new Date(paste.sharedAt).toLocaleDateString() : 'N/A'}
+                      Shared:{' '}
+                      {paste.sharedAt ? new Date(paste.sharedAt).toLocaleDateString() : 'N/A'}
                     </div>
                   </div>
 
@@ -1146,9 +1147,15 @@ export function BrowsePastes() {
               <Trash2 size={22} />
             </div>
             <div>
-              <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200">Delete Paste?</h3>
+              <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200">
+                Delete Paste?
+              </h3>
               <p className="text-xs text-slate-500 mt-1.5 leading-relaxed">
-                Permanently delete <span className="font-semibold text-slate-700 dark:text-slate-300">"{deleteConfirmPaste.title || 'Untitled Paste'}"</span>? This cannot be undone.
+                Permanently delete{' '}
+                <span className="font-semibold text-slate-700 dark:text-slate-300">
+                  "{deleteConfirmPaste.title || 'Untitled Paste'}"
+                </span>
+                ? This cannot be undone.
               </p>
             </div>
             <div className="flex gap-3">

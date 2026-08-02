@@ -35,6 +35,5 @@
     "tsx": "^4.19.1",
     "vitest": "^2.0.5"
   },
-  "devDependencies": {
-  }
+  "devDependencies": {}
 }

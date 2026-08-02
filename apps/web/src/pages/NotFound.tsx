@@ -7,13 +7,14 @@ export function NotFound() {
       <div className="mx-auto p-4 bg-rose-500/10 border border-rose-500/20 rounded-2xl text-rose-500 dark:text-rose-450 w-fit flex items-center justify-center">
         <FileQuestion size={36} className="animate-pulse" />
       </div>
-      
+
       <div className="space-y-2">
         <h2 className="text-xl font-bold tracking-tight text-slate-850 dark:text-white">
           404 — Page Not Found
         </h2>
         <p className="text-xs text-slate-500 max-w-sm mx-auto leading-relaxed dark:text-slate-400">
-          The requested page does not exist or has been moved. If you are looking for a shared snippet, check the URL or contact the owner.
+          The requested page does not exist or has been moved. If you are looking for a shared
+          snippet, check the URL or contact the owner.
         </p>
       </div>
 

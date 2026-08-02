@@ -19,8 +19,7 @@
   "dependencies": {
     "typescript": "^7.0.2"
   },
-  "devDependencies": {
-  },
+  "devDependencies": {},
   "overrides": {
     "brace-expansion": "^2.0.1",
     "tar": "^6.2.1",

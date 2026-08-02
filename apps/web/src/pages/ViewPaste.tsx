@@ -64,62 +64,70 @@ export function ViewPaste() {
   const [shareSuccess, setShareSuccess] = useState<string | null>(null);
   const [shareError, setShareError] = useState<string | null>(null);
 
-  const fetchPaste = useCallback(async (pw = '') => {
-    setLoading(true);
-    setError(null);
-    setPasswordError(null);
+  const fetchPaste = useCallback(
+    async (pw = '') => {
+      setLoading(true);
+      setError(null);
+      setPasswordError(null);
 
-    const isGuest = !token;
+      const isGuest = !token;
 
-    try {
-      const headers: any = {};
-      if (pw) {
-        headers['x-paste-password'] = pw;
-      }
-      if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
-      }
-      const response = await axios.get(`${API_BASE_URL}/api/pastes/${id}`, { headers });
-      setPaste(response.data);
-      setRequiresPassword(false);
-      setIsForbidden(false);
-
-      // Bookmark checking
-      if (isGuest) {
-        const localSaved = JSON.parse(localStorage.getItem('pb_guest_saved_pastes') || '[]');
-        setIsBookmarked(localSaved.some((p: any) => p.id === response.data.id));
-
-        // Track Recently Viewed (max 5, duplicate moves to top)
-        const localViews = JSON.parse(localStorage.getItem('pb_guest_recently_viewed_pastes') || '[]');
-        const filtered = localViews.filter((p: any) => p.id !== response.data.id);
-        filtered.unshift(response.data);
-        localStorage.setItem('pb_guest_recently_viewed_pastes', JSON.stringify(filtered.slice(0, 5)));
-      } else {
-        setIsBookmarked(response.data.isSaved || false);
-      }
-    } catch (err: any) {
-      const status = err.response?.status;
-      const errorName = err.response?.data?.error;
-      if (status === 401) {
-        // Password required
-        setRequiresPassword(true);
-        setIsForbidden(false);
-        if (pw) setPasswordError('Incorrect password. Try again.');
-      } else if (status === 403 && errorName === 'ForbiddenError') {
-        // Private paste — no password prompt
+      try {
+        const headers: any = {};
+        if (pw) {
+          headers['x-paste-password'] = pw;
+        }
+        if (token) {
+          headers['Authorization'] = `Bearer ${token}`;
+        }
+        const response = await axios.get(`${API_BASE_URL}/api/pastes/${id}`, { headers });
+        setPaste(response.data);
         setRequiresPassword(false);
-        setIsForbidden(true);
-      } else if (status === 410) {
-        setError('This paste has expired and is no longer accessible.');
-      } else if (status === 404) {
-        setError('404 — Paste Not Found');
-      } else {
-        setError(err.response?.data?.message || 'Failed to fetch paste from server');
+        setIsForbidden(false);
+
+        // Bookmark checking
+        if (isGuest) {
+          const localSaved = JSON.parse(localStorage.getItem('pb_guest_saved_pastes') || '[]');
+          setIsBookmarked(localSaved.some((p: any) => p.id === response.data.id));
+
+          // Track Recently Viewed (max 5, duplicate moves to top)
+          const localViews = JSON.parse(
+            localStorage.getItem('pb_guest_recently_viewed_pastes') || '[]'
+          );
+          const filtered = localViews.filter((p: any) => p.id !== response.data.id);
+          filtered.unshift(response.data);
+          localStorage.setItem(
+            'pb_guest_recently_viewed_pastes',
+            JSON.stringify(filtered.slice(0, 5))
+          );
+        } else {
+          setIsBookmarked(response.data.isSaved || false);
+        }
+      } catch (err: any) {
+        const status = err.response?.status;
+        const errorName = err.response?.data?.error;
+        if (status === 401) {
+          // Password required
+          setRequiresPassword(true);
+          setIsForbidden(false);
+          if (pw) setPasswordError('Incorrect password. Try again.');
+        } else if (status === 403 && errorName === 'ForbiddenError') {
+          // Private paste — no password prompt
+          setRequiresPassword(false);
+          setIsForbidden(true);
+        } else if (status === 410) {
+          setError('This paste has expired and is no longer accessible.');
+        } else if (status === 404) {
+          setError('404 — Paste Not Found');
+        } else {
+          setError(err.response?.data?.message || 'Failed to fetch paste from server');
+        }
+      } finally {
+        setLoading(false);
       }
-    } finally {
-      setLoading(false);
-    }
-  }, [id, token]);
+    },
+    [id, token]
+  );
 
   const handleToggleBookmark = async () => {
     if (!paste) return;
@@ -498,9 +506,14 @@ export function ViewPaste() {
               Make sure to save these details before leaving:
             </p>
             <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 mt-2 font-mono text-xs font-bold">
-              <span className="text-slate-700 dark:text-slate-350">Code: <span className="text-blue-600 dark:text-blue-400 select-all">{id}</span></span>
+              <span className="text-slate-700 dark:text-slate-350">
+                Code: <span className="text-blue-600 dark:text-blue-400 select-all">{id}</span>
+              </span>
               <span className="text-slate-400">•</span>
-              <span className="text-slate-700 dark:text-slate-350">PIN: <span className="text-amber-600 dark:text-amber-400 select-all">{createdPin}</span></span>
+              <span className="text-slate-700 dark:text-slate-350">
+                PIN:{' '}
+                <span className="text-amber-600 dark:text-amber-400 select-all">{createdPin}</span>
+              </span>
             </div>
           </div>
           <button
@@ -706,7 +719,10 @@ export function ViewPaste() {
             <div className="flex items-center gap-3">
               <button
                 type="button"
-                onClick={() => { setShowDeleteConfirm(false); setDeleteError(null); }}
+                onClick={() => {
+                  setShowDeleteConfirm(false);
+                  setDeleteError(null);
+                }}
                 disabled={deleting}
                 className="flex-1 h-9.5 inline-flex items-center justify-center rounded-lg border border-slate-200 bg-white px-4 text-xs font-semibold text-slate-700 hover:bg-slate-50 focus:outline-none dark:border-slate-800 dark:bg-slate-900 dark:text-slate-350 dark:hover:bg-slate-800 transition-colors disabled:opacity-50"
               >

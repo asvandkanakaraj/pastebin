@@ -9,10 +9,10 @@ Welcome to **PasteBin**, a high-performance, developer-centric code-sharing plat
 
 ## 🌐 Live Demo
 
-| Service | URL |
-|---|---|
-| **Frontend** | https://pastebin-frontend-tfjz.onrender.com |
-| **Backend API** | https://pastebin-backend-yba9.onrender.com |
+| Service          | URL                                               |
+| ---------------- | ------------------------------------------------- |
+| **Frontend**     | https://pastebin-frontend-tfjz.onrender.com       |
+| **Backend API**  | https://pastebin-backend-yba9.onrender.com        |
 | **Health Check** | https://pastebin-backend-yba9.onrender.com/health |
 
 ---
@@ -122,27 +122,26 @@ For command flags and token details, refer to the **[CLI Reference Manual](docs/
 
 All details regarding project decisions and architecture designs are cataloged in our developer documentation:
 
-| Document | Description |
-| --- | --- |
-| **[ARCHITECTURE.md](docs/ARCHITECTURE.md)** | System diagrams, layered components, and execution flows |
-| **[API.md](docs/API.md)** | Full endpoint request/response models and HTTP error codes |
-| **[DATABASE.md](docs/DATABASE.md)** | Prisma schemas mapping, ER diagrams, and performance indexes |
-| **[DEPLOYMENT.md](docs/DEPLOYMENT.md)** | Render deployment guide, Docker setup, and monitoring |
-| **[SECURITY.md](docs/SECURITY.md)** | Security philosophy, threat model, and hardening measures |
-| **[TESTING.md](docs/TESTING.md)** | Test strategy, suite architecture, and execution commands |
-| **[DECISIONS.md](docs/DECISIONS.md)** | Log of architectural choices and ADR records |
-| **[DEVELOPMENT.md](docs/DEVELOPMENT.md)** | Chronological history log of development sessions |
-| **[PRD.md](docs/PRD.md)** | Product vision, features matrix, and requirements log |
-| **[TODO.md](docs/TODO.md)** | Roadmap phases and checklists milestones status |
+| Document                                    | Description                                                  |
+| ------------------------------------------- | ------------------------------------------------------------ |
+| **[ARCHITECTURE.md](docs/ARCHITECTURE.md)** | System diagrams, layered components, and execution flows     |
+| **[API.md](docs/API.md)**                   | Full endpoint request/response models and HTTP error codes   |
+| **[DATABASE.md](docs/DATABASE.md)**         | Prisma schemas mapping, ER diagrams, and performance indexes |
+| **[DEPLOYMENT.md](docs/DEPLOYMENT.md)**     | Render deployment guide, Docker setup, and monitoring        |
+| **[SECURITY.md](docs/SECURITY.md)**         | Security philosophy, threat model, and hardening measures    |
+| **[TESTING.md](docs/TESTING.md)**           | Test strategy, suite architecture, and execution commands    |
+| **[DECISIONS.md](docs/DECISIONS.md)**       | Log of architectural choices and ADR records                 |
+| **[DEVELOPMENT.md](docs/DEVELOPMENT.md)**   | Chronological history log of development sessions            |
+| **[PRD.md](docs/PRD.md)**                   | Product vision, features matrix, and requirements log        |
+| **[TODO.md](docs/TODO.md)**                 | Roadmap phases and checklists milestones status              |
 | **[CONTRIBUTING.md](docs/CONTRIBUTING.md)** | Developer standards, coding guidelines, and style checklists |
-| **[CHANGELOG.md](docs/CHANGELOG.md)** | Historical version release logs |
+| **[CHANGELOG.md](docs/CHANGELOG.md)**       | Historical version release logs                              |
 
 ---
 
 ## 📄 License
 
 Distributed under the MIT License. See [LICENSE](LICENSE) for more information.
-
 
 ---
 

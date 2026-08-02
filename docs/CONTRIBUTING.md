@@ -31,17 +31,18 @@ All commits must follow the **Conventional Commits** specification:
 <type>(<scope>): <short description>
 ```
 
-| Type | Use Case |
-|---|---|
-| `feat` | A new feature |
-| `fix` | A bug fix |
-| `docs` | Documentation changes only |
+| Type       | Use Case                                                |
+| ---------- | ------------------------------------------------------- |
+| `feat`     | A new feature                                           |
+| `fix`      | A bug fix                                               |
+| `docs`     | Documentation changes only                              |
 | `refactor` | Code change that neither fixes a bug nor adds a feature |
-| `test` | Adding or updating tests |
-| `chore` | Build process, tooling, or dependency updates |
-| `style` | Formatting, whitespace, or cosmetic changes |
+| `test`     | Adding or updating tests                                |
+| `chore`    | Build process, tooling, or dependency updates           |
+| `style`    | Formatting, whitespace, or cosmetic changes             |
 
 **Examples:**
+
 ```
 feat(paste): add visibility toggle for ONLY_ME pastes
 fix(auth): handle expired JWT tokens with 401 response

@@ -50,9 +50,10 @@
 }
 
 .skeleton-premium {
-  background: linear-gradient(90deg, 
-    hsl(var(--muted)) 25%, 
-    hsl(var(--accent)) 37%, 
+  background: linear-gradient(
+    90deg,
+    hsl(var(--muted)) 25%,
+    hsl(var(--accent)) 37%,
     hsl(var(--muted)) 63%
   );
   background-size: 200% 100%;

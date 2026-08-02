@@ -572,6 +572,7 @@ Revokes sharing access permissions for a specific user.
 To support anonymous tryouts while protecting security boundaries, the server restricts certain API operations for non-logged-in (Guest) users:
 
 ### 1. Anonymous Creations (`POST /api/pastes`)
+
 - **Headers**: No `Authorization` header.
 - **Enforced Constraints**:
   - `visibility` is forced to `PUBLIC`.
@@ -581,6 +582,7 @@ To support anonymous tryouts while protecting security boundaries, the server re
 - **Result ID**: Generates a random, unique 8-character uppercase alphanumeric code (e.g. `A82XK4P9`) that serves as both the Paste Code and the direct link path identifier.
 
 ### 2. Immutability Restrictions (`PUT /api/pastes/:id` and `DELETE /api/pastes/:id`)
+
 - **Behavior**: Any attempt to update or delete a paste where `userId === null` is blocked on the server, returning a `403 ForbiddenError` payload:
   ```json
   {

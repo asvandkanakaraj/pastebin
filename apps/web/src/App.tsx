@@ -24,12 +24,8 @@ const SearchResults = lazy(() =>
 const UserProfile = lazy(() =>
   import('./pages/UserProfile.js').then((m) => ({ default: m.UserProfile }))
 );
-const About = lazy(() =>
-  import('./pages/About.js').then((m) => ({ default: m.About }))
-);
-const NotFound = lazy(() =>
-  import('./pages/NotFound.js').then((m) => ({ default: m.NotFound }))
-);
+const About = lazy(() => import('./pages/About.js').then((m) => ({ default: m.About })));
+const NotFound = lazy(() => import('./pages/NotFound.js').then((m) => ({ default: m.NotFound })));
 
 // Professional skeleton loading spinner page loader
 function PageLoader() {

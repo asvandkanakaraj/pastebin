@@ -117,7 +117,10 @@ export class UserService {
         where: { userId: user.id },
         orderBy: { createdAt: 'desc' },
       });
-      pastes = rawPastes.map(({ passwordHash, ...p }) => ({ ...p, hasPassword: passwordHash !== null }));
+      pastes = rawPastes.map(({ passwordHash, ...p }) => ({
+        ...p,
+        hasPassword: passwordHash !== null,
+      }));
 
       // Owner sees their saved pastes (bookmarks)
       const savedPastes = await db.savedPaste.findMany({
@@ -194,7 +197,10 @@ export class UserService {
         where: condition,
         orderBy: { createdAt: 'desc' },
       });
-      pastes = rawVisitorPastes.map(({ passwordHash, ...p }) => ({ ...p, hasPassword: passwordHash !== null }));
+      pastes = rawVisitorPastes.map(({ passwordHash, ...p }) => ({
+        ...p,
+        hasPassword: passwordHash !== null,
+      }));
 
       // Visitor stats: total visible pastes + public count only
       const publicPastes = await db.paste.count({

@@ -1,63 +1,36 @@
-# Deployment, CI/CD Pipeline & Monitoring
+# Deployment Guide — PasteBin
 
-This document details the configuration for deploying the PasteBin application, setting up automated CI checks, and verifying system health via health metrics endpoints.
-
-> **Live Deployment**: The application is currently live on [Render](https://render.com/) — see Section 0 for Render-specific configuration. Docker-based self-hosted deployment instructions are in Section 3.
-
----
-
-## 0. Render Cloud Deployment (Live)
-
-The application is deployed as two separate Render Web Services connected to a [Neon](https://neon.tech/) serverless PostgreSQL database.
-
-### Live URLs
-
-| Service | URL |
-|---|---|
-| **Frontend** | https://pastebin-frontend-tfjz.onrender.com |
-| **Backend API** | https://pastebin-backend-yba9.onrender.com |
-| **Health Check** | https://pastebin-backend-yba9.onrender.com/health |
-
-### Backend Service Configuration
-
-| Field | Value |
-|---|---|
-| **Root Directory** | *(monorepo root)* |
-| **Build Command** | `npm run build -w @pastebin/shared && npm run build -w @pastebin/database && npm run build -w @pastebin/server` |
-| **Start Command** | `node apps/server/dist/index.js` |
-
-**Required Environment Variables (set in Render dashboard):**
-- `DATABASE_URL` — Neon PostgreSQL connection string
-- `JWT_SECRET` — Secret key for signing JWT tokens
-- `CORS_ORIGIN` — Comma-separated list of allowed frontend origins (e.g. `https://pastebin-frontend-tfjz.onrender.com`)
-- `PORT` — Render sets this automatically; app reads `process.env.PORT`
-
-### Frontend Service Configuration
-
-| Field | Value |
-|---|---|
-| **Root Directory** | `apps/web` |
-| **Build Command** | `npm install && npm run build` |
-| **Publish Directory** | `dist` |
-
-**Required Environment Variables:**
-- `VITE_API_URL` — Backend API base URL (e.g. `https://pastebin-backend-yba9.onrender.com`)
+> **This document explains how PasteBin is deployed and kept running live.**
+> Section 1 is readable by anyone. Technical configuration details are in Section 2+.
 
 ---
 
+## 1. Where the App Lives (Plain English)
 
-## 1. Advanced Health Monitoring Endpoint
+PasteBin is split into two parts that run in the cloud:
 
-To support container liveness probes (e.g., Kubernetes livenessProbe / readinessProbe) and cloud load balancer check signals (e.g., AWS Route53 or target groups), the server exposes an advanced pinging endpoint:
+| Part                     | Platform                      | URL                                         |
+| ------------------------ | ----------------------------- | ------------------------------------------- |
+| **Website (Frontend)**   | [Render](https://render.com/) | https://pastebin-frontend-tfjz.onrender.com |
+| **API Server (Backend)** | [Render](https://render.com/) | https://pastebin-backend-yba9.onrender.com  |
+| **Database**             | [Neon](https://neon.tech/)    | PostgreSQL serverless (no direct URL)       |
 
+The **website** is just HTML, CSS, and JavaScript files — Render serves them like any web host.
+
+The **API server** is a Node.js process that handles all the logic — creating pastes, checking passwords, logging in users, etc.
+
+The **database** is hosted on Neon, which is a cloud PostgreSQL provider. It automatically scales and pauses when not in use.
+
+---
+
+## 2. Health Check Endpoint
+
+The server exposes a `/health` route that tells you if everything is working:
+
+- **URL**: `https://pastebin-backend-yba9.onrender.com/health`
 - **Method**: `GET`
-- **URL**: `/health`
 
-### Health Check Responses
-
-#### 1. Success State (200 OK)
-
-Returned when both the API server is responsive and the PostgreSQL database ping succeeds.
+#### When Everything Is Working (200 OK)
 
 ```json
 {
@@ -67,13 +40,11 @@ Returned when both the API server is responsive and the PostgreSQL database ping
     "database": "connected",
     "api": "healthy"
   },
-  "timestamp": "2026-07-31T09:40:00.000Z"
+  "timestamp": "2026-08-02T10:00:00.000Z"
 }
 ```
 
-#### 2. Connection Failure (503 Service Unavailable)
-
-Returned if the API is active but cannot connect to the database or run SQL queries.
+#### When the Database Is Down (503 Service Unavailable)
 
 ```json
 {
@@ -83,100 +54,124 @@ Returned if the API is active but cannot connect to the database or run SQL quer
     "database": "disconnected",
     "api": "healthy"
   },
-  "timestamp": "2026-07-31T09:40:00.000Z",
-  "error": "Can't reach database server at localhost:5432"
+  "timestamp": "2026-08-02T10:00:00.000Z",
+  "error": "Can't reach database server"
 }
 ```
 
 ---
 
-## 2. Production Log Collection
+## 3. Render Deployment Configuration
 
-The application writes structured logs in JSON format for production environments:
+### Backend (API Server)
 
-- **Combined Logs**: Mapped to `apps/server/logs/combined.log` capturing all `info` and above events.
-- **Format**: All logs outputted to file are serialized as JSON objects containing `timestamp`, `level`, and `message` properties.
+| Setting           | Value                                                                                                           |
+| ----------------- | --------------------------------------------------------------------------------------------------------------- |
+| **Build Command** | `npm run build -w @pastebin/shared && npm run build -w @pastebin/database && npm run build -w @pastebin/server` |
+| **Start Command** | `node apps/server/dist/index.js`                                                                                |
+
+**Environment Variables** (set in Render dashboard):
+
+| Variable       | Description                                              |
+| -------------- | -------------------------------------------------------- |
+| `DATABASE_URL` | Neon PostgreSQL connection string                        |
+| `JWT_SECRET`   | Secret key used to sign login tokens — keep this private |
+| `CORS_ORIGIN`  | The frontend URL allowed to talk to the API              |
+| `PORT`         | Render sets this automatically                           |
+
+### Frontend (Website)
+
+| Setting               | Value                          |
+| --------------------- | ------------------------------ |
+| **Root Directory**    | `apps/web`                     |
+| **Build Command**     | `npm install && npm run build` |
+| **Publish Directory** | `dist`                         |
+
+**Environment Variables:**
+
+| Variable       | Description                                                             |
+| -------------- | ----------------------------------------------------------------------- |
+| `VITE_API_URL` | The backend API URL (e.g. `https://pastebin-backend-yba9.onrender.com`) |
 
 ---
 
-## 3. Production Docker Orchestration & Deployment Scripts
+## 4. Local Development Setup
 
-For containerized production deployments, the application leverages automated scripts and multi-stage `Dockerfiles` coordinated via `docker-compose.prod.yml`.
+If you want to run PasteBin on your own computer:
 
-### Services Architecture
+### Step 1 — Install dependencies
 
-- **Web (`nginx:alpine`)**: Served on port `80`. Mapped index configurations resolve React Router fallback paths.
-- **Server (`node:20-alpine`)**: Exposes port `5000` to the network, running under a secure non-root `node` user with devDependencies stripped.
-- **Database (`postgres:15-alpine`)**: Serves DB connections on port `5432` with a persistent local storage volume mapping.
+```bash
+npm install
+```
+
+### Step 2 — Create a `.env` file at the project root
+
+```env
+DATABASE_URL=postgresql://your-username:your-password@localhost:5432/pastebin
+JWT_SECRET=your-secret-key-here
+CORS_ORIGIN=http://localhost:5173
+PORT=5000
+```
+
+### Step 3 — Run database migrations
+
+```bash
+npx prisma migrate dev --schema=./packages/database/prisma/schema.prisma
+```
+
+### Step 4 — Start both servers at once
+
+```bash
+npm run dev
+```
+
+This starts:
+
+- The Vite dev server at `http://localhost:5173` (the website)
+- The Express API at `http://localhost:5000` (the backend)
 
 ---
 
-### Step-by-Step Production Deployment Guide
+## 5. Production Logs
 
-#### 1. Setup and Validate Environment Configurations
+The server writes structured logs in JSON format:
 
-Run the environment verification script to check for required variables (`DATABASE_URL`, `JWT_SECRET`, etc.) and automatically scaffold a template `.env.production` file if it is missing:
+- **Location**: `apps/server/logs/combined.log`
+- **Format**: Each log line is a JSON object with `timestamp`, `level`, and `message`
 
-```bash
-sh scripts/setup-env.sh
-```
+---
 
-#### 2. Run Order-Dependent Production Builds
+## 6. Docker (Self-Hosted Alternative)
 
-Compile all monorepo packages in the correct dependency order (Shared -> Database -> Server -> Web) to verify build integrity:
-
-```bash
-npm run build:prod
-```
-
-#### 3. Build and Spin Up Docker Container Cluster
-
-Deploy the container orchestrator. The containers will deploy in an ordered dependency queue utilizing Docker healthchecks to wait until Postgres is fully ready and the backend is verified healthy before spinning up dependent nodes:
+If you want to run PasteBin on your own server using Docker:
 
 ```bash
+# Build and start all containers
 docker-compose -f docker-compose.prod.yml up --build -d
-```
 
-#### 4. Automated Startup & Database Migrations
-
-The server container startup routine triggers the [start-prod.sh](file:///e:/DEVS/PasteBin/scripts/start-prod.sh) script, which runs:
-
-- Database migrations (`npx prisma migrate deploy`) to apply the schema changes safely.
-- Starts the production Node.js process (`node dist/index.js`).
-
-#### 5. Verify Service Health Status
-
-You can check if containers are active and healthy via:
-
-```bash
+# Check status
 docker-compose -f docker-compose.prod.yml ps
-```
 
-#### 6. Shutdown Services
-
-To stop and tear down containers:
-
-```bash
+# Shut down
 docker-compose -f docker-compose.prod.yml down
 ```
 
+The Docker setup includes:
+
+- **Nginx** — serves the frontend and proxies API requests
+- **Node.js server** — the API backend
+- **PostgreSQL** — the database (or connect to an external one)
+
 ---
 
-## 4. CI/CD Automated Pipelines (GitHub Actions)
+## 7. CI/CD — Automated Quality Checks
 
-The repository configures a multi-stage validation workflow in `.github/workflows/ci.yml` that acts as a quality gate on push and pull-request events targeting the `main` branch.
+Every time code is pushed to GitHub, an automated pipeline runs:
 
-### Pipeline Workflow Jobs
-
-1. **Lint & Format Check (`lint-format`)**:
-   - Validates that code styling adheres to the Prettier standards via `npx prettier --check .`.
-   - Runs `npm run lint` across all workspaces to check syntax correctness.
-2. **Execute Automated Tests (`test-suite`)**:
-   - Sets up Node.js, installs workspace dependencies, and runs `npx prisma generate` to populate typings.
-   - Executes the full suite of backend and web component tests (`npm run test`).
-3. **Verify Docker Builds (`build-docker`)**:
-   - Sets up Docker build pipelines.
-   - Compiles server and client Dockerfiles locally to ensure that changes do not break image compilation.
-4. **Image Publishing (`publish-docker`)**:
-   - Executed only on merges to `main`.
-   - Authenticates to Docker Hub via credentials secrets and publishes target images automatically.
+| Job                       | What It Does                                                              |
+| ------------------------- | ------------------------------------------------------------------------- |
+| **Lint & Format Check**   | Makes sure code is formatted consistently with Prettier and passes ESLint |
+| **Test Suite**            | Runs all automated tests (Vitest) to verify nothing is broken             |
+| **Docker Build Verify**   | Checks that the Docker images still build correctly                       |
+| **Publish Docker Images** | Only on main — pushes images to Docker Hub (if secrets are configured)    |

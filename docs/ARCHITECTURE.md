@@ -1,578 +1,209 @@
-# System Architecture - PasteBin
+# How PasteBin Is Built — Architecture Guide
 
-## 1. Tech Stack Overview
+> **This document explains how PasteBin works under the hood.**
+> You don't need to be a programmer to read Section 1 and 2.
+> Section 3 onwards goes into technical detail for developers.
 
-- **Monorepo Manager**: npm Workspaces
-- **Frontend**: React, Vite, Tailwind CSS, Axios, Lucide React
-- **Backend**: Node.js, Express, TypeScript, Morgan, Helmet, Cors
-- **Database / ORM**: PostgreSQL, Prisma ORM
-- **Shared Utilities**: TypeScript, Zod
+---
 
-## 2. Directory Layout & Monorepo Structure
+## 1. The Big Picture (Plain English)
+
+Think of PasteBin like a digital sticky note board for developers.
+
+When you paste some code and click **"Create Paste"**, here's what actually happens behind the scenes:
+
+```
+Your browser
+   ↓  sends a request
+Security layer (rate limit + input cleaning)
+   ↓  checks you're not a bot and cleans the data
+The API server (the brain)
+   ↓  validates and processes your request
+The database (the memory)
+   ↓  saves your paste permanently
+The API server
+   ↓  sends back your paste link
+Your browser shows you the result ✅
+```
+
+That's it. Every feature in the app follows this exact flow.
+
+---
+
+## 2. The Three Main Parts
+
+PasteBin is split into three separate apps that talk to each other:
+
+| Part                     | What It Is                   | What It Does                                |
+| ------------------------ | ---------------------------- | ------------------------------------------- |
+| **Website (Frontend)**   | What you see in your browser | The buttons, editor, and pages              |
+| **API Server (Backend)** | The brain behind the scenes  | Handles logic, saves data, checks passwords |
+| **Database**             | The permanent storage        | Stores all pastes, users, and history       |
+
+There's also a **CLI tool** — a command-line version of the app that developers can use from their terminal instead of a browser.
+
+---
+
+## 3. Tech Stack Overview
+
+These are the technologies used to build each part:
+
+- **Monorepo Structure**: All three apps live in one codebase, managed with npm Workspaces
+- **Frontend**: React 19, Vite, Tailwind CSS, Monaco Editor (the same editor as VS Code)
+- **Backend**: Node.js, Express, TypeScript, Winston (logging), Helmet (security headers)
+- **Database / ORM**: PostgreSQL (the database), Prisma ORM (the bridge between code and database)
+- **Shared Utilities**: TypeScript types and Zod validation schemas shared across all packages
+
+---
+
+## 4. Directory Layout
 
 ```
 pastebin/
 ├── apps/
-│   ├── web/             # React + Vite Frontend Client
-│   ├── server/          # Node.js + Express API Backend Server
-│   └── cli/             # Commander-based Node.js Terminal Developer Client
+│   ├── web/             # React + Vite Frontend (what you see in the browser)
+│   ├── server/          # Node.js + Express API Backend (the brain)
+│   └── cli/             # Terminal tool for developers
 ├── packages/
-│   ├── database/        # Prisma Schema, Migrations, Client Export
-│   └── shared/          # TypeScript shared interfaces, Zod validation schemas
-├── docker/              # Multi-stage Docker config files
-├── scripts/             # Production deployment and automation scripts
-└── docs/                # Project manuals and decisions logs
+│   ├── database/        # Prisma schema, migrations, database client
+│   └── shared/          # Shared TypeScript types and validation schemas
+├── scripts/             # Deployment and setup helper scripts
+└── docs/                # Project documentation (you are here)
 ```
 
-## 3. Comprehensive System Architecture Diagram
+---
+
+## 5. Full System Diagram
 
 ```mermaid
 flowchart TD
-    subgraph Clients ["Client Layer"]
-        Web[React Web SPA - Port 80/5173]
-        CLI[Node.js CLI Executable - Terminal]
+    subgraph Clients ["What Users See"]
+        Web[React Web App - Browser]
+        CLI[Terminal CLI Tool]
     end
 
-    subgraph Security ["Ingress & Ingress Security"]
-        Nginx[Nginx Reverse Proxy - Port 80]
-        Limiter[Rate Limiting Middleware - Express Rate Limit]
+    subgraph Security ["Security Layer"]
+        Limiter[Rate Limiter - blocks bots and spam]
+        Sanitizer[Input Cleaner - strips dangerous code]
     end
 
-    subgraph Backend ["Application Layer (Node.js/Express)"]
-        Sanitizer[Sanitization Middleware - sanitize-html]
-        Logger[Winston & Morgan Logger - JSON Files]
-        Controllers[API Express Controllers]
+    subgraph Backend ["API Server - The Brain"]
+        Logger[Request Logger]
+        Controllers[Route Controllers - handle each endpoint]
+        Services[Business Logic - the actual rules]
     end
 
-    subgraph Data ["Data Layer"]
-        Prisma[Prisma ORM Client]
-        DB[(PostgreSQL Database)]
+    subgraph Data ["Storage"]
+        Prisma[Prisma ORM - translates code to SQL]
+        DB[(PostgreSQL Database - Neon Serverless)]
     end
 
-    %% Communication Flows
-    Web -->|HTTP Requests| Nginx
-    Nginx -->|Reverse Proxy| Limiter
-    CLI -->|Direct HTTP Requests| Limiter
+    Web -->|HTTP Request| Limiter
+    CLI -->|HTTP Request| Limiter
 
     Limiter --> Sanitizer
     Sanitizer --> Controllers
     Controllers --> Logger
-
-    Controllers -->|ORM Queries| Prisma
-    Prisma -->|SQL Parameters| DB
-```
-
-## 4. Folder Philosophy & Workspaces Code Sharing
-
-Workspaces are linked at the root level using npm workspaces. Code sharing follows these rules:
-
-- All interfaces, validation schemas (Zod), and helper utils shared between client and server are placed in `packages/shared`.
-- Database models and Client exports reside in `packages/database`.
-- Apps depend on packages through package dependencies declared in their respective `package.json` configurations (e.g. `"@pastebin/shared": "*"`).
-
----
-
-## 5. Backend Layered Architecture
-
-The Express server follows a structured, layered architectural pattern separating routing, request handling, business logic, and database operations:
-
-```
-apps/server/src/
-├── index.ts               # Bootstraps Express applications, configurations and middleware
-├── routes/
-│   └── paste.routes.ts    # Defines endpoint paths and links them to the Controller
-├── controllers/
-│   └── paste.controller.ts# Handles HTTP requests, parses headers/parameters, and runs Zod validation
-├── services/
-│   └── paste.service.ts   # Contains full business logic (bcrypt hashes, queries database client)
-└── middleware/
-    └── error.middleware.ts# Intercepts thrown exceptions and sends formatted JSON payloads
-```
-
-### Flow of Execution
-
-1. **Routing**: `paste.routes.ts` maps request patterns to `PasteController` actions.
-2. **Controller**: `paste.controller.ts` validates incoming payloads using schemas imported from `@pastebin/shared` and extracts parameters/headers.
-3. **Service**: `paste.service.ts` processes logic (hashing passwords, checking expirations) and runs operations against Prisma.
-4. **Repository**: Prisma client under `@pastebin/database` accesses the database, returning models back through the layers.
-5. **Error Handler**: Any failure throws an exception which is handled by the global error middleware to keep responses structured.
-
----
-
-## 6. Request Lifecycle Data Flow
-
-### 1. Create Paste Lifecycle
-
-```mermaid
-sequenceDiagram
-    autonumber
-    actor User as Client (Web/CLI)
-    participant Limiter as Rate Limit / Sanitizer
-    participant Controller as Paste Controller
-    participant Service as Paste Service
-    participant DB as Postgres (Prisma)
-
-    User->>Limiter: POST /api/pastes (with content, title, expiresAt, password)
-    Limiter->>Limiter: Check Rate Limits (Max 10 per 15 min)
-    Limiter->>Limiter: Sanitize Input (Strip scripts/HTML)
-    Limiter->>Controller: Validated Request Body
-    Controller->>Controller: Validate Zod Schema (CreatePasteSchema)
-    alt Validation Fails
-        Controller-->>User: 400 Bad Request (Validation Errors)
-    else Validation Passes
-        Controller->>Service: createPaste(payload)
-        alt Password Provided
-            Service->>Service: Hash password via bcrypt (saltRounds=10)
-        end
-        Service->>DB: Prisma.create()
-        DB-->>Service: Created Paste Record
-        Service-->>Controller: Return Paste Model
-        Controller-->>User: 201 Created (ID, URL)
-    end
-```
-
-### 2. Retrieve Paste Lifecycle
-
-```mermaid
-sequenceDiagram
-    autonumber
-    actor User as Client (Web/CLI)
-    participant Controller as Paste Controller
-    participant Service as Paste Service
-    participant DB as Postgres (Prisma)
-
-    User->>Controller: GET /api/pastes/:id (with optional x-paste-password header)
-    Controller->>Service: getPaste(id, headers)
-    Service->>DB: Prisma.findUnique()
-    DB-->>Service: Return Paste Record (or null)
-
-    alt Paste Not Found
-        Service-->>User: 404 Not Found
-    else Paste Found
-        alt Expiration Check (expiresAt < Now)
-            Service->>DB: Prisma.delete() (Background Cleanup)
-            Service-->>User: 404 Not Found (Expired Paste)
-        else Active Paste
-            alt Password Protected
-                alt Authorization Header Token Present
-                    Service->>Service: Verify Session JWT signature
-                    alt Token Valid
-                        Service-->>Controller: Return Unlocked Content
-                        Controller-->>User: 200 OK (Paste Content)
-                    else Token Invalid/Expired
-                        Service-->>User: 401 Unauthorized (Password required)
-                    end
-                else No Token Header
-                    Service-->>User: 401 Unauthorized (Password required)
-                end
-            else Open Public/Private (Owner Verification)
-                Service-->>Controller: Return Content
-                Controller-->>User: 200 OK (Paste Content)
-            end
-        end
-    end
+    Controllers --> Services
+    Services --> Prisma
+    Prisma --> DB
+    DB --> Prisma
+    Prisma --> Services
+    Services --> Controllers
+    Controllers -->|JSON Response| Web
+    Controllers -->|JSON Response| CLI
 ```
 
 ---
 
-## 7. Frontend Architecture
+## 6. How Each Feature Works
 
-The React client located in `apps/web` is built using a modern component-driven architecture:
+### Creating a Paste
+
+1. You type code in the Monaco editor and click **Create Paste**
+2. The frontend validates basic inputs (title length, content required)
+3. A POST request is sent to `/api/pastes` with your data
+4. The server sanitizes the title and content (removes dangerous scripts)
+5. If a password was set, it's hashed using bcrypt (one-way encryption)
+6. A random 8-character uppercase ID is generated (e.g., `AB3XZ72K`)
+7. The paste is saved to the PostgreSQL database
+8. The server responds with the paste object and your browser redirects to `/v/AB3XZ72K`
+
+### Visibility Levels Explained
+
+| Level       | Who Can See It                            |
+| ----------- | ----------------------------------------- |
+| **Public**  | Everyone, appears in Browse and Search    |
+| **Private** | Only accessible with a password PIN       |
+| **Secret**  | Only you (the logged-in owner) can see it |
+
+### Expiration
+
+- **Guest pastes** always expire after 1 hour automatically
+- **Logged-in users** can set custom expiration: 1h, 24h, 7d, 30d, or no expiration
+- When an expired paste is requested, the server returns `410 Gone` instead of the content
+
+### Authentication Flow
 
 ```
-apps/web/src/
-├── main.tsx               # Entry point registering global stylesheets
-├── App.tsx                # Mounts ThemeProvider, MainLayout, and application views
-├── components/
-│   ├── theme-provider.tsx # React Context state provider managing Dark/Light modes
-│   ├── mode-toggle.tsx    # Dropdown UI trigger to switch themes
-│   └── layout/
-│       ├── Navbar.tsx     # Sticky header containing navigation items
-│       ├── Footer.tsx     # Bottom footer wrapper
-│       └── MainLayout.tsx # Layout bounds and responsive grid container
-├── lib/
-│   └── utils.ts           # Class merger function (cn utility using clsx/tailwind-merge)
-└── index.css              # Custom Radix CSS variables and tailwind baseline layers
-```
-
-### Components & Styling Core
-
-- **Radix UI Primitives**: Standard accessibility primitives (e.g. DropdownMenu) are used to construct interactive nodes.
-- **Tailwind CSS**: Styling is declared inline using Tailwind classes. Theme configurations map colors to CSS variables defined in `index.css`.
-- **Theme state (Context)**: A React context (`theme-provider.tsx`) stores theme mode in localStorage and updates root document styles reactively.
-
----
-
-## 7. Editor & Validation Strategy
-
-### Core Editor Wrapper (`@monaco-editor/react`)
-
-The central code-sharing input utilizes Monaco Editor wrapped as a reusable React component:
-
-- **Properties**: Manages dynamic language targets (e.g. `javascript`, `python`, `rust`) and reads theme bindings (swapping between `vs-dark` and `light` themes dynamically).
-- **Execution Mode**: Runs in active edit mode during creation, and shifts to `readOnly: true` format during visualization, preserving tab spacings and line configurations.
-
-### Client-Side Validation (`@pastebin/shared` + Zod)
-
-Validation rules are compiled as Zod schemas under the shared package `@pastebin/shared` and imported directly:
-
-- Prior to POST requests, the client compiles form values and executes `CreatePasteSchema.safeParse(payload)`.
-- If schema validation fails, the UI captures parsing error messages and overlays validation banners, preventing invalid REST calls.
-- Once client checks pass, Axios dispatches JSON payloads to the Express server, ensuring inputs are validated consistently.
-
----
-
-## 8. Retrieval Flow
-
-The process of loading and displaying a shared paste code block follows a structured flow across the layers:
-
-```mermaid
-sequenceDiagram
-    autonumber
-    Client(URL)->>Router: Hits route /v/:id
-    Router->>ViewPage: Mounts ViewPaste component
-    ViewPage->>API: Dispatches Axios GET /api/pastes/:id
-    API->>Database: Queries paste record via Prisma client
-    Database-->>API: Returns Paste object
-    Note over API: Verifies Expiration:<br/>checks if expiresAt < Date.now()
-    alt Paste has Expired
-        API-->>ViewPage: Returns 410 Gone / Expired Error
-        ViewPage-->>Client(URL): Displays Expired warning panel
-    else Paste is password-protected
-        API-->>ViewPage: Returns 401/403 Password check block
-        ViewPage-->>Client(URL): Prompts for password entry
-    else Active Paste
-        API-->>ViewPage: Returns 200 OK (excluding passwordHash)
-        ViewPage->>Monaco: Mounts read-only editor with language highlights
-        ViewPage-->>Client(URL): Renders layout (Navbar + Copy Code + Editor)
-    end
+Register → password hashed with bcrypt → user saved to DB
+Login → password compared with stored hash → JWT token issued (7 days)
+Every protected request → JWT verified → user ID extracted → request processed
 ```
 
 ---
 
-## 9. Authentication & Security
+## 7. API Route Map
 
-### Layered Defense & Hardening
-
-The application applies a multi-layered security strategy protecting database inputs, routing paths, and server infrastructure:
-
-1. **Stateless JWT Session Management**:
-   - **Registration**: Passwords supplied by users are hashed asynchronously via `bcrypt` with a work factor of 10 (`saltRounds`) before database persistence. No plain-text passwords ever touch the storage layer.
-   - **Login**: Upon credentials check validation, the server dispatches a JWT signed with `HS256` containing public user identifiers (`userId`, `email`). The token lifetime is configured to 7 days.
-   - **Authorization**: Protected client requests attach the token inside the HTTP header format: `Authorization: Bearer <JWT>`. The server middleware (`authMiddleware`) parses and validates the token authenticity, attaching the verified user payload to the request object.
-   - **Client Session Storage**: The Vite client stores the token in `localStorage` and exposes login states via `AuthContext` dynamically updating navbar headers.
-
-2. **Layered API Rate Limiting**:
-   - **Global Rate Limiter**: Capped at 100 requests per 15 minutes per IP address to safeguard base server capacity.
-   - **Strict Rate Limiter**: Capped at 10 requests per 15 minutes per IP address. Applied to sensitive routes: registration, login, and paste creation endpoints (`/api/auth/*` and `POST /api/pastes`) to prevent spam and brute-force cracking.
-   - **Deletion Rate Limiter**: Capped at 5 delete requests per 1 minute per IP address.
-
-3. **HTTP Security Headers & CORS Origins**:
-   - **Helmet Middleware**: Configured globally in the Express server to set secure HTTP headers (including HSTS, CSP configuration, and X-Content-Type-Options) to mitigate common web vectors (Clickjacking, XSS, etc.).
-   - **CORS Configuration**: Restricts incoming API requests strictly to verified client origins (`http://localhost:5173` and `http://localhost:3000`).
-   - **Structured Morgan Logger**: Morgan is configured with a custom token mapping formatting all incoming requests to JSON for downstream log aggregators (Elasticsearch, Loki, etc.) and audit trails.
-   - **Input Sanitization**: User emails and passwords are trimmed and normalized at the controller boundary. Parameterized queries executed by Prisma ensure complete mitigation against SQL Injection attacks.
+| Method   | Route                   | What It Does                        |
+| -------- | ----------------------- | ----------------------------------- |
+| `POST`   | `/api/pastes`           | Create a new paste                  |
+| `GET`    | `/api/pastes/:id`       | Get a paste by ID                   |
+| `PATCH`  | `/api/pastes/:id`       | Edit a paste                        |
+| `DELETE` | `/api/pastes/:id`       | Delete a paste                      |
+| `GET`    | `/api/pastes`           | Browse public pastes                |
+| `GET`    | `/api/pastes/mine`      | Get your own pastes (auth required) |
+| `POST`   | `/api/pastes/:id/share` | Share a paste with another user     |
+| `POST`   | `/api/auth/register`    | Create a new account                |
+| `POST`   | `/api/auth/login`       | Log in and get a token              |
+| `GET`    | `/api/users/:username`  | View a user's profile               |
+| `PATCH`  | `/api/users/me`         | Update your profile                 |
+| `GET`    | `/api/search`           | Search pastes                       |
+| `GET`    | `/health`               | Check if the server is alive        |
 
 ---
 
-## 10. Logging & Monitoring
+## 8. Security Layers (In Order)
 
-### Structured Winston Logging
+Every incoming request passes through these layers in sequence:
 
-The API server configures a Winston logging interface separating output targets by execution environment:
-
-- **Transports**:
-  - **Console Transport**: Enabled for all runs, outputting colorized format lines (`[timestamp] level: message`) for developer debugging.
-  - **File Transport**: Production runs write JSON objects containing `level`, `message`, and `timestamp` fields into two file loggers under `/apps/server/logs/`:
-    - `error.log`: Captures error-level issues and exception trace logs.
-    - `combined.log`: Gathers all events logged at the `info` level and above.
-- **Morgan Integration**: Access logs generated by incoming requests are routed through Winston's `http` log level in a structured JSON payload string format. This ensures unified file outputs and lets teams configure standardized syslog forwarders.
-
-### Health Verification Pings
-
-The `/health` route uses dynamic queries to ping Postgres (`db.$queryRaw`SELECT 1``) to verify DB reachability in real-time, responding with `503 Service Unavailable` on connection timeouts. Uptime is computed dynamically using Node's native `process.uptime()`.
+1. **Helmet** — Sets HTTP security headers (prevents clickjacking, MIME sniffing, etc.)
+2. **CORS** — Only allows requests from trusted frontend origins
+3. **Rate Limiter** — Blocks IPs that send too many requests
+4. **Input Sanitizer** — Strips dangerous HTML/script tags from paste content
+5. **JWT Middleware** — Verifies the user's login token on protected routes
+6. **Zod Validation** — Validates the request body shape before any logic runs
+7. **Service Layer** — Applies business rules (ownership checks, expiration checks)
+8. **Prisma ORM** — Parameterized queries prevent SQL injection
 
 ---
 
-## 11. Docker Architecture & Containerization
+## 9. Database Models
 
-### Multi-stage Building
+The database has 5 main tables:
 
-The monorepo uses multi-stage Docker builds to compile assets and deliver lean, secure runtime environments:
-
-- **Build Isolation (Stage 1)**: Base builder images install devDependencies, resolve monorepo TS dependencies, compile files to JS, and run prisma client generators. This keeps compiler and package resolution concerns completely isolated from production nodes.
-- **Production Stripping (Stage 2)**:
-  - **Server Image**: Pulls compiled source files and maps ONLY hoisted production-dependencies `node_modules` (via `npm prune --omit=dev`), reducing backend image size. Runs as a non-root `node` system user.
-  - **Web Image**: Copies Vite statically compiled frontend assets into a lightweight `nginx:alpine` image. Employs a custom `nginx.conf` routing configuration to direct SPA routes back to the main document entry.
-
-### Production Environment Topology
-
-Services run linked on a private virtual bridge network (`pastebin-prod-network`), isolating database ports from public access. Persistent storage volumes mapping PostgreSQL directories ensure data survives host restarts.
+| Table        | What It Stores                                                |
+| ------------ | ------------------------------------------------------------- |
+| `User`       | Account info (email, username, hashed password, bio, avatar)  |
+| `Paste`      | The actual paste content, visibility, expiry, and owner       |
+| `Share`      | Who has been given access to a paste and with what permission |
+| `SavedPaste` | A user's bookmarked pastes                                    |
+| `RecentView` | The last 5 pastes a logged-in user viewed                     |
 
 ---
 
-## 12. CLI Client Architecture
-
-### Overview
-
-The CLI client (`@pastebin/cli`) provides a command-line interface for developers to upload, retrieve, and inspect code pastes directly from their terminal. It communicates with the same backend REST API as the React Web application, verifying the architectural concept of supporting multiple client types.
-
-### Key Components
-
-- **Command Parser (`commander`)**: Resolves options and maps inputs to designated execution command blocks.
-- **REST Integrations (`axios`)**: Handles HTTP requests targeting backend routes `/api/auth` and `/api/pastes`.
-- **Config Storage**: Saves user session tokens (JWTs) locally in `~/.pastebin-config.json`. Subsequent paste operations read this config file to automatically inject authentication headers.
-- **Output Mappings**: Formats list outputs in standard columns and provides syntax highlighting for retrieved snippets using terminal colors (`chalk`).
-
----
-
-## 13. Frontend Performance & Accessibility (a11y)
-
-### SPA Code Splitting & Lazy Routing
-
-To maintain low initial load times and optimize Time to Interactive (TTI), the web application enforces lazy loading for page-level components:
-
-- **Dynamic Imports**: React Router routes are mapped to lazy dynamically imported targets (e.g. `const Browse = React.lazy(...)`), dividing the code bundle into smaller chunks loaded on-demand.
-- **Suspense Transitions**: Route switchers are wrapped in React `<Suspense>` components with structured skeleton fallback screens, preventing blank display delays.
-
-### Monaco Editor Web Workers CDN Offloading
-
-Monaco Editor contains extensive code parsing and compilation workers. To prevent blocking the main browser thread:
-
-- **CDN Workers**: `@monaco-editor/react` is configured globally at `main.tsx` to fetch editor files asynchronously from optimized public JSDelivr CDNs.
-- **Off-thread Compilation**: Heavy syntax verification operations execute in background web workers managed by Monaco, leaving the React application interactive.
-
-### Client-Side Query Caching
-
-To optimize API requests and database queries, the public Browse page implements client-side state caching:
-
-- **In-Memory TTL Caching**: Retains page results mapped by query parameters (page number, search keywords, language filters) with a 30-second TTL.
-- **Instant rendering**: Switching back and forth between paste views and browse listings displays cached results instantly without reloading animations or REST server roundtrips.
-
-### Accessibility Hardening
-
-- **ARIA Attributes**: Buttons, selectors, and text fields declare descriptive `aria-label` and `role` fields.
-- **Keyboard Navigation**: Focus rings (`focus:ring`) are declared on all form inputs and links to ensure complete keyboard focus indicators are visible.
-
----
-
-## 14. Production Infrastructure
-
-### Reverse Proxy & Static Assets serving (Nginx)
-
-The frontend web container runs an optimized **Nginx reverse proxy server**:
-
-- **Static Assets Delivery**: Serves optimized React bundles directly from the Nginx filesystem, maximizing speed.
-- **Client Routing Redirection**: Incorporates fallback location matching rules in `nginx.conf` (`try_files $uri $uri/ /index.html`) to redirect client-side route queries back to the React entry point, preventing 404 page-load errors on reload.
-
-### Process Management & Supervision
-
-- **Node.js Lifecycle**: The backend server is monitored by the Docker engine using `restart: always` to handle process restarts.
-- **Order-dependent startup**: Uses Docker Compose healthchecks (`db` and `server`) ensuring postgres and express are verified healthy before downstream nodes are initialized.
-
-### Database Persistence Strategy
-
-- **Volumes Mapping**: Mounts a Docker persistent volume (`postgres_prod_data` to `/var/lib/postgresql/data`) to prevent data loss across container lifecycle resets.
-
----
-
-## 15. Global Search Request Flow
-
-The Global Search feature enables real-time search for users (by username/email) and pastes (by title) directly from the header navigation bar. It is designed to be fast, responsive, and secure.
-
-### Request Flow Diagram
-
-```mermaid
-sequenceDiagram
-    autonumber
-    actor User
-    participant SearchInput as SearchInput Component
-    participant Hook as useGlobalSearch Hook
-    participant API as GET /api/search
-    participant DB as PostgreSQL Database
-
-    User->>SearchInput: Types query in search bar (e.g. "blue")
-    Note over Hook: Debounces input for 300ms
-    alt Input is short or empty
-        Hook-->>SearchInput: Clears previous results & hides dropdown
-    else Debounce completes
-        Hook->>API: Sends GET /api/search?q=blue (with AbortSignal)
-        API->>DB: Queries Users (username/email contains "blue")
-        API->>DB: Queries Pastes (title contains "blue" & isPublic & notExpired)
-        DB-->>API: Returns DB rows
-        Note over API: Scores and sorts matching items:<br/>1. Exact Username<br/>2. Exact Email<br/>3. Exact Paste Title<br/>4. Partial matches
-        API-->>Hook: Returns sorted { users: [...], pastes: [...] } payload
-        alt User typed new characters before response
-            Note over Hook: AbortSignal cancels pending request
-        else Response received
-            Hook-->>SearchInput: Updates results state & opens dropdown
-            SearchInput-->>User: Renders Grouped Results list (Max 5 Users, 5 Pastes)
-        end
-    end
-```
-
----
-
-## 16. Workspace Dashboard Architecture & Cascade Deletion
-
-To deliver a reliable, secure personal workspace, the codebase models explicit sharing, saving (bookmarking), and viewing relationships linking users and pastes.
-
-### Entity Relationship Model
-
-```mermaid
-erDiagram
-    USER {
-        string id PK
-        string email UNIQUE
-        string username UNIQUE
-    }
-    PASTE {
-        string id PK
-        string title
-        string content
-        boolean isPublic
-        string userId FK
-    }
-    SHARE {
-        string id PK
-        string pasteId FK
-        string userId FK
-    }
-    SAVED_PASTE {
-        string id PK
-        string pasteId FK
-        string userId FK
-    }
-    RECENT_VIEW {
-        string id PK
-        string pasteId FK
-        string userId FK
-        datetime viewedAt
-    }
-
-    USER ||--o{ PASTE : "owns"
-    USER ||--o{ SHARE : "shares_with"
-    USER ||--o{ SAVED_PASTE : "bookmarks"
-    USER ||--o{ RECENT_VIEW : "recently_views"
-
-    PASTE ||--o{ SHARE : "has_shares"
-    PASTE ||--o{ SAVED_PASTE : "has_saves"
-    PASTE ||--o{ RECENT_VIEW : "has_views"
-```
-
-### Cascade Deletion Mechanism
-
-Database foreign keys are configured with `onDelete: Cascade` rules to ensure structural integrity:
-
-1. **Paste Deletion**: When a user deletes a paste, the database engine cascadingly deletes all related shares (`Share`), bookmarks (`SavedPaste`), and history logs (`RecentView`), keeping the schema completely clean without orphans.
-2. **Access Control Filtering**: When listing saved pastes or recent history for a user, the backend queries verify that the requesting user is the owner, or is public, or is explicitly shared with. Unauthorized references return an empty/unavailable state to protect secret data.
-
----
-
-## 12. Paste Ownership, Sharing & Permissions Model
-
-To govern file edits, viewing credentials, and user permissions, PasteBin utilizes a robust access control model:
-
-### Paste Ownership
-
-Every paste is associated with a `userId` pointing to the user who created it (the Owner).
-
-- Only the Owner holds administrative control over a paste.
-- Only the Owner can delete a paste, change its visibility level, or manage its shared users.
-
-### Sharing Flow
-
-Paste sharing is configured by the Owner using the Advanced Sharing Settings modal.
-
-- The Owner searches for users by username or email.
-- Matched users can be added to the paste's share list with a specific permission level (`READ` or `WRITE`).
-- The system persists these permissions in the `Share` database model, establishing a compound primary key index on `[pasteId, userId]`.
-
-### Permissions Model
-
-When a shared user accesses a paste, the system retrieves their specific access role:
-
-- **`READ` (Read Only)**: Allows users to view the code, copy it to their clipboard, and save (bookmark) it to their personal Browse workspace.
-- **`WRITE` (Read & Write)**: In addition to read actions, shared editors can edit the title, description, and Monaco code content inline. However, they cannot delete the paste, modify its visibility settings, change expiration rules, or share it with other users.
-
-1. **Public**: Indexed globally, searchable by everyone, and visible on public profile pages.
-2. **Private**: Prompts for a 4-8 digit numeric PIN. If a shared guest user accesses the private paste, the PIN check is bypassed for the Owner but enforced for guests unless they are explicitly shared with a `READ`/`WRITE` role.
-3. **Secret**: Visible strictly to the Owner's logged-in session. It will never appear in global search dropdowns, workspaces, profiles, or query results.
-
----
-
-## 13. User Profile System & Session Flows
-
-The platform divides user sessions into two distinct navigation flows (Anonymous vs. Authenticated) and structures profile visibility with strict statistics filtering:
-
-### Anonymous User Flow
-
-Anonymous (non-logged-in) users represent guests on the platform:
-
-- **Scope**: Can create transient public or private pastes, read pastes (performing PIN validation for private inputs), and use the global navbar search or browse public feeds.
-- **Restrictions**: Ineligible for persistent profile workspaces, edit operations, or administrative settings. They do not see any workspace navigation, dashboard shortcuts, or profile avatars.
-
-### Authenticated User Flow
-
-Logged-in users hold persistent system identities:
-
-- **Scope**: Receive an automatically generated profile link (`/profile/:username`), customizable display names, and base64 avatar uploads.
-- **UI Elements**: The login button is replaced by a Circular Avatar + `@username` combination which links to the profile. A dedicated, inline logout action is rendered next to the credentials.
-
-### Profile Architecture & Permission Rules
-
-Public profiles are queried at `GET /api/users/:username`. The controller employs optional authentication middleware to parse the request context, enforcing the following rules:
-
-```
-[Request Context] ──> optionalAuthMiddleware ──> UserController ──> UserService
-                                                                      │
-           ┌─────────────────────── Owner? ───────────────────────────┤
-           ▼ (Yes)                                                    ▼ (No)
-[Complete Response]                                        [Filtered Response]
-- All visibility stats                                     - Total & Public stats only
-- Public + Private + Secret pastes                          - Public + Explicitly shared pastes
-- Saved Bookmarked pastes                                  - Omit Secret, Saved, Recent
-- Last 5 Recently Viewed logs                              - Require PIN on direct view
-```
-
-1. **Owner Mode**: Returns complete statistics (Public, Private, Secret, and Saved paste counts) and mounts five navigation tabs: Public, Private, Secret, Saved, and Recently Viewed.
-2. **Visitor Mode**: Blocks access to Secret, Saved, and Recently Viewed views. Statistics are filtered to display only Public and Total (Public + Shared Private) counts. Private pastes created by the user are visible ONLY if the visitor is an authorized guest with shared access.
-3. **Inline Modals**: Account configuration edits (avatar replacement, display names, and bio text limits) are processed in place using modal containers rather than external routes.
-
----
-
-## 14. Guest Mode Architecture & Client Storage
-
-To allow instant, frictionless tryouts without mandatory signup, the platform implements a dual-mode state architecture separating Guest (Anonymous) and Authenticated users.
-
-### Guest vs. Authenticated Workspaces
-
-```
-┌─────────────────────────────────────────────────────────────────────────┐
-│                           Client Browse Page                            │
-└─────────────────────────────────────────────────────────────────────────┘
-                                   │
-                     Is Authenticated? (has Token)
-                                   │
-              ┌────────────────────┴────────────────────┐
-              ▼ (No - Guest Mode)                       ▼ (Yes - Auth Mode)
-     [Local Caches (localStorage)]              [Remote REST Database]
-     - pb_guest_recent_pastes                   - GET /api/workspace
-     - pb_guest_saved_pastes                    - POST /api/pastes/:id/save
-     - pb_guest_recently_viewed_pastes          - GET /api/pastes/:id/shares
-```
-
-### Guest Restrictive Policies
-
-1. **Paste Code & Unique URLs**:
-   - Guest pastes generate a unique 8-character uppercase alphanumeric code (e.g. `A82XK4P9`) which serves directly as the database `id` primary key.
-   - This maps to direct URLs: `/v/A82XK4P9` or `/paste/A82XK4P9`.
-2. **Forced Expiry & Visibility**:
-   - Guest pastes **always expire in exactly 1 Hour**. Expiration selectors are locked in the UI, and the server enforces `expiresAt` creation values.
-   - Guest pastes are forced to `PUBLIC` visibility. Private, Secret, password protection, and custom expiry options are disabled with inline explanations.
-3. **Transient Actions**:
-   - Guests cannot edit or delete published pastes. The server blocks these operations by checking `userId === null` and returning `403 Forbidden`.
-   - Guests track recent creations, bookmarks (saved), and views locally using browser `localStorage` variables.
-4. **Data Persistence Strategy**:
-   - Guest data is bound to the browser's origin. Sign-in flows do not clear or force-migrate these local arrays; they remain accessible on that client.
-
+## 10. Deployment
+
+- **Frontend**: Deployed on [Render](https://render.com/) as a static site — `https://pastebin-frontend-tfjz.onrender.com`
+- **Backend**: Deployed on [Render](https://render.com/) as a Web Service — `https://pastebin-backend-yba9.onrender.com`
+- **Database**: Hosted on [Neon](https://neon.tech/) — serverless PostgreSQL, scales to zero when idle

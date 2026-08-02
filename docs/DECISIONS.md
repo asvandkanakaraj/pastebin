@@ -249,4 +249,3 @@ We restructure the application into Guest Mode (transient local-cached state wit
 - Zero friction for onboarding new users.
 - Substantial server resource savings by automatically expiring transient guest pastes after 1 hour.
 - Strong encouragement to sign up to unlock private configurations and team sharing.
-

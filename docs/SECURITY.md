@@ -1,76 +1,134 @@
-# PasteBin Security Philosophy & Design
+# How PasteBin Is Kept Secure
 
-This document details the visual and logical security constraints implemented across the PasteBin full-stack codebase.
-
-## 1. Password Protection & Cryptographic Hashing
-
-- **BCrypt Encryption**: Whenever a paste is created with custom password protections, the password is encrypted asynchronously via `bcrypt` using a work factor parameter of 10 (`saltRounds`) before saving.
-- **Database Leaks Containment**: Even if the primary PostgreSQL database is compromised, raw paste passwords cannot be resolved since the database only persists the secure one-way salted bcrypt signatures (`passwordHash`).
-- **Authorization Decrypt Handshakes**: Requester inputs verified against these signatures dynamically grant access and exclude hashes from returning inside query response packets.
-
-## 2. Private Pastes & Scope Access Control
-
-- **Owner Checks**: Snippets designated with public visibility disabled (`isPublic: false`) are restricted dynamically at the service layer:
-  - If a requester is anonymous, access is rejected immediately returning a `403 Forbidden` response status.
-  - If a requester is logged in, the service matches their JWT user ID claim against the paste owner (`userId`). Access is only granted if the claims are equal; otherwise, it returns a `403 Forbidden` response.
-- **Stateless Decryption Verification**: In addition to standard owner validations, any password-protected entry requires verification. If a header `x-paste-password` is not present, it triggers `401 Unauthorized` responses forcing password decryption overlays in the client.
-
-## 3. JWT Stateless Session Management
-
-- **Token Signatures**: User registration and login validation dispatch stateless token keys signed via standard `HS256` HMAC signatures using the server's private `JWT_SECRET`.
-
-## 4. API Rate Limiting Strategy
-
-We implement layered rate limiting to secure public routes and prevent credential stuffing/spam:
-
-- **Global Rate Limiter**: Applied globally across all API routes. Capped at a maximum of `100 requests per 15 minutes` per IP address.
-- **Strict Rate Limiter**: Applied to sensitive write and credentials validation endpoints (`/api/auth/register`, `/api/auth/login`, and `POST /api/pastes`). Capped at a maximum of `10 requests per 15 minutes` per IP address to block brute-force and creation spam.
-- **Deletion Rate Limiter**: Applied strictly to paste removals (`DELETE /api/pastes/:id`). Limits requests to `5 requests per 1 minute` per IP address.
-
-## 5. Security Headers & CORS Controls
-
-- **Helmet Middleware**: Configured globally in the Express server to set HTTP security headers, including:
-  - Content Security Policy (CSP) configurations preventing cross-site scripting (XSS).
-  - HTTP Strict Transport Security (HSTS) forcing SSL connections.
-  - X-Content-Type-Options preventing MIME type sniffing.
-- **CORS Constraints**: Restricts incoming API requests to trusted origins (`http://localhost:5173` and `http://localhost:3000`). Attempts from unapproved external scripts are rejected.
-- **Input Sanitization**: Auth inputs (email, password) are trimmed and normalized to lowercase to eliminate whitespace bugs and prevent credential stuffing variations. Parameterized Prisma query builders secure against SQL injections.
+> **This document explains the security measures built into PasteBin.**
+> The first few sections are written for anyone — no technical background needed.
 
 ---
 
-## 6. Comprehensive Security Audit
+## 1. The Simple Version (Plain English)
 
-We have performed a complete security audit across the monorepo workspaces and implemented the following hardening measures:
+PasteBin handles real user passwords, private code, and personal accounts.
+Here's how we make sure that's kept safe:
 
-### 1. SQL Injection Protection (Prisma)
+| Threat                                       | What We Do About It                                                        |
+| -------------------------------------------- | -------------------------------------------------------------------------- |
+| Someone guessing passwords                   | We slow them down with **rate limiting** (max 10 tries per 15 minutes)     |
+| Someone stealing your data from our database | Passwords are **encrypted one-way** — even we can't read them              |
+| Someone injecting malicious code into pastes | We **strip dangerous scripts** from all content on the server              |
+| Someone faking requests from another website | We use **header-based tokens** instead of cookies (immune to CSRF attacks) |
+| Someone spamming the API                     | **Rate limiters** block IPs that send too many requests                    |
+| SQL injection attacks                        | **Prisma ORM** automatically parameterizes all database queries            |
 
-All database interactions are routed through the Prisma ORM. Prisma automatically parameterizes all queries and input arguments. Even for advanced raw pings (e.g. `/health`), query strings are parameterized (e.g. `db.$queryRaw`SELECT 1``), completely preventing SQL Injection vectors.
+---
 
-### 2. XSS (Cross-Site Scripting) Mitigation
+## 2. Password Protection (How It Actually Works)
 
-- **Backend Title Sanitization**: The `sanitizeMiddleware` processes titles with a strict configuration (`allowedTags: []`), stripping all HTML tags entirely.
-- **Backend Content Sanitization**: Raw paste content is sanitized via a regex-based script stripper (`cleanScriptTags`) inside [sanitize.middleware.ts](file:///e:/DEVS/PasteBin/apps/server/src/middleware/sanitize.middleware.ts). It removes `<script>`, `<iframe>` blocks, inline event handlers (`onload`, `onclick`), and `javascript:` URIs, while preserving valid math/code operators like `<` and `>` to avoid corrupting programming code pastes.
-- **Frontend Safe Rendering**: React automatically escapes state bindings dynamically (e.g., `{paste.title}`). Content is rendered inside Monaco Editor (which treats inputs purely as plain text code) or standard escaped components, preventing client-side script execution.
+When you set a password on a paste:
 
-### 3. Brute Force Mitigation (Rate Limiting)
+1. Your password is **never stored as plain text**
+2. It's run through `bcrypt` — a one-way hashing algorithm
+3. The resulting hash (a scrambled version) is stored in the database
+4. When someone tries to unlock the paste, their input is hashed and **compared** to the stored hash
+5. If they match → access granted. If not → `403 Forbidden`
 
-Brute-force attempts are blocked by strict rate limits:
+Even if the database were completely leaked, no one could recover your original password from the hash.
 
-- Sensitive routes (`/api/auth/*` and `POST /api/pastes`) are limited to **10 requests per 15 minutes** per IP.
-- Delete operations are capped at **5 requests per 1 minute** per IP.
+---
 
-### 4. CSRF (Cross-Site Request Forgery) Mitigation
+## 3. Private & Secret Pastes
 
-- The application implements a **Header-based JWT Authentication Strategy** instead of browser cookies.
-- Token keys are stored in client `localStorage` and attached to outgoing requests inside the HTTP `Authorization: Bearer <token>` header.
-- Because web browsers do not automatically attach custom authorization headers to cross-site requests (unlike cookies), CSRF attacks are fundamentally mitigated.
+| Visibility  | Who Can Access It                                                          |
+| ----------- | -------------------------------------------------------------------------- |
+| **Public**  | Anyone on the internet                                                     |
+| **Private** | Anyone with the link + the correct password                                |
+| **Secret**  | Only the logged-in owner. Even with a direct link, no one else can view it |
 
-### 5. Dependency Audit & Assessment
+The visibility check happens on the **server**, not the browser — so it can't be bypassed by a clever user.
 
-An audit check has been run via `npm audit` with the following outcomes:
+---
 
-- **Overrides**: Applied overrides to lock secure versions of nested transitive dependencies (`brace-expansion` and `tar`).
-- **Inapplicable Vulnerabilities**:
-  - `react-router` / `react-router-dom`: The reported RSC (React Server Components) CSRF bypass vulnerability is inapplicable because our React web app runs purely as a client-side Single Page Application (SPA).
-  - `esbuild`: Resolves development-only local server options, not production Nginx or server runtime environments.
-  - `tar` & `brace-expansion`: Only execute during pre-gyp compiles at local developer workstations, and do not execute inside production runtime environments.
+## 4. Login Sessions (JWT Tokens)
+
+When you log in:
+
+1. The server verifies your email and password
+2. It generates a **JWT token** — a signed, tamper-proof digital pass
+3. That token is stored in your browser's `localStorage`
+4. Every request you make attaches this token in the `Authorization: Bearer <token>` header
+5. The server verifies the token's signature on every protected request
+6. Tokens expire after **7 days**
+
+Because we use header-based tokens (not cookies), cross-site request forgery (CSRF) attacks don't work here — browsers don't auto-attach custom headers to cross-site requests.
+
+---
+
+## 5. Rate Limiting
+
+To prevent bots, brute-force attacks, and spam:
+
+| Route            | Limit                              |
+| ---------------- | ---------------------------------- |
+| All API routes   | 100 requests per 15 minutes per IP |
+| Login & Register | 10 requests per 15 minutes per IP  |
+| Create Paste     | 10 requests per 15 minutes per IP  |
+| Delete Paste     | 5 requests per 1 minute per IP     |
+
+If you exceed these limits, you get a `429 Too Many Requests` response and must wait.
+
+---
+
+## 6. Input Sanitization
+
+When a paste is created, the server cleans the data **before** saving it:
+
+- **Title**: All HTML tags are completely stripped using `sanitize-html`
+- **Content**: `<script>`, `<iframe>`, inline event handlers (`onclick`, `onload`), and `javascript:` URIs are removed via regex — but normal code characters like `<` and `>` are preserved so code isn't corrupted
+
+This happens on the **server side**, so it can't be skipped by modifying the frontend.
+
+---
+
+## 7. Security Headers
+
+Every response from the server includes these HTTP security headers (via Helmet):
+
+| Header                      | What It Prevents                                          |
+| --------------------------- | --------------------------------------------------------- |
+| `Content-Security-Policy`   | Controls which scripts and resources the browser can load |
+| `X-Content-Type-Options`    | Prevents MIME type sniffing attacks                       |
+| `X-Frame-Options`           | Prevents clickjacking (embedding the site in an iframe)   |
+| `Strict-Transport-Security` | Forces HTTPS connections                                  |
+
+---
+
+## 8. CORS (Who Can Talk to the API)
+
+The API only accepts requests from trusted origins.
+If a random website tries to make requests to our API, the browser blocks it.
+
+Allowed origins are set via the `CORS_ORIGIN` environment variable:
+
+```
+CORS_ORIGIN=https://pastebin-frontend-tfjz.onrender.com
+```
+
+---
+
+## 9. SQL Injection — Why It Can't Happen Here
+
+All database queries go through **Prisma ORM**, which automatically parameterizes every query.
+Even for raw SQL (like the health check `SELECT 1`), we use Prisma's tagged template `$queryRaw` which is parameterized by design.
+
+No user input ever gets directly concatenated into a SQL query.
+
+---
+
+## 10. Dependency Audits
+
+We run `npm audit` regularly. Known inapplicable vulnerabilities:
+
+| Package                   | Why It's Not a Risk Here                                   |
+| ------------------------- | ---------------------------------------------------------- |
+| `react-router` RSC CSRF   | We run a pure client-side SPA — no React Server Components |
+| `esbuild` local server    | Only runs in development, not in production                |
+| `tar` / `brace-expansion` | Only run at install time, not in production runtime        |

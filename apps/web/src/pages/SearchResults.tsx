@@ -24,12 +24,9 @@ export function SearchResults() {
     setError(null);
 
     axios
-      .get<SearchResultsType>(
-        `${API_BASE_URL}/api/search?q=${encodeURIComponent(query.trim())}`,
-        {
-          signal: abortController.signal,
-        }
-      )
+      .get<SearchResultsType>(`${API_BASE_URL}/api/search?q=${encodeURIComponent(query.trim())}`, {
+        signal: abortController.signal,
+      })
       .then((res) => {
         setResults(res.data);
         setLoading(false);

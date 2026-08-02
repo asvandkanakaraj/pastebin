@@ -52,9 +52,13 @@ export function CreatePaste() {
   const [description, setDescription] = useState('');
   const [language, setLanguage] = useState('javascript');
   const [expiration, setExpiration] = useState(isGuest ? '3600' : 'never');
-  const [visibility, setVisibility] = useState<'PUBLIC' | 'PRIVATE' | 'SECRET'>(isGuest ? 'PRIVATE' : 'PUBLIC');
+  const [visibility, setVisibility] = useState<'PUBLIC' | 'PRIVATE' | 'SECRET'>(
+    isGuest ? 'PRIVATE' : 'PUBLIC'
+  );
   const [pinOption, setPinOption] = useState<'auto' | 'custom'>('auto');
-  const [customPin, setCustomPin] = useState(() => Math.floor(100000 + Math.random() * 900000).toString());
+  const [customPin, setCustomPin] = useState(() =>
+    Math.floor(100000 + Math.random() * 900000).toString()
+  );
   const [showPin, setShowPin] = useState(false);
   const [content, setContent] = useState('');
 
@@ -207,9 +211,11 @@ export function CreatePaste() {
       language,
       visibility: isGuest ? 'PRIVATE' : visibility,
       isPublic: isGuest ? false : visibility === 'PUBLIC',
-      password: (isGuest || visibility === 'PRIVATE') ? finalPin : undefined,
+      password: isGuest || visibility === 'PRIVATE' ? finalPin : undefined,
       expiresInSeconds: isGuest ? 3600 : expiration === 'never' ? undefined : parseInt(expiration),
-      shares: isGuest ? undefined : sharedUsers.map((su) => ({ userId: su.id, permission: su.permission })),
+      shares: isGuest
+        ? undefined
+        : sharedUsers.map((su) => ({ userId: su.id, permission: su.permission })),
     };
 
     // Validation checks
@@ -262,9 +268,7 @@ export function CreatePaste() {
         >
           <div className="w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-2xl space-y-6 animate-in zoom-in-95 duration-200 relative text-left">
             <div className="text-center space-y-2">
-              <h2 className="text-lg font-bold text-slate-900 dark:text-white">
-                Paste Created
-              </h2>
+              <h2 className="text-lg font-bold text-slate-900 dark:text-white">Paste Created</h2>
               <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
                 Publishing complete. Record these credentials to access this private paste.
               </p>
@@ -293,7 +297,11 @@ export function CreatePaste() {
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1"
                     title="Copy Paste Code"
                   >
-                    {copiedCode ? <Check size={14} className="text-emerald-500" /> : <Copy size={14} />}
+                    {copiedCode ? (
+                      <Check size={14} className="text-emerald-500" />
+                    ) : (
+                      <Copy size={14} />
+                    )}
                   </button>
                 </div>
               </div>
@@ -321,7 +329,11 @@ export function CreatePaste() {
                       className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1"
                       title="Copy PIN"
                     >
-                      {copiedPin ? <Check size={14} className="text-emerald-500" /> : <Copy size={14} />}
+                      {copiedPin ? (
+                        <Check size={14} className="text-emerald-500" />
+                      ) : (
+                        <Copy size={14} />
+                      )}
                     </button>
                   </div>
                 </div>
@@ -333,7 +345,9 @@ export function CreatePaste() {
               <button
                 type="button"
                 onClick={async () => {
-                  await navigator.clipboard.writeText(`${window.location.origin}/v/${createdPasteData.id}`);
+                  await navigator.clipboard.writeText(
+                    `${window.location.origin}/v/${createdPasteData.id}`
+                  );
                   setCopiedUrl(true);
                   setTimeout(() => setCopiedUrl(false), 2000);
                 }}
@@ -361,7 +375,11 @@ export function CreatePaste() {
               </button>
               <button
                 type="button"
-                onClick={() => navigate(`/v/${createdPasteData.id}`, { state: { justCreated: true, pin: customPin } })}
+                onClick={() =>
+                  navigate(`/v/${createdPasteData.id}`, {
+                    state: { justCreated: true, pin: customPin },
+                  })
+                }
                 className="flex-1 h-10 inline-flex items-center justify-center rounded-lg bg-blue-600 px-4 text-xs font-bold text-white shadow-md hover:bg-blue-700 focus:outline-none transition-colors"
               >
                 Open Paste
@@ -482,17 +500,29 @@ export function CreatePaste() {
                                   su.id === item.id
                                     ? { ...su, permission: e.target.value as any }
                                     : su
-                                  )
+                                )
                               );
                             }}
                             className="bg-transparent border-none text-[11px] font-bold text-blue-600 hover:text-blue-700 dark:text-blue-400 focus:outline-none cursor-pointer"
                           >
-                            <option value="READ" className="bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300">Read Only</option>
-                            <option value="WRITE" className="bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300">Read & Write</option>
+                            <option
+                              value="READ"
+                              className="bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300"
+                            >
+                              Read Only
+                            </option>
+                            <option
+                              value="WRITE"
+                              className="bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300"
+                            >
+                              Read & Write
+                            </option>
                           </select>
                           <button
                             type="button"
-                            onClick={() => setSharedUsers(sharedUsers.filter((su) => su.id !== item.id))}
+                            onClick={() =>
+                              setSharedUsers(sharedUsers.filter((su) => su.id !== item.id))
+                            }
                             className="text-rose-500 hover:text-rose-700 font-bold p-1 transition-colors"
                           >
                             ✕
@@ -539,13 +569,14 @@ export function CreatePaste() {
           <h1 className="text-xl font-bold tracking-tight text-slate-800 dark:text-white">
             New Paste
           </h1>
-          <p className="text-xs text-slate-500">
-            Create a transient or persistent code snippet.
-          </p>
+          <p className="text-xs text-slate-500">Create a transient or persistent code snippet.</p>
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-4 gap-6 items-start select-none">
+      <form
+        onSubmit={handleSubmit}
+        className="grid grid-cols-1 lg:grid-cols-4 gap-6 items-start select-none"
+      >
         <div className="lg:col-span-3 space-y-6">
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-sm space-y-5 animate-in fade-in-50 duration-200">
             <div className="flex flex-col gap-2">
@@ -656,8 +687,6 @@ export function CreatePaste() {
               </div>
             </div>
           </div>
-
-
         </div>
 
         <div className="space-y-6">
@@ -715,7 +744,9 @@ export function CreatePaste() {
                     ))
                   )}
                 </select>
-                {!isGuest && <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-455 pointer-events-none" />}
+                {!isGuest && (
+                  <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-455 pointer-events-none" />
+                )}
               </div>
               <span className="text-[10px] text-slate-400 dark:text-slate-500 leading-normal pl-0.5 select-none">
                 {getExpirationDescription(isGuest ? '3600' : expiration)}
@@ -739,7 +770,8 @@ export function CreatePaste() {
                     <span>Private (Guest Mode)</span>
                   </div>
                   <span className="text-[9px] text-amber-500 font-semibold leading-normal pl-0.5 select-none block mt-1 italic animate-in fade-in duration-200">
-                    Guest pastes default to Private and can only be accessed using their generated URL or Paste Code.
+                    Guest pastes default to Private and can only be accessed using their generated
+                    URL or Paste Code.
                   </span>
                 </>
               ) : (
@@ -823,7 +855,9 @@ export function CreatePaste() {
                       <input
                         type={showPin ? 'text' : 'password'}
                         value={customPin}
-                        onChange={(e) => setCustomPin(e.target.value.replace(/\D/g, '').slice(0, 8))}
+                        onChange={(e) =>
+                          setCustomPin(e.target.value.replace(/\D/g, '').slice(0, 8))
+                        }
                         placeholder="4 to 8 digits PIN"
                         className="h-9 w-full rounded-lg border border-slate-200 bg-white px-3 pr-10 text-xs focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-slate-800 dark:bg-slate-955 dark:text-slate-200 transition-colors"
                       />

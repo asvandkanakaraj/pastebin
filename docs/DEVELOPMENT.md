@@ -452,4 +452,3 @@
   - Updated `BrowsePastes.tsx` to conditionally load transient states from local storage (`pb_guest_recent_pastes`, `pb_guest_saved_pastes`, `pb_guest_recently_viewed_pastes`) if not authenticated. Hides workspace modification triggers (Edit, Delete, Shared With Me).
   - Modified `ViewPaste.tsx` to handle guest bookmarks locally, log transient recent views, and added a Bookmark toggle action button to the view header.
   - Updated unit tests to support return changes and confirmed monorepo compiles successfully.
-
