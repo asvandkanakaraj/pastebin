@@ -11,8 +11,6 @@
     "dev": "npm run dev --workspaces --if-present",
     "build": "npm run build -w @pastebin/shared && npm run build -w @pastebin/database && npm run build -w @pastebin/server && npm run build -w web",
     "build:prod": "npm run build -w @pastebin/shared && npm run build -w @pastebin/database && npm run build -w @pastebin/server && npm run build -w web",
-    "start": "node apps/server/dist/index.js",
-    "prestart": "npm run db:push -w @pastebin/database",
     "lint": "npm run lint --workspaces --if-present",
     "format": "prettier --write .",
     "test": "npm run test --workspaces --if-present",
