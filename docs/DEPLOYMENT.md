@@ -2,6 +2,50 @@
 
 This document details the configuration for deploying the PasteBin application, setting up automated CI checks, and verifying system health via health metrics endpoints.
 
+> **Live Deployment**: The application is currently live on [Render](https://render.com/) — see Section 0 for Render-specific configuration. Docker-based self-hosted deployment instructions are in Section 3.
+
+---
+
+## 0. Render Cloud Deployment (Live)
+
+The application is deployed as two separate Render Web Services connected to a [Neon](https://neon.tech/) serverless PostgreSQL database.
+
+### Live URLs
+
+| Service | URL |
+|---|---|
+| **Frontend** | https://pastebin-frontend-tfjz.onrender.com |
+| **Backend API** | https://pastebin-backend-yba9.onrender.com |
+| **Health Check** | https://pastebin-backend-yba9.onrender.com/health |
+
+### Backend Service Configuration
+
+| Field | Value |
+|---|---|
+| **Root Directory** | *(monorepo root)* |
+| **Build Command** | `npm run build -w @pastebin/shared && npm run build -w @pastebin/database && npm run build -w @pastebin/server` |
+| **Start Command** | `node apps/server/dist/index.js` |
+
+**Required Environment Variables (set in Render dashboard):**
+- `DATABASE_URL` — Neon PostgreSQL connection string
+- `JWT_SECRET` — Secret key for signing JWT tokens
+- `CORS_ORIGIN` — Comma-separated list of allowed frontend origins (e.g. `https://pastebin-frontend-tfjz.onrender.com`)
+- `PORT` — Render sets this automatically; app reads `process.env.PORT`
+
+### Frontend Service Configuration
+
+| Field | Value |
+|---|---|
+| **Root Directory** | `apps/web` |
+| **Build Command** | `npm install && npm run build` |
+| **Publish Directory** | `dist` |
+
+**Required Environment Variables:**
+- `VITE_API_URL` — Backend API base URL (e.g. `https://pastebin-backend-yba9.onrender.com`)
+
+---
+
+
 ## 1. Advanced Health Monitoring Endpoint
 
 To support container liveness probes (e.g., Kubernetes livenessProbe / readinessProbe) and cloud load balancer check signals (e.g., AWS Route53 or target groups), the server exposes an advanced pinging endpoint:
