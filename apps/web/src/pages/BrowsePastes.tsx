@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
 import {
@@ -91,7 +91,7 @@ export function BrowsePastes() {
 
   const isGuest = !user;
 
-  const fetchWorkspace = async () => {
+  const fetchWorkspace = useCallback(async () => {
     setLoading(true);
     setError(null);
 
@@ -125,11 +125,11 @@ export function BrowsePastes() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [isGuest, logout]);
 
   useEffect(() => {
     fetchWorkspace();
-  }, [user]);
+  }, [fetchWorkspace]);
 
   const toggleViewMode = (section: string) => {
     const nextMode = viewModes[section] === 'grid' ? 'list' : 'grid';
@@ -173,7 +173,7 @@ export function BrowsePastes() {
       });
       setDeleteConfirmPaste(null);
       fetchWorkspace();
-    } catch (err) {
+    } catch {
       setDeleteConfirmPaste(null);
     } finally {
       setDeleteLoading(false);

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import {
@@ -81,7 +81,7 @@ export function UserProfile() {
   const [unlockError, setUnlockError] = useState<string | null>(null);
   const [unlocking, setUnlocking] = useState(false);
 
-  const fetchProfile = async () => {
+  const fetchProfile = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
@@ -103,11 +103,11 @@ export function UserProfile() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [username, token]);
 
   useEffect(() => {
     fetchProfile();
-  }, [username, token]);
+  }, [fetchProfile]);
 
   const isOwner = loggedInUser && profile && profile.user.id === loggedInUser.id;
 

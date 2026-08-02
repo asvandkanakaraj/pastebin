@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useParams, Link, useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import {
@@ -64,7 +64,7 @@ export function ViewPaste() {
   const [shareSuccess, setShareSuccess] = useState<string | null>(null);
   const [shareError, setShareError] = useState<string | null>(null);
 
-  const fetchPaste = async (pw = '') => {
+  const fetchPaste = useCallback(async (pw = '') => {
     setLoading(true);
     setError(null);
     setPasswordError(null);
@@ -119,7 +119,7 @@ export function ViewPaste() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [id, token]);
 
   const handleToggleBookmark = async () => {
     if (!paste) return;
@@ -157,10 +157,10 @@ export function ViewPaste() {
 
   useEffect(() => {
     fetchPaste();
-  }, [id, token]);
+  }, [fetchPaste]);
 
   // Fetch paste shares on modal open
-  const fetchShares = async () => {
+  const fetchShares = useCallback(async () => {
     if (!token) return;
     try {
       const headers = { Authorization: `Bearer ${token}` };
@@ -171,13 +171,13 @@ export function ViewPaste() {
     } catch {
       // Ignore share fetch failures — modal will be empty
     }
-  };
+  }, [id, token]);
 
   useEffect(() => {
     if (showAdvanced) {
       fetchShares();
     }
-  }, [showAdvanced]);
+  }, [showAdvanced, fetchShares]);
 
   // Debounced User Search
   useEffect(() => {
