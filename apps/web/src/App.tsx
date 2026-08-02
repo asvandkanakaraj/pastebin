@@ -1,4 +1,5 @@
-import { lazy, Suspense } from 'react';
+import { lazy, Suspense, Component } from 'react';
+import type { ReactNode } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { ThemeProvider } from './components/theme-provider.js';
 import { AuthProvider } from './components/auth-provider.js';
@@ -48,25 +49,72 @@ function PageLoader() {
   );
 }
 
+// React ErrorBoundary — catches render-phase crashes and shows a clean fallback
+// instead of a blank white screen.
+interface ErrorBoundaryState {
+  hasError: boolean;
+  message: string;
+}
+
+class ErrorBoundary extends Component<{ children: ReactNode }, ErrorBoundaryState> {
+  constructor(props: { children: ReactNode }) {
+    super(props);
+    this.state = { hasError: false, message: '' };
+  }
+
+  static getDerivedStateFromError(error: Error): ErrorBoundaryState {
+    return { hasError: true, message: error.message };
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="flex h-[60vh] w-full flex-col items-center justify-center gap-5 text-center px-4">
+          <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-950/40 text-red-500 shadow-lg">
+            <Logo size={32} />
+          </div>
+          <div className="space-y-1.5">
+            <p className="text-sm font-bold text-slate-800 dark:text-slate-200">
+              Something went wrong
+            </p>
+            <p className="text-xs text-slate-500 dark:text-slate-400 max-w-xs">
+              An unexpected error occurred. Please refresh the page to continue.
+            </p>
+          </div>
+          <button
+            onClick={() => window.location.reload()}
+            className="px-4 py-2 text-xs font-bold rounded-lg bg-slate-900 dark:bg-white text-white dark:text-slate-900 hover:opacity-85 transition-opacity"
+          >
+            Reload Page
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 function App() {
   return (
     <ThemeProvider defaultTheme="dark">
       <AuthProvider>
         <BrowserRouter>
           <MainLayout>
-            <Suspense fallback={<PageLoader />}>
-              <Routes>
-                <Route path="/" element={<CreatePaste />} />
-                <Route path="/v/:id" element={<ViewPaste />} />
-                <Route path="/about" element={<About />} />
-                <Route path="/browse" element={<BrowsePastes />} />
-                <Route path="/login" element={<Login />} />
-                <Route path="/register" element={<Register />} />
-                <Route path="/search" element={<SearchResults />} />
-                <Route path="/profile/:username" element={<UserProfile />} />
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-            </Suspense>
+            <ErrorBoundary>
+              <Suspense fallback={<PageLoader />}>
+                <Routes>
+                  <Route path="/" element={<CreatePaste />} />
+                  <Route path="/v/:id" element={<ViewPaste />} />
+                  <Route path="/about" element={<About />} />
+                  <Route path="/browse" element={<BrowsePastes />} />
+                  <Route path="/login" element={<Login />} />
+                  <Route path="/register" element={<Register />} />
+                  <Route path="/search" element={<SearchResults />} />
+                  <Route path="/profile/:username" element={<UserProfile />} />
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </Suspense>
+            </ErrorBoundary>
           </MainLayout>
         </BrowserRouter>
       </AuthProvider>
